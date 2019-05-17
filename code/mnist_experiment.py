@@ -6,6 +6,10 @@ import os
 import json
 from tqdm import tqdm
 
+# Needed for compression as the common source of randomness
+from sobol_seq import i4_sobol_generate
+from scipy.stats import norm
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 tf.enable_eager_execution()
@@ -42,8 +46,8 @@ def mnist_input_fn(data, batch_size=128, shuffle_samples=5000):
 
     return dataset
 
-def mnist_binary_parse_fn(data):
-    return tf.cast(data, tf.float32) / 255.
+def mnist_binary_parse_fn(data, normalizing_const=255.):
+    return tf.cast(data, tf.float32) / normalizing_const
 
 # ==============================================================================
 # Main Function
@@ -59,14 +63,21 @@ def run(args):
 
     config = {
         "training_set_size": 60000,
+        "max_pixel_value": 1.,
+
         "num_latents": 10,
         "hidden_units": 100,
-        "beta": 1.,
+        "data_likelihood": "bernoulli",
+
         "batch_size": 128,
         "num_epochs": 20,
+
+        "loss": "neg_elbo",
+        "beta": 10.,
         "learning_rate": 1e-3,
         "optimizer": "adam",
-        "log_freq": 100,
+
+        "log_freq": 250,
         "checkpoint_name": "_ckpt",
     }
 
@@ -92,7 +103,8 @@ def run(args):
     # ==========================================================================
 
     vae = MnistVAE(hidden_units=config["hidden_units"],
-                   num_latents=config["num_latents"])
+                   num_latents=config["num_latents"],
+                   data_likelihood=config["data_likelihood"])
 
     # Connect the model computational graph by executing a forward-pass
     vae(tf.zeros((1, 28, 28)))
@@ -147,27 +159,45 @@ def run(args):
                         log_prob = vae.log_prob
                         kl_div = vae.kl_divergence
 
-                        neg_elbo = -log_prob + beta * kl_div
+                        if config["loss"] == "neg_elbo":
+                            # Cross-entropy / MSE loss (depends on )
+                            loss = -log_prob + beta * kl_div
+
+                        elif config["loss"] == "psnr_kl":
+                            # PSNR: the Gaussian negative log prob is the MSE
+                            psnr = 20 * tf.log(config["max_pixel_value"]) - 10 * tf.log(-log_prob)
+
+                            loss = -psnr + beta * kl_div
+
+                        else:
+                            raise Exception("Loss {} not available!".format(config["loss"]))
 
                         output = tf.cast(tf.expand_dims(output, axis=-1), tf.float32)
 
                         # Add tensorboard summaries
-                        tfs.scalar("ELBO", -neg_elbo)
+                        tfs.scalar("loss", loss)
                         tfs.image("Reconstruction", output)
 
                     # Backprop
-                    grads = tape.gradient(neg_elbo, vae.get_all_variables())
+                    grads = tape.gradient(loss, vae.get_all_variables())
                     optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
 
                     # Update the progress bar
                     pbar.update(1)
-                    pbar.set_description("Epoch {}, ELBO: {:.2f}, KL: {:.2f}, Log Prob: {:.4f}".format(epoch, -neg_elbo, kl_div, log_prob))
+                    pbar.set_description("Epoch {}, Loss: {:.2f}, KL: {:.2f}, Log Prob: {:.4f}".format(epoch, loss, kl_div, log_prob))
 
             checkpoint.save(ckpt_prefix)
 
     else:
         print("Skipping training!")
 
+
+    # ==========================================================================
+    # Compress images
+    # ==========================================================================
+
+
+    print(vae.encode(tf.convert_to_tensor(test_data[:1, ...] / 255.)))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,15 @@
+#+TITLE: Thesis Stuff
+
+* Needs work [0/3]
+** TODO Implement different losses [0/4]
+*** TODO MSE + KL
+*** TODO PSNR + KL
+*** TODO VGG
+*** TODO GAN + VGG?
+
+
+** TODO Implement rejection sampling
+
+** TODO Upscale stuff
+
+* Ideas

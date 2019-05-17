@@ -1,14 +1,18 @@
 import tensorflow as tf
-from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape
+from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape, reuse_variables
 import tensorflow_probability as tfp
+tfd = tfp.distributions
 import matplotlib.pyplot as plt
 
 
 class MnistVAE(AbstractModule):
 
+    _allowed_likelihoods = set(["bernoulli", "gaussian"])
+
     def __init__(self,
                  hidden_units=100,
                  num_latents=2,
+                 data_likelihood="bernoulli",
                  name="mnist_vae"):
 
         # Initialise the superclass
@@ -17,7 +21,13 @@ class MnistVAE(AbstractModule):
         self._hidden_units = hidden_units
         self._num_latents = num_latents
 
-        self._latent_prior = tfp.distributions.Normal(
+        if data_likelihood not in self._allowed_likelihoods:
+            raise tf.errors.InvalidArgumentError("data_likelihood must be one of {}"
+                                                 .format(self._allowed_likelihoods))
+
+        self._data_likelihood=data_likelihood
+
+        self._latent_prior = tfd.Normal(
             loc=tf.zeros([num_latents]),
             scale=tf.ones([num_latents])
         )
@@ -39,14 +49,18 @@ class MnistVAE(AbstractModule):
         self._ensure_is_connected()
 
         return tf.reduce_sum(
-            tfp.distributions.kl_divergence(self._q, self._latent_prior))
+            tfd.kl_divergence(self._q, self._latent_prior))
 
+    @reuse_variables
     def encode(self, inputs):
         """
         The encoder will predict the variational
         posterior q(z | x) = N(z | mu(x), sigma(x)).
 
         This will be done by using a two-headed network
+
+        Note: reuse_variables is required so that when we call
+        encode on its own, it uses the trained weights
         """
 
         # Turn the images into vectors
@@ -80,7 +94,13 @@ class MnistVAE(AbstractModule):
         return mu, sigma
 
 
+    @reuse_variables
     def decode(self, latents):
+        """
+        Note: reuse_variables is required so that when we call
+        encode on its own, it uses the trained weights
+
+        """
 
         # First fully connected layer
         linear1 = Linear(output_size=self._hidden_units,
@@ -120,7 +140,7 @@ class MnistVAE(AbstractModule):
         # Get the means and variances of variational posteriors
         q_mu, q_sigma = self.encode(inputs)
 
-        q = tfp.distributions.Normal(loc=q_mu, scale=q_sigma)
+        q = tfd.Normal(loc=q_mu, scale=q_sigma)
 
         latents = q.sample()
 
@@ -130,7 +150,11 @@ class MnistVAE(AbstractModule):
         # Get Bernoulli likelihood means
         p_logits = self.decode(latents)
 
-        p = tfp.distributions.Bernoulli(logits=p_logits)
+        if self._data_likelihood == "bernoulli":
+            p = tfd.Bernoulli(logits=p_logits)
+
+        else:
+            p = tfd.Normal(loc=p_logits, scale=tf.ones_like(p_logits))
 
         self._log_prob = p.log_prob(inputs)
 
