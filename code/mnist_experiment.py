@@ -18,12 +18,19 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from mnist_vae import MnistVAE
+from architectures import MnistFC_VAE, MnistFC_CNN_VAE, MnistCNN_VAE
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 
 # ==============================================================================
 # Predefined Stuff
 # ==============================================================================
+
+models = {
+    "fc": MnistFC_VAE,
+    "fc_cnn": MnistFC_CNN_VAE,
+    "cnn": MnistCNN_VAE
+}
+
 
 optimizers = {
     "sgd": tf.train.GradientDescentOptimizer,
@@ -66,20 +73,23 @@ def run(args):
         "max_pixel_value": 1.,
 
         "num_latents": 10,
-        "hidden_units": 100,
+        "hidden_units": 200,
         "data_likelihood": "bernoulli",
 
         "batch_size": 128,
         "num_epochs": 20,
 
         "loss": "neg_elbo",
-        "beta": 10.,
+        "beta": 1.,
         "learning_rate": 1e-3,
         "optimizer": "adam",
 
         "log_freq": 250,
         "checkpoint_name": "_ckpt",
     }
+
+    if args.config is not None:
+        config = json.load(args.config)
 
     num_batches = config["training_set_size"] // config["batch_size"]
 
@@ -102,9 +112,11 @@ def run(args):
     # Create VAE model
     # ==========================================================================
 
-    vae = MnistVAE(hidden_units=config["hidden_units"],
-                   num_latents=config["num_latents"],
-                   data_likelihood=config["data_likelihood"])
+    model = models[args.model]
+
+    vae = model(hidden_units=config["hidden_units"],
+                num_latents=config["num_latents"],
+                data_likelihood=config["data_likelihood"])
 
     # Connect the model computational graph by executing a forward-pass
     vae(tf.zeros((1, 28, 28)))
@@ -142,8 +154,6 @@ def run(args):
     if args.is_training:
 
         for epoch in range(1, config["num_epochs"] + 1):
-
-            print("Epoch {}".format(epoch))
 
             with tqdm(total=num_batches) as pbar:
                 for batch in train_dataset:
@@ -197,13 +207,17 @@ def run(args):
     # ==========================================================================
 
 
-    print(vae.encode(tf.convert_to_tensor(test_data[:1, ...] / 255.)))
+    print(vae.encode(tf.convert_to_tensor(test_data[:1, ...] / 255., dtype=tf.float32)))
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Bayes By Backprop models')
+    parser = argparse.ArgumentParser(description='Experimental models for MNIST')
 
+    parser.add_argument('--config', type=open, default=None,
+                    help='Path to the config JSON file.')
+    parser.add_argument('--model', choices=list(models.keys()), default='fc',
+                    help='The model to train.')
     parser.add_argument('--no_training',
                         action="store_false",
                         dest="is_training",

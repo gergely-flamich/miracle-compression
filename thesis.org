@@ -1,5 +1,7 @@
 #+TITLE: Thesis Stuff
 
+Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
+
 * Needs work [1/4]
 ** TODO Implement different losses [3/5]
 *** DONE Bernoulli + KL for binary MNIST
@@ -22,7 +24,7 @@
 
 * Questions [0/3]
 ** TODO What is the appropriate way to train the network?
-   - In [[file:papers/clic2018_winner.pdf][clic winner]] they suggest downloading stuff from Flickr and using 256x256 cutouts
+   - In [[file:papers/clic2018_winner.pdf][clic winner]] and [[file:papers/var_comp_with_hyperprior.pdf][Balle 2018]] they suggest downloading stuff from Flickr and using 256x256 cutouts
 ** TODO How to make the network work for arbitrary image sizes?
    Would a purely CNN + ResNet based architecture work?
 ** TODO Is -PSNR + KL the appropriate loss to use?
