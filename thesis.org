@@ -1,15 +1,67 @@
 #+TITLE: Thesis Stuff
 
-* Needs work [0/3]
-** TODO Implement different losses [0/4]
-*** TODO MSE + KL
-*** TODO PSNR + KL
+* Needs work [1/4]
+** TODO Implement different losses [3/5]
+*** DONE Bernoulli + KL for binary MNIST
+    CLOSED: [2019-05-19 Sun 14:22]
+*** DONE MSE + KL
+    CLOSED: [2019-05-19 Sun 14:21]
+*** DONE PSNR + KL
+    CLOSED: [2019-05-19 Sun 14:21]
 *** TODO VGG
 *** TODO GAN + VGG?
 
 
-** TODO Implement rejection sampling
+** DONE Implement (basic) rejection sampling
+   CLOSED: [2019-05-19 Sun 14:20]
+
+** TODO Implement block-basid RS?
 
 ** TODO Upscale stuff
 
+
+* Questions [0/3]
+** TODO What is the appropriate way to train the network?
+   - In [[file:papers/clic2018_winner.pdf][clic winner]] they suggest downloading stuff from Flickr and using 256x256 cutouts
+** TODO How to make the network work for arbitrary image sizes?
+   Would a purely CNN + ResNet based architecture work?
+** TODO Is -PSNR + KL the appropriate loss to use?
+   - Criticised in [[file:papers/nn_img_loss_fns.pdf][here]]
+   
 * Ideas
+** Denoising VAEs -> compress similar images to the same latent representation?
+
+
+* Papers [2/9]
+** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)
+   [[file:papers/deep_feature_consistent_vae.pdf][Paper]] 
+** TODO Denoising Criterion for VAEs (Im et al.)
+   [[file:papers/denoising_vaes.pdf][Paper]]
+** TODO End-to-end Optimised Image Compression (Balle et al.)
+   [[file:papers/ete_image_compression.pdf][Paper]]
+** DONE How to Train Deep Variational Autoencoders and Probabilistic Ladder Networks (Sonderby et al.)
+   CLOSED: [2019-05-19 Sun 14:36]
+   [[file:papers/how_to_train_vaes.pdf][Paper]]
+** DONE Loss Functions for Image Restoration with Neural Networks (Zhao et al.)
+   CLOSED: [2019-05-19 Sun 14:36]
+   [[file:papers/nn_img_loss_fns.pdf][Paper]]
+** TODO Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
+   [[file:papers/srgans_mssim.pdf][Paper]]
+** TODO VAE-GANs for Probabilistic Compressive Image Recovery: Uncertainty Analysis (Edupuganti et al.)
+   [[file:papers/vae_gans.pdf][Paper]]
+** TODO Variational Autoencoder for Low Bit-rate Image Compression (CLIC 2018 winner)
+   [[file:papers/clic2018_winner.pdf][CLIC 2018 Winner]]
+
+** TODO Variational Image Compression with Scale Hyperprior (Balle et al.)
+   [[file:papers/var_comp_with_hyperprior.pdf][Paper]]
+
+
+* Meeting on 20 May
+
+* Meeting on 27 May
+
+* Meeting on 3 June
+
+* Meeting on 10 June
+
+* Meeting on 17 June / Industry day

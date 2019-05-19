@@ -5,6 +5,10 @@ import argparse
 import os, tempfile
 
 
+# ==============================================================================
+# Miscellaneous helper functions
+# ==============================================================================
+
 def is_valid_file(parser, arg):
     """
     Taken from
@@ -24,7 +28,18 @@ def is_valid_file(parser, arg):
         parser.error("A file at the given path cannot be created: " % arg)
 
 
+# ==============================================================================
+# Tensorflow helper functions
+# ==============================================================================
+
 def setup_eager_checkpoints_and_restore(variables, checkpoint_dir, checkpoint_name="_ckpt"):
+    """
+    Convenience function to set up TF eager checkpoints for the given variables.
+
+    variables - iterable of TF Variables that we want to checkpoint
+    checkpoint_dir - string containing the checkpoint path
+    """
+
     ckpt_prefix = os.path.join(checkpoint_dir, checkpoint_name)
 
     checkpoint = tf.train.Checkpoint(**{v.name: v for v in variables})
@@ -39,3 +54,29 @@ def setup_eager_checkpoints_and_restore(variables, checkpoint_dir, checkpoint_na
         print("Model restored!")
 
     return checkpoint, ckpt_prefix
+
+
+# ==============================================================================
+# Dataset loading functions
+# ==============================================================================
+
+def process_image(image, normalize=True):
+    """
+    image - raw representation of an image
+    normalize - will adjust all pixels of the image to lie between 0 and 1
+    for every channel.
+    """
+
+    img_tensor = tf.image.decode_image(image)
+    img_tensor = tf.cast(img_tensor, tf.float32)
+
+    if normalize:
+        img_tensor /= 255.
+
+    return img_tensor
+
+
+def load_and_process_image(image_path):
+
+    img_raw = tf.read_file(image_path)
+    return process_image(img_raw)
