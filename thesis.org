@@ -22,13 +22,10 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** TODO Upscale stuff
 
 
-* Questions [0/3]
-** TODO What is the appropriate way to train the network?
-   - In [[file:papers/clic2018_winner.pdf][clic winner]] and [[file:papers/var_comp_with_hyperprior.pdf][Balle 2018]] they suggest downloading stuff from Flickr and using 256x256 cutouts
-** TODO How to make the network work for arbitrary image sizes?
-   Would a purely CNN + ResNet based architecture work?
-** TODO Is -PSNR + KL the appropriate loss to use?
-   - Criticised in [[file:papers/nn_img_loss_fns.pdf][here]]
+* Questions [0/1]
+** TODO What is the equivalent of the block constraint here?
+   - Is there a connection to conditional sampling?
+   
    
 * Ideas
 ** Denoising VAEs -> compress similar images to the same latent representation?
@@ -58,7 +55,19 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
    [[file:papers/var_comp_with_hyperprior.pdf][Paper]]
 
 
-* Meeting on 20 May
+* Meeting on 20 May [3/4]
+** DONE What is the appropriate way to train the network?
+   CLOSED: [2019-05-20 Mon 15:56]
+   - In [[file:papers/clic2018_winner.pdf][clic winner]] and [[file:papers/var_comp_with_hyperprior.pdf][Balle 2018]] they suggest downloading stuff from Flickr and using 256x256 cutouts
+   *Answer*: just try what's in the paper
+** DONE How to make the network work for arbitrary image sizes?
+   CLOSED: [2019-05-20 Mon 15:56]
+   Would a purely CNN + ResNet based architecture work?
+   *Answer*: yes, a pure cnn + resnet is probably the answer
+** DONE Is -PSNR + KL the appropriate loss to use?
+   CLOSED: [2019-05-20 Mon 15:56]
+   - Criticised in [[file:papers/nn_img_loss_fns.pdf][here]]
+   *Answer*: just use MSE (Gaussian likelihood)
 
 * Meeting on 27 May
 

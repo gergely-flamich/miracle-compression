@@ -2,7 +2,7 @@ import numpy as np
 
 import tensorflow as tf
 from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape, reuse_variables, \
-    Conv2D
+    Conv2D, BatchNorm
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 import matplotlib.pyplot as plt
@@ -35,6 +35,16 @@ class MnistVAE(AbstractModule):
             scale=tf.ones([num_latents])
         )
 
+        # Needed for batch norm
+        self._is_training = True
+
+    def training_finished(self):
+        """
+        Required so that batch norm can be turned on/ off appropriately
+        """
+        self._ensure_is_connected()
+
+        self._is_training = False
 
     @reuse_variables
     def encode(self, inputs):
@@ -89,11 +99,13 @@ class MnistVAE(AbstractModule):
             p = tfd.Bernoulli(logits=p_logits)
 
         else:
+            p_logits = tf.nn.sigmoid(p_logits)
+
             p = tfd.Normal(loc=p_logits, scale=tf.ones_like(p_logits))
 
         self._log_prob = p.log_prob(inputs)
 
-        return p.sample()
+        return p_logits
 
 
 # ==============================================================================
@@ -136,12 +148,18 @@ class MnistFC_VAE(MnistVAE):
         pre_activations = linear1(flattened)
         activations = tf.nn.relu(pre_activations)
 
+        bn1 = BatchNorm(update_ops_collection=None)
+        activations = bn1(activations, is_training=self._is_training)
+
         # Second fully connected layer
         linear2 = Linear(output_size=self._hidden_units,
                          name="encoder_linear2")
 
         pre_activations = linear2(activations)
         activations = tf.nn.relu(pre_activations)
+
+        bn2 = BatchNorm(update_ops_collection=None)
+        activations = bn2(activations, is_training=self._is_training)
 
         # Mean-head
         linear_mu = Linear(output_size=self._num_latents,
@@ -171,12 +189,19 @@ class MnistFC_VAE(MnistVAE):
         pre_activations = linear1(latents)
         activations = tf.nn.relu(pre_activations)
 
+        bn1 = BatchNorm(update_ops_collection=None)
+        activations = bn1(activations, is_training=self._is_training)
+
+
         # Second fully connected layer
         linear2 = Linear(output_size=self._hidden_units,
                          name="decoder_linear2")
 
         pre_activations = linear2(activations)
         activations = tf.nn.relu(pre_activations)
+
+        bn2 = BatchNorm(update_ops_collection=None)
+        activations = bn2(activations, is_training=self._is_training)
 
         # Predict the means of a Bernoulli
         linear_out = Linear(output_size=28 * 28,
@@ -228,6 +253,10 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         activations = tf.nn.relu(self.conv1(inputs[..., tf.newaxis]))
 
+        bn1 = BatchNorm(update_ops_collection=None,
+                        name="encoder_bn1")
+        activations = bn1(activations, is_training=self._is_training)
+
         # Go from N x 14 x 14 x 16 -> N x 7 x 7 x 32
         self.conv2 = Conv2D(output_channels=32,
                             kernel_shape=(3, 3),
@@ -237,6 +266,9 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         activations = tf.nn.relu(self.conv2(activations))
 
+        bn2 = BatchNorm(update_ops_collection=None,
+                        name="encoder_bn2")
+        activations = bn2(activations, is_training=self._is_training)
 
         # Turn the convolved images into vectors
         flatten = BatchFlatten()
@@ -248,6 +280,10 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         pre_activations = linear1(flattened)
         activations = tf.nn.relu(pre_activations)
+
+        bn3 = BatchNorm(update_ops_collection=None,
+                        name="encoder_bn3")
+        activations = bn3(activations, is_training=self._is_training)
 
         # Mean-head
         linear_mu = Linear(output_size=self._num_latents,
@@ -277,11 +313,19 @@ class MnistFC_CNN_VAE(MnistVAE):
         pre_activations = linear1(latents)
         activations = tf.nn.relu(pre_activations)
 
+        bn1 = BatchNorm(update_ops_collection=None,
+                        name="decoder_bn1")
+        activations = bn1(activations, is_training=self._is_training)
+
         # Predict the means of the data likelihood
         linear2 = Linear(output_size=7 * 7 * 32,
                          name="decoder_linear2")
 
         activations = tf.nn.relu(linear2(activations))
+
+        bn2 = BatchNorm(update_ops_collection=None,
+                        name="decoder_bn1")
+        activations = bn2(activations, is_training=self._is_training)
 
         reshaper = BatchReshape(shape=(7, 7, 32))
         activations = reshaper(activations)
@@ -290,6 +334,10 @@ class MnistFC_CNN_VAE(MnistVAE):
         deconv1 = self.conv2.transpose()
 
         activations = tf.nn.relu(deconv1(activations))
+
+        bn3 = BatchNorm(update_ops_collection=None,
+                        name="decoder_bn3")
+        activations = bn3(activations, is_training=self._is_training)
 
         # Go from N x 14 x 14 x 16 -> N x 28 x 28 x 1
         deconv2 = self.conv1.transpose()

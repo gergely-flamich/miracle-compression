@@ -1,6 +1,11 @@
 # ==============================================================================
 # Imports
 # ==============================================================================
+
+# This is needed so that python finds the utils
+import sys
+sys.path.append("/Users/gergelyflamich/Documents/Work/MLMI/miracle-compession/code")
+
 import argparse
 import os
 import json
@@ -72,17 +77,17 @@ def run(args):
         "training_set_size": 60000,
         "max_pixel_value": 1.,
 
-        "num_latents": 10,
-        "hidden_units": 200,
-        "data_likelihood": "bernoulli",
+        "num_latents": 40,
+        "hidden_units": 300,
+        "data_likelihood": "gaussian",
 
         "batch_size": 128,
         "num_epochs": 20,
 
         "loss": "neg_elbo",
-        "beta": 1.,
-        "learning_rate": 1e-3,
-        "optimizer": "adam",
+        "beta": 0.03,
+        "learning_rate": 1e-5,
+        "optimizer": "momentum",
 
         "log_freq": 250,
         "checkpoint_name": "_ckpt",
@@ -171,6 +176,7 @@ def run(args):
 
                         if config["loss"] == "neg_elbo":
                             # Cross-entropy / MSE loss (depends on )
+                            B = batch.shape.as_list()[0]
                             loss = -log_prob + beta * kl_div
 
                         elif config["loss"] == "psnr_kl":
