@@ -149,7 +149,7 @@ class MnistFC_VAE(MnistVAE):
         activations = tf.nn.relu(pre_activations)
 
         bn1 = BatchNorm(update_ops_collection=None)
-        activations = bn1(activations, is_training=self._is_training)
+        #activations = bn1(activations, is_training=self._is_training)
 
         # Second fully connected layer
         linear2 = Linear(output_size=self._hidden_units,
@@ -159,7 +159,7 @@ class MnistFC_VAE(MnistVAE):
         activations = tf.nn.relu(pre_activations)
 
         bn2 = BatchNorm(update_ops_collection=None)
-        activations = bn2(activations, is_training=self._is_training)
+        #activations = bn2(activations, is_training=self._is_training)
 
         # Mean-head
         linear_mu = Linear(output_size=self._num_latents,
@@ -190,7 +190,7 @@ class MnistFC_VAE(MnistVAE):
         activations = tf.nn.relu(pre_activations)
 
         bn1 = BatchNorm(update_ops_collection=None)
-        activations = bn1(activations, is_training=self._is_training)
+        #activations = bn1(activations, is_training=self._is_training)
 
 
         # Second fully connected layer
@@ -201,7 +201,7 @@ class MnistFC_VAE(MnistVAE):
         activations = tf.nn.relu(pre_activations)
 
         bn2 = BatchNorm(update_ops_collection=None)
-        activations = bn2(activations, is_training=self._is_training)
+        #activations = bn2(activations, is_training=self._is_training)
 
         # Predict the means of a Bernoulli
         linear_out = Linear(output_size=28 * 28,
@@ -255,7 +255,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn1 = BatchNorm(update_ops_collection=None,
                         name="encoder_bn1")
-        activations = bn1(activations, is_training=self._is_training)
+        #activations = bn1(activations, is_training=self._is_training)
 
         # Go from N x 14 x 14 x 16 -> N x 7 x 7 x 32
         self.conv2 = Conv2D(output_channels=32,
@@ -268,7 +268,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn2 = BatchNorm(update_ops_collection=None,
                         name="encoder_bn2")
-        activations = bn2(activations, is_training=self._is_training)
+        #activations = bn2(activations, is_training=self._is_training)
 
         # Turn the convolved images into vectors
         flatten = BatchFlatten()
@@ -283,7 +283,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn3 = BatchNorm(update_ops_collection=None,
                         name="encoder_bn3")
-        activations = bn3(activations, is_training=self._is_training)
+        #activations = bn3(activations, is_training=self._is_training)
 
         # Mean-head
         linear_mu = Linear(output_size=self._num_latents,
@@ -315,7 +315,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn1 = BatchNorm(update_ops_collection=None,
                         name="decoder_bn1")
-        activations = bn1(activations, is_training=self._is_training)
+        #activations = bn1(activations, is_training=self._is_training)
 
         # Predict the means of the data likelihood
         linear2 = Linear(output_size=7 * 7 * 32,
@@ -325,7 +325,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn2 = BatchNorm(update_ops_collection=None,
                         name="decoder_bn1")
-        activations = bn2(activations, is_training=self._is_training)
+        #activations = bn2(activations, is_training=self._is_training)
 
         reshaper = BatchReshape(shape=(7, 7, 32))
         activations = reshaper(activations)
@@ -337,7 +337,7 @@ class MnistFC_CNN_VAE(MnistVAE):
 
         bn3 = BatchNorm(update_ops_collection=None,
                         name="decoder_bn3")
-        activations = bn3(activations, is_training=self._is_training)
+        #activations = bn3(activations, is_training=self._is_training)
 
         # Go from N x 14 x 14 x 16 -> N x 28 x 28 x 1
         deconv2 = self.conv1.transpose()

@@ -11,6 +11,8 @@ import os
 import json
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+
 # Needed for compression as the common source of randomness
 from sobol_seq import i4_sobol_generate
 from scipy.stats import norm
@@ -19,6 +21,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 tf.enable_eager_execution()
 
+tfd = tfp.distributions
 tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
@@ -213,7 +216,26 @@ def run(args):
     # ==========================================================================
 
 
-    print(vae.encode(tf.convert_to_tensor(test_data[:1, ...] / 255., dtype=tf.float32)))
+    test_mu1, test_sigma1 = vae.encode(tf.convert_to_tensor(train_data[:1, ...] / 255., dtype=tf.float32))
+    print(test_mu1)
+
+    test_dist1 = tfd.Normal(loc=test_mu1, scale=test_sigma1)
+
+
+    plt.figure(figsize = (17, 6))
+    plt.subplot(131)
+    plt.title("Uncompressed (2 Blocks)", fontsize=16)
+    plt.imshow(vae.decode(test_dist1.sample()))
+
+    plt.subplot(132)
+    plt.title("Reconstructed", fontsize=16)
+    plt.imshow(vae(tf.convert_to_tensor(train_data[100][tf.newaxis, ...] / 255., dtype=tf.float32)))
+
+    plt.subplot(133)
+    plt.title("Original", fontsize=16)
+    plt.imshow(train_data[100])
+
+    plt.show()
 
 
 if __name__ == "__main__":

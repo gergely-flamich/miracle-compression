@@ -85,7 +85,7 @@ def run(args):
         "num_epochs": 20,
 
         "loss": "neg_elbo",
-        "beta": 0.03,
+        "beta": 1,
         "learning_rate": 1e-5,
         "optimizer": "momentum",
 
