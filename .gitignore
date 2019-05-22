@@ -79,6 +79,7 @@ target/
 .ipynb_checkpoints
 
 # pyenv
+gpu_miracle_venv
 miracle_venv
 .python-version
 

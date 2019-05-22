@@ -4,7 +4,7 @@
 
 # This is needed so that python finds the utils
 import sys
-sys.path.append("/Users/gergelyflamich/Documents/Work/MLMI/miracle-compession/code")
+sys.path.append("/home/gf332/miracle-compession/code")
 
 import argparse
 import os
