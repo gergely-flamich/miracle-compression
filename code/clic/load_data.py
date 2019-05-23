@@ -73,12 +73,12 @@ def download_process_and_load_data():
     valid_image_paths = glob.glob(valid_path + "/*.png")
 
     train_paths_dataset = tf.data.Dataset.from_tensor_slices(train_image_paths)
-    train_image_dataset = paths_dataset.map(lambda im: load_and_process_image(im, normalize=False),
-                                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_image_dataset = train_paths_dataset.map(lambda im: load_and_process_image(im, normalize=False),
+                                                  num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     valid_paths_dataset = tf.data.Dataset.from_tensor_slices(valid_image_paths)
-    valid_image_dataset = paths_dataset.map(lambda im: load_and_process_image(im, normalize=False),
-                                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    valid_image_dataset = valid_paths_dataset.map(lambda im: load_and_process_image(im, normalize=False),
+                                                  num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
     # Process the images
@@ -92,12 +92,13 @@ def download_process_and_load_data():
 
         for idx, image in enumerate(train_image_dataset):
 
-            print("Processing image {}".format(idx))
+            print("Processing image {} out of {}".format(idx, len(train_image_paths)))
 
             crops = create_random_crops(image)
 
             for i, crop in tqdm(enumerate(crops), total=len(crops)):
-                imwrite(train_processed_path + "{}_{}.png".format(idx, i), crop)
+                
+                imwrite(train_processed_path + "{}_{}.png".format(idx, i), crop.numpy())
 
             del crops
 
@@ -112,12 +113,12 @@ def download_process_and_load_data():
 
         for idx, image in enumerate(valid_image_dataset):
 
-            print("Processing image {}".format(idx))
+            print("Processing image {} out of {}".format(idx, len(valid_image_paths)))
 
             crops = create_random_crops(image)
 
             for i, crop in tqdm(enumerate(crops), total=len(crops)):
-                imwrite(valid_processed_path + "{}_{}.png".format(idx, i), crop)
+                imwrite(valid_processed_path + "{}_{}.png".format(idx, i), crop.numpy())
 
             del crops
 
@@ -130,12 +131,11 @@ def download_process_and_load_data():
     valid_image_paths = glob.glob(valid_processed_path + "/*.png")
 
     train_paths_dataset = tf.data.Dataset.from_tensor_slices(train_image_paths)
-    train_image_dataset = paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
-                                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_image_dataset = train_paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
+                                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     valid_paths_dataset = tf.data.Dataset.from_tensor_slices(valid_image_paths)
-    valid_image_dataset = paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
-                                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    valid_image_dataset = valid_paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
+                                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     return train_image_dataset, valid_image_dataset
-
