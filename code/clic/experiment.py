@@ -51,7 +51,7 @@ optimizers = {
 # ==============================================================================
 # Auxiliary Functions
 # ==============================================================================
-def clic_input_fn(dataset, buffer_size=2000, batch_size=8):
+def clic_input_fn(dataset, buffer_size=1000, batch_size=8):
     dataset = dataset.shuffle(buffer_size)
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(1)
@@ -75,7 +75,7 @@ def run(config_path=None,
 
         "loss": "neg_elbo",
         "beta": 0.1,
-        "learning_rate": 1e-4,
+        "learning_rate": 3e-5,
         "optimizer": "adam",
 
         "log_freq": 200,
@@ -177,7 +177,10 @@ def run(config_path=None,
                         output = tf.cast(output, tf.float32)
 
                         # Add tensorboard summaries
-                        tfs.scalar("loss", loss)
+                        tfs.scalar("Loss", loss)
+                        tfs.scalar("Log-Probability", log_prob / B)
+                        tfs.scalar("KL", kl_div / B)
+                        tfs.scalar("Beta-KL", beta * kl_div / B)
                         tfs.image("Reconstruction", output)
 
                     # Backprop
@@ -208,7 +211,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--config', type=open, default=None,
                     help='Path to the config JSON file.')
-    parser.add_argument('--model', choices=list(models.keys()), default='fc',
+    parser.add_argument('--model', choices=list(models.keys()), default='cnn',
                     help='The model to train.')
     parser.add_argument('--no_training',
                         action="store_false",
@@ -217,7 +220,7 @@ if __name__ == "__main__":
                         help='Should we just evaluate?')
     parser.add_argument('--model_dir',
                         type=lambda x: is_valid_file(parser, x),
-                        default='/tmp/miracle_compress_mnist',
+                        default='/tmp/miracle_compress_clic',
                         help='The model directory.')
 
     args = parser.parse_args()
