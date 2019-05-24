@@ -156,7 +156,7 @@ class DeconvUS(AbstractModule, Transposable):
                  data_format=DATA_FORMAT_NHWC,
                  name="deconv_igdn_block"):
 
-        super(ConvGDN, self).__init__(name=name)
+        super(DeconvUS, self).__init__(name=name)
 
         self._output_channels = output_channels
         self._upsampling_output_shape = upsampling_output_shape
