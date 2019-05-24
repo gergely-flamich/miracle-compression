@@ -17,7 +17,7 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** DONE Implement (basic) rejection sampling
    CLOSED: [2019-05-19 Sun 14:20]
 
-** TODO Implement block-basid RS?
+** TODO Implement block-based RS?
 
 ** TODO Upscale stuff
 
@@ -76,3 +76,8 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Meeting on 10 June
 
 * Meeting on 17 June / Industry day
+
+* Stuff [0/2]
+** TODO MS-SSIM loss
+** TODO Non-informative prior
+** 

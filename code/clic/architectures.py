@@ -3,11 +3,11 @@ from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape, reuse_var
     Conv2D, BatchNorm
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-import matplotlib.pyplot as plt
 
+from miracle_modules import ConvDS
 
 class ClicVAE(AbstractModule):
-    
+
     _allowed_priors = ["gaussian", "laplace"]
 
     def __init__(self,
@@ -16,7 +16,7 @@ class ClicVAE(AbstractModule):
 
         # Initialise the superclass
         super(ClicVAE, self).__init__(name=name)
-        
+
         if prior not in self._allowed_priors:
             raise tf.errors.InvalidArgumentError("prior must be one of {}"
                                                  .format(self._allowed_priors))
@@ -65,15 +65,15 @@ class ClicVAE(AbstractModule):
 
         if self._prior_dist == "gaussian":
             q = tfd.Normal(loc=q_mu, scale=q_sigma)
-            
+
         elif self._prior_dist == "laplace":
             q = tfd.Laplace(loc=q_mu, scale=q_sigma)
 
         latents = q.sample()
-        
+
         if self._prior_dist == "gaussian":
             self._latent_prior = tfd.Normal(loc=tf.zeros_like(latents), scale=tf.ones_like(latents))
-            
+
         elif self._prior_dist == "laplace":
             self._latent_prior = tfd.Laplace(loc=tf.zeros_like(latents), scale=tf.ones_like(latents))
 
@@ -120,50 +120,56 @@ class ClicCNN(ClicVAE):
         encode on its own, it uses the trained weights
         """
 
-        # First convolution layer
-        self.conv1 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(5, 5),
-                            stride=2,
-                            padding="SAME",
-                            name="encoder_conv1")
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
 
-        activations = tf.contrib.layers.gdn(self.conv1(inputs),
-                                            name="encoder_gdn1")
+        # First convolution layer
+        self.conv_ds1 = ConvDS(output_channels=self._top_conv_channels,
+                               kernel_shape=(5, 5),
+                               padding="SAME",
+                               downsampling_rate=2,
+                               use_gdn=True,
+                               name="encoder_conv_ds1")
+
 
         # Second convolution layer
-        self.conv2 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(5, 5),
-                            stride=2,
-                            padding="SAME",
-                            name="encoder_conv2")
-
-        activations = tf.contrib.layers.gdn(self.conv2(activations),
-                                            name="encoder_gdn2")
+        self.conv_ds2 = ConvDS(output_channels=self._top_conv_channels,
+                               kernel_shape=(5, 5),
+                               padding="SAME",
+                               downsampling_rate=2,
+                               use_gdn=True,
+                               name="encoder_conv_ds2")
 
         # Third convolution layer
-        self.conv3 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(5, 5),
-                            stride=2,
-                            padding="SAME",
-                            name="encoder_conv3")
+        self.conv_ds2 = ConvDS(output_channels=self._top_conv_channels,
+                               kernel_shape=(5, 5),
+                               padding="SAME",
+                               downsampling_rate=2,
+                               use_gdn=True,
+                               name="encoder_conv_ds2")
 
-        activations = tf.contrib.layers.gdn(self.conv3(activations),
-                                            name="encoder_gdn3")
-
-        # Latent convolution layer
+        # Latent distribution moment predictiors
+        # Mean
         self.conv_mu = Conv2D(output_channels=self._bottom_conv_channels,
                               kernel_shape=(5, 5),
+                              stride=2,
                               padding="SAME",
                               name="encoder_conv_mu")
 
-        mu = self.conv_mu(activations)
-
-        # Variance-head
+        # Covariance
         conv_sigma = Conv2D(output_channels=self._bottom_conv_channels,
                             kernel_shape=(5, 5),
+                            stride=2,
                             padding="SAME",
                             name="encoder_conv_var")
 
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
+
+        activations = self.conv_ds3(self.conv_ds2(self.conv_ds1(inputs)))
+        mu = self.conv_mu(activations)
         sigma = tf.nn.softplus(conv_sigma(activations))
 
         return mu, sigma
@@ -177,32 +183,27 @@ class ClicCNN(ClicVAE):
 
         """
 
-        deconv1 = self.conv_mu.transpose()
-        activations = tf.contrib.layers.gdn(deconv1(latents),
-                                            inverse=True,
-                                            name="decoder_gdn1")
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
 
-        deconv2 = self.conv3.transpose()
-        activations = tf.contrib.layers.gdn(deconv2(activations),
-                                            inverse=True,
-                                            name="decoder_gdn2")
+        deconv = self.conv_mu.transpose()
 
-        deconv3 = self.conv2.transpose()
-        activations = tf.contrib.layers.gdn(deconv3(activations),
-                                            inverse=True,
-                                            name="decoder_gdn3")
+        deconv_us1 = self.conv_ds2.transpose()
 
-        deconv4 = self.conv1.transpose()
-        activations = tf.contrib.layers.gdn(deconv4(activations),
-                                            inverse=True,
-                                            name="decoder_gdn4")
+        deconv_us2 = self.conv_ds1.transpose()
 
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
+
+        activations = deconv_us2(deconv_us1(deconv(latents)))
 
         logits = tf.squeeze(activations)
 
         return logits
 
-    
+
 # ==============================================================================
 
 
@@ -237,7 +238,7 @@ class ClicCNNResNet(ClicVAE):
                             stride=1,
                             padding="SAME",
                             name="encoder_conv1_1")
-        
+
         self.conv1_2 = Conv2D(output_channels=self._top_conv_channels,
                             kernel_shape=(3, 3),
                             stride=1,
@@ -246,13 +247,13 @@ class ClicCNNResNet(ClicVAE):
 
         activations = tf.contrib.layers.gdn(self.conv1_2(self.conv1_1(inputs)),
                                             name="encoder_gdn1")
-        
+
         self.res_conv1 = Conv2D(output_channels=self._top_conv_channels,
                             kernel_shape=(9, 9),
                             stride=8,
                             padding="SAME",
                             name="encoder_res_conv1")
-        
+
         res_activations1 = self.res_conv1(activations)
 
         # Second convolution layer
@@ -261,7 +262,7 @@ class ClicCNNResNet(ClicVAE):
                               stride=1,
                               padding="SAME",
                               name="encoder_conv2_1")
-        
+
         self.conv2_2 = Conv2D(output_channels=self._top_conv_channels,
                               kernel_shape=(3, 3),
                               stride=2,
@@ -270,13 +271,13 @@ class ClicCNNResNet(ClicVAE):
 
         activations = tf.contrib.layers.gdn(self.conv2_2(self.conv2_1(activations)),
                                             name="encoder_gdn2")
-        
+
         self.res_conv2 = Conv2D(output_channels=self._top_conv_channels,
                             kernel_shape=(5, 5),
                             stride=4,
                             padding="SAME",
                             name="encoder_res_conv2")
-        
+
         res_activations2 = self.res_conv2(activations)
 
         # Third convolution layer
@@ -285,7 +286,7 @@ class ClicCNNResNet(ClicVAE):
                             stride=1,
                             padding="SAME",
                             name="encoder_conv3_1")
-        
+
         self.conv3_2 = Conv2D(output_channels=self._top_conv_channels,
                               kernel_shape=(3, 3),
                               stride=2,
@@ -295,15 +296,15 @@ class ClicCNNResNet(ClicVAE):
         activations = tf.contrib.layers.gdn(self.conv3_2(self.conv3_1(activations)),
                                             name="encoder_gdn3")
 
-        
+
         self.res_conv3 = Conv2D(output_channels=self._top_conv_channels,
                             kernel_shape=(3, 3),
                             stride=2,
                             padding="SAME",
                             name="encoder_res_conv3")
-        
+
         res_activations3 = self.res_conv3(activations)
-        
+
         # Latent convolution layer
         self.conv_mu_1 = Conv2D(output_channels=self._top_conv_channels,
                               kernel_shape=(3, 3),

@@ -73,8 +73,9 @@ def run(config_path=None,
         "batch_size": 8,
         "num_epochs": 20,
 
-        "loss": "neg_elbo",
+        "loss": "nll_perceptual_kl",
         "beta": 0.1,
+        "gamma": 0.8
         "learning_rate": 3e-5,
         "optimizer": "adam",
 
@@ -142,6 +143,9 @@ def run(config_path=None,
 
     beta = config["beta"]
 
+    # Combination coefficient for the mixture losses
+    gamma = config["gamma"]
+
     if is_training:
 
         for epoch in range(1, config["num_epochs"] + 1):
@@ -154,33 +158,35 @@ def run(config_path=None,
 
                     with tf.GradientTape() as tape, tfs_logger(config["log_freq"]):
 
+                        B = batch.shape.as_list()[0]
+
                         # Predict the means of the pixels
                         output = vae(batch)
 
                         log_prob = vae.log_prob
                         kl_div = vae.kl_divergence
 
-                        if config["loss"] == "neg_elbo":
+                        output = tf.cast(output, tf.float32)
+                        #output = tf.clip_by_value(output, 0., 1.)
+
+                        ms_ssim = tf.image.ssim_multiscale(batch, output)
+                        ms_ssim = tf.reduce_sum(ms_ssim)
+
+                        if config["loss"] == "nll_perceptual_kl":
+
                             # Cross-entropy / MSE loss (depends on )
-                            B = batch.shape.as_list()[0]
-                            loss = (-log_prob + beta * kl_div) / B
-
-                        elif config["loss"] == "psnr_kl":
-                            # PSNR: the Gaussian negative log prob is the MSE
-                            psnr = 20 * tf.log(config["max_pixel_value"]) - 10 * tf.log(-log_prob)
-
-                            loss = -psnr + beta * kl_div
+                            loss = ((1 - gamma) * -log_prob + gamma * (1 - ms_ssim) + beta * kl_div) / B
 
                         else:
                             raise Exception("Loss {} not available!".format(config["loss"]))
 
-                        output = tf.cast(output, tf.float32)
 
                         # Add tensorboard summaries
                         tfs.scalar("Loss", loss)
                         tfs.scalar("Log-Probability", log_prob / B)
                         tfs.scalar("KL", kl_div / B)
                         tfs.scalar("Beta-KL", beta * kl_div / B)
+                        tfs.scalar("Average MS-SSIM", ms_ssim / B)
                         tfs.image("Reconstruction", output)
 
                     # Backprop

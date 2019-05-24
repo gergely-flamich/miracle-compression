@@ -97,7 +97,7 @@ def download_process_and_load_data():
             crops = create_random_crops(image)
 
             for i, crop in tqdm(enumerate(crops), total=len(crops)):
-                
+
                 imwrite(train_processed_path + "{}_{}.png".format(idx, i), crop.numpy())
 
             del crops
