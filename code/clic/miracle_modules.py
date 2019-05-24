@@ -46,6 +46,8 @@ class ConvDS(AbstractModule, Transposable):
 
     def _build(self, inputs):
 
+        self._input_shape = tuple(inputs.get_shape().as_list())
+        
         # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
@@ -72,10 +74,11 @@ class ConvDS(AbstractModule, Transposable):
         # Apply layers
         # ----------------------------------------------------------------------
 
-
+        activations = inputs
+        
         # Perform pure convolutions
         for conv in self.pure_convs:
-            activations = conv(inputs)
+            activations = conv(activations)
 
         # Downsampling convolution
         activations = self.last_conv(activations)
@@ -115,6 +118,13 @@ class ConvDS(AbstractModule, Transposable):
                         use_igdn=self._use_gdn,
                         data_format=self._data_format,
                         name=name)
+    
+    @property
+    def input_shape(self):
+        self._ensure_is_connected()
+        
+        return self._input_shape
+        
 
 
 class DeconvUS(AbstractModule, Transposable):
@@ -164,6 +174,8 @@ class DeconvUS(AbstractModule, Transposable):
 
     def _build(self, inputs):
 
+        self._input_shape = tuple(inputs.get_shape().as_list())
+        
         # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
@@ -191,13 +203,15 @@ class DeconvUS(AbstractModule, Transposable):
         # Apply layers
         # ----------------------------------------------------------------------
 
+        activations = inputs
+        
         if self._use_igdn:
             activations = tf.contrib.layers.gdn(activations,
                                                 inverse=True,
                                                 name="igdn")
 
         # Upsampling deconvolution
-        activations = self.first_deconv(inputs)
+        activations = self.first_deconv(activations)
 
         # Pure deconvolutions
         for deconv in pure_deconvs:
@@ -219,3 +233,9 @@ class DeconvUS(AbstractModule, Transposable):
                       use_gdn=self._use_igdn,
                       data_format=self._data_format,
                       name=name)
+
+    @property
+    def input_shape(self):
+        self._ensure_is_connected()
+        
+        return self._input_shape
