@@ -6,6 +6,14 @@ tfd = tfp.distributions
 
 from miracle_modules import ConvDS
 
+# ==============================================================================
+# ==============================================================================
+#
+# Superclasses
+#
+# ==============================================================================
+# ==============================================================================
+
 class ClicVAE(AbstractModule):
 
     _allowed_priors = ["gaussian", "laplace"]
@@ -91,6 +99,108 @@ class ClicVAE(AbstractModule):
         return p_logits
 
 
+# ==============================================================================
+
+class ClicHierarchicalVAE(AbstractModule):
+
+    _allowed_latent_dists = {
+        "gaussian": tfd.Normal,
+        "laplace": tfd.Laplace
+    }
+
+    _allowed_likelihoods = {
+        "gaussian": tfd.Normal,
+        "laplace": tfd.Laplace
+    }
+
+    _latent_priors = []
+    _latent_posteriors = []
+
+    def __init__(self,
+                 num_levels,
+                 latent_dist="gaussian",
+                 likelihood="gaussian",
+                 standardized=False,
+                 name="hierarchical_vae"):
+
+        super(ClicHierarchicalVAE, self).__init__(name=name)
+
+        self._num_levels = num_levels
+
+        if latent_dist not in self._allowed_latent_dists:
+            raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
+                                                 .format(self._allowed_latent_dists))
+
+        self._latent_dist = self._allowed_latent_dists[latent_dist]
+
+        if likelihood not in self._allowed_likelihoods:
+            raise tf.errors.InvalidArgumentError("likelihood must be one of {}"
+                                                 .format(self._allowed_likelihoods))
+
+        self._likelihood_dist = self._allowed_likelihoods[likelihood]
+
+        self._standardized = standardized
+
+
+    @reuse_variables
+    def encode(self, inputs):
+        raise NotImplementedError
+
+    @reuse_variables
+    def decode(self, latents):
+        raise NotImplementedError
+
+
+    @property
+    def kl_divergence(self):
+        self._ensure_is_connected()
+
+        if (len(self._latent_posteriors) != self._num_levels or
+            len(self._latent_priors) != self._num_levels):
+
+            raise Exception("Need a full pass through the VAE to calculate KL!")
+
+        klds = [tf.reduce_sum(tfd.kl_divergence(posterior, prior))
+                for posterior, prior in zip(self._latent_posteriors, self._latent_priors)]
+
+        return sum(klds)
+
+    @property
+    def log_prob(self):
+        self._ensure_is_connected()
+
+        if (len(self._latent_posteriors) != self._num_levels or
+            len(self._latent_priors) != self._num_levels):
+
+            raise Exception("Need a full pass through the VAE to calculate log probability!")
+
+        return tf.reduce_sum(self._log_prob)
+
+
+    def _build(self, inputs):
+
+        latents = self.encode(inputs,
+                              level=self._num_levels)
+
+        decoded_loc, decoded_scale = self.decode(latents,
+                                                 level=self._num_levels)
+
+        likelihood_variance = decoded_scale if not self._standardized else tf.ones_like(decoded_scale)
+
+        self._likelihood = self._likelihood_dist(loc=decoded_loc,
+                                                 scale=likelihood_variance)
+
+        self._log_prob = self._likelihood.log_prob(inputs)
+
+        return decoded_loc
+
+
+# ==============================================================================
+# ==============================================================================
+#
+# Experimental architectures
+#
+# ==============================================================================
 # ==============================================================================
 
 
@@ -206,165 +316,228 @@ class ClicCNN(ClicVAE):
 
 # ==============================================================================
 
-
-class ClicCNNResNet(ClicVAE):
+class ClicHyperpriorVAE(ClicHierarchicalVAE):
 
     def __init__(self,
-                 top_conv_channels=128,
-                 bottom_conv_channels=192,
-                 name="clic_cnn_vae"):
+                 latent_dist="gaussian",
+                 likelihood="gaussian",
+                 first_level_channels=192,
+                 second_level_channels=128,
+                 first_level_layers=4,
+                 name="clic_hieararchical_vae"):
 
-        # Initialise the superclass
-        super(ClicCNN, self).__init__(name=name)
+        super(ClicHyperpriorVAE, self).__init__(latent_dist=latent_dist,
+                                                likelihood=likelihood,
+                                                standardized=standardized,
+                                                num_levels=2,
+                                                standardized=True,
+                                                name="clic_hyperprior_vae")
 
-        self._top_conv_channels = top_conv_channels
-        self._bottom_conv_channels = bottom_conv_channels
+        self._first_level_channels = first_level_channels
+        self._second_level_channels = second_level_channels
+
+        self._first_level_layers = first_level_layers
+
+
+    @reuse_weights
+    def encode(self, inputs, level=1, eps=1e-5):
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
+
+        # First level
+
+        self._first_level = [
+            ConvDS(output_channels=self._first_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=2,
+                   padding="SAME",
+                   downsampling_rate=2,
+                   use_gdn=True,
+                   name="encoder_level_1_conv_ds{}".format(idx))
+            for idx in range(1, self._first_level_layers - 1)
+        ]
+
+        self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
+                                      kernel_shape=(3,  3),
+                                      num_convolutions=2,
+                                      padding="SAME",
+                                      downsampling_rate=2,
+                                      use_gdn=False,
+                                      name="encoder_level_1_conv_loc")
+
+        first_level_scale_head = ConvDS(output_channels=self._first_level_channels,
+                                        kernel_shape=(3,  3),
+                                        num_convolutions=2,
+                                        padding="SAME",
+                                        downsampling_rate=2,
+                                        use_gdn=False,
+                                        name="encoder_level_1_conv_scale")
+
+        # Second level
+
+        self._second_level = [
+            ConvDS(output_channels=self._second_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=1,
+                   padding="SAME",
+                   downsampling_rate=1,
+                   use_gdn=False,
+                   activation="leaky_relu",
+                   name="encoder_level_2_conv_ds1"),
+            ConvDS(output_channels=self._second_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=2,
+                   padding="SAME",
+                   downsampling_rate=2,
+                   use_gdn=False,
+                   activation="leaky_relu",
+                   name="encoder_level_2_conv_ds2")
+        ]
+
+        self._second_level_loc_head = ConvDS(output_channels=self._second_level_channels,
+                                       kernel_shape=(3,  3),
+                                       num_convolutions=2,
+                                       padding="SAME",
+                                       downsampling_rate=2,
+                                       use_gdn=False,
+                                       activation="none",
+                                       name="encoder_level_2_conv_loc")
+
+        second_level_scale_head = ConvDS(output_channels=self._second_level_channels,
+                                         kernel_shape=(3,  3),
+                                         num_convolutions=2,
+                                         padding="SAME",
+                                         downsampling_rate=2,
+                                         use_gdn=False,
+                                         activation="none",
+                                         name="encoder_level_2_conv_scale")
+
+        # The top-down level from the second to the first level
+        self._topdown_level = [
+            self._second_level_loc_head.transpose(),
+        ]
+
+        # Iterate through in reverse
+        for level in self._second_level[:0:-1]:
+            self._topdown_level.append(level.transpose())
+
+        topdown_loc_head = self._second_level[0].transpose(name="topdown_loc_head")
+        topdown_scale_head = self._second_level[0].transpose(name="topdown_scale_head")
+
+
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
+
+        activations = inputs
+
+        for layer in self._first_level:
+            activations = layer(activations)
+
+        # First stochastic level statistics
+        first_level_loc = first_level_loc_head(activations)
+        first_level_scale = tf.nn.softplus(first_level_scale_head(activations))
+
+        # This is a probabilistic ladder network with this connection
+        activations = first_level_loc
+
+        for layer in self._second_level:
+            activations = layer(activations)
+
+        # Second stochastic level statistics
+        second_level_loc = second_level_loc_head(activations)
+        second_level_scale = tf.nn.softplus(second_level_scale_head(activations))
+
+        # Top distribution
+        second_level_posterior = self._latent_dist(loc=second_level_loc,
+                                                   scale=second_level_scale)
+
+        activations = second_level_posterior.sample()
+
+        latents = (activations,)
+
+        for layer in self._topdown_level:
+            activations = layer(activations)
+
+        # Topdown statistics
+        topdown_loc = topdown_loc_head(activations)
+        topdown_scale = tf.nn.softplus(topdown_scale_head(activations))
+
+        # Combined first level statistics
+        topdown_scale_sq_inv= 1. / (tf.pow(topdown_scale, 2) + eps)
+        first_level_scale_sq_inv= 1. / (tf.pow(first_level_scale, 2) + eps)
+
+        combined_scale = tf.sqrt(1. / topdown_scale_sq_inv + first_level_scale_sq_inv)
+
+        first_level_natural_mean = first_level_loc * first_level_scale_sq_inv
+        topdown_natural_mean = topdown_loc * topdown_scale_sq_inv
+
+        combined_loc = (first_level_natural_mean + topdown_natural_mean) / combined_scale
+
+        # First level distribution
+        first_level_posterior = self._latent_dist(loc=combined_loc,
+                                                  scale=combined_scale)
+
+        activations = first_level_posterior.sample()
+
+        latents = latents + (activations,)
+
+        self._latent_posteriors = [first_level_posterior, second_level_posterior]
+
 
     @reuse_variables
-    def encode(self, inputs):
-        """
-        The encoder will predict the variational
-        posterior q(z | x) = N(z | mu(x), sigma(x)).
+    def decode(self, latents, level=1):
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
 
-        This will be done by using a two-headed network
+        # Go from top to bottom
+        # Second level
+        decoder_second_level = [
+            self._second_level_loc_head.transpose(),
+        ]
 
-        Note: reuse_variables is required so that when we call
-        encode on its own, it uses the trained weights
-        """
+        # Iterate through in reverse
+        for level in self._second_level[:0:-1]:
+            self._decoder_second_level.append(level.transpose())
 
-        # First convolution layer
-        self.conv1_1 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            stride=1,
-                            padding="SAME",
-                            name="encoder_conv1_1")
+        first_loc_head = self._second_level[0].transpose(name="decoder_loc_head")
+        first_scale_head = self._second_level[0].transpose(name="decoder_scale_head")
 
-        self.conv1_2 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            stride=1,
-                            padding="SAME",
-                            name="encoder_conv1_2")
+        # First level
+        decoder_first_level = [
+            self._first_level_loc_head.transpose(),
+        ]
 
-        activations = tf.contrib.layers.gdn(self.conv1_2(self.conv1_1(inputs)),
-                                            name="encoder_gdn1")
+        # Iterate through in reverse
+        for level in self._first_level[::-1]:
+            self._decoder_first_level.append(level.transpose())
 
-        self.res_conv1 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(9, 9),
-                            stride=8,
-                            padding="SAME",
-                            name="encoder_res_conv1")
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
 
-        res_activations1 = self.res_conv1(activations)
+        second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[1]),
+                                               scale=tf.ones_like(latents[1]))
 
-        # Second convolution layer
-        self.conv2_1 = Conv2D(output_channels=self._top_conv_channels,
-                              kernel_shape=(3, 3),
-                              stride=1,
-                              padding="SAME",
-                              name="encoder_conv2_1")
+        activations = latents[1]
 
-        self.conv2_2 = Conv2D(output_channels=self._top_conv_channels,
-                              kernel_shape=(3, 3),
-                              stride=2,
-                              padding="SAME",
-                              name="encoder_conv2_2")
+        for layer in decoder_second_level:
+            activations = layer(activations)
 
-        activations = tf.contrib.layers.gdn(self.conv2_2(self.conv2_1(activations)),
-                                            name="encoder_gdn2")
+        first_loc = first_loc_head(activations)
+        first_scale = tf.nn.softplus(first_loc_head(activations))
 
-        self.res_conv2 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(5, 5),
-                            stride=4,
-                            padding="SAME",
-                            name="encoder_res_conv2")
+        # First layer prior
+        first_layer_prior = self._latent_dist(loc=first_loc,
+                                              scale=first_scale)
 
-        res_activations2 = self.res_conv2(activations)
+        activations = latents[0]
 
-        # Third convolution layer
-        self.conv3_1 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            stride=1,
-                            padding="SAME",
-                            name="encoder_conv3_1")
+        for layer in decoder_first_level:
+            activations = layer(activations)
 
-        self.conv3_2 = Conv2D(output_channels=self._top_conv_channels,
-                              kernel_shape=(3, 3),
-                              stride=2,
-                              padding="SAME",
-                              name="encoder_conv3_2")
+        self._latent_priors = [first_layer_prior, second_layer_prior]
 
-        activations = tf.contrib.layers.gdn(self.conv3_2(self.conv3_1(activations)),
-                                            name="encoder_gdn3")
-
-
-        self.res_conv3 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            stride=2,
-                            padding="SAME",
-                            name="encoder_res_conv3")
-
-        res_activations3 = self.res_conv3(activations)
-
-        # Latent convolution layer
-        self.conv_mu_1 = Conv2D(output_channels=self._top_conv_channels,
-                              kernel_shape=(3, 3),
-                              padding="SAME",
-                              name="encoder_conv_mu_1")
-        self.conv_mu_2 = Conv2D(output_channels=self._top_conv_channels,
-                              kernel_shape=(3, 3),
-                              padding="SAME",
-                              stride=2,
-                              name="encoder_conv_mu_2")
-
-        mu = self.conv_mu_2(self.conv_mu_1(activations))
-
-        # Variance-head
-        conv_sigma_1 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            padding="SAME",
-                            stride=1,
-                            name="encoder_conv_var_1")
-        conv_sigma_2 = Conv2D(output_channels=self._top_conv_channels,
-                            kernel_shape=(3, 3),
-                            padding="SAME",
-                            stride=2,
-                            name="encoder_conv_var_2")
-
-        sigma = tf.nn.softplus(conv_sigma(activations))
-
-        return mu, sigma
-
-
-    @reuse_variables
-    def decode(self, latents):
-        """
-        Note: reuse_variables is required so that when we call
-        encode on its own, it uses the trained weights
-
-        """
-
-        deconv1 = self.conv_mu.transpose()
-        activations = tf.contrib.layers.gdn(deconv1(latents),
-                                            inverse=True,
-                                            name="decoder_gdn1")
-
-        deconv2 = self.conv3.transpose()
-        activations = tf.contrib.layers.gdn(deconv2(activations),
-                                            inverse=True,
-                                            name="decoder_gdn2")
-
-        deconv3 = self.conv2.transpose()
-        activations = tf.contrib.layers.gdn(deconv3(activations),
-                                            inverse=True,
-                                            name="decoder_gdn3")
-
-        deconv4 = self.conv1.transpose()
-        activations = tf.contrib.layers.gdn(deconv4(activations),
-                                            inverse=True,
-                                            name="decoder_gdn4")
-
-
-        logits = tf.squeeze(activations)
-
-        return logits
-
+        return activations, tf.ones_like(activations)

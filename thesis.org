@@ -30,6 +30,9 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Ideas
 ** Denoising VAEs -> compress similar images to the same latent representation?
 
+* Issues
+** Check edges of images -> use valid padding instead of same maybe?
+** 
 
 * Papers [2/9]
 ** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)
@@ -76,6 +79,7 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Meeting on 10 June
 
 * Meeting on 17 June / Industry day
+
 
 * Stuff [0/2]
 ** TODO MS-SSIM loss
