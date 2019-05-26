@@ -25,7 +25,7 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from architectures import ClicCNN
+from architectures import ClicCNN, ClicHyperpriorVAE
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -34,7 +34,8 @@ from load_data import load_and_process_image, create_random_crops, download_proc
 # ==============================================================================
 
 models = {
-    "cnn": ClicCNN
+    "cnn": ClicCNN,
+    "hyper_cnn": ClicHyperpriorVAE
 }
 
 
@@ -69,13 +70,24 @@ def run(config_path=None,
 
     config = {
         "training_set_size": 93085,
+        "pixels_per_training_image": 256 * 256 * 3,
 
         "batch_size": 8,
         "num_epochs": 20,
+        
+        "first_level_channels": 192,
+        "second_level_channels": 128,
+        "first_level_layers": 4,
 
         "loss": "nll_perceptual_kl",
-        "beta": 0.1,
-        "gamma": 0.8
+        "likelihood": "laplace",
+        "prior": "laplace",
+        
+        # % of the number of batches when the coefficient is capped out 
+        # (i.e. for 1., the coef caps after the first epoch exactly)
+        "warmup": 2., 
+        "beta": 1.,
+        "gamma": 0.8,
         "learning_rate": 3e-5,
         "optimizer": "adam",
 
@@ -108,8 +120,17 @@ def run(config_path=None,
 
     model = models[model_key]
 
-    vae = model(prior="laplace")
-
+    if model_key == "cnn":
+        vae = model(prior=config["prior"],
+                    likelihood=config["likelihood"])
+        
+    elif model_key == "hyper_cnn":
+        vae = ClicHyperpriorVAE(latent_dist=config["prior"],
+                                 likelihood=config["likelihood"],
+                                 first_level_channels=config["first_level_channels"],
+                                 second_level_channels=config["second_level_channels"],
+                                 first_level_layers=config["first_level_layers"])
+    
     # Connect the model computational graph by executing a forward-pass
     vae(tf.zeros((1, 256, 256, 3)))
 
@@ -162,20 +183,23 @@ def run(config_path=None,
 
                         # Predict the means of the pixels
                         output = vae(batch)
+                        
+                        warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
 
                         log_prob = vae.log_prob
                         kl_div = vae.kl_divergence
 
                         output = tf.cast(output, tf.float32)
-                        #output = tf.clip_by_value(output, 0., 1.)
+                        output = tf.clip_by_value(output, 0., 1.)
 
-                        ms_ssim = tf.image.ssim_multiscale(batch, output)
-                        ms_ssim = tf.reduce_sum(ms_ssim)
+                        ms_ssim = tf.image.ssim_multiscale(batch, output, 1.)
+                        
+                        # This correction is necessary, so that the ms-ssim value is on the order
+                        # of the KL and the log probability
+                        ms_ssim_loss = tf.reduce_sum(1 - ms_ssim) * config["pixels_per_training_image"]
 
                         if config["loss"] == "nll_perceptual_kl":
-
-                            # Cross-entropy / MSE loss (depends on )
-                            loss = ((1 - gamma) * -log_prob + gamma * (1 - ms_ssim) + beta * kl_div) / B
+                            loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * kl_div) / B
 
                         else:
                             raise Exception("Loss {} not available!".format(config["loss"]))
@@ -186,7 +210,9 @@ def run(config_path=None,
                         tfs.scalar("Log-Probability", log_prob / B)
                         tfs.scalar("KL", kl_div / B)
                         tfs.scalar("Beta-KL", beta * kl_div / B)
-                        tfs.scalar("Average MS-SSIM", ms_ssim / B)
+                        tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
+                        tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
+                        tfs.scalar("Warmup-Coeff", warmup_coef)
                         tfs.image("Reconstruction", output)
 
                     # Backprop

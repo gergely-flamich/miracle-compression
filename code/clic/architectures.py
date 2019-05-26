@@ -9,9 +9,11 @@ from miracle_modules import ConvDS
 class ClicVAE(AbstractModule):
 
     _allowed_priors = ["gaussian", "laplace"]
-
+    _allowed_likelihoods = ["gaussian", "laplace"]
+    
     def __init__(self,
                  prior="gaussian",
+                 likelihood="gaussian",
                  name="clic_vae"):
 
         # Initialise the superclass
@@ -20,9 +22,13 @@ class ClicVAE(AbstractModule):
         if prior not in self._allowed_priors:
             raise tf.errors.InvalidArgumentError("prior must be one of {}"
                                                  .format(self._allowed_priors))
+        if likelihood not in self._allowed_likelihoods:
+            raise tf.errors.InvalidArgumentError("likelihood must be one of {}"
+                                                 .format(self._allowed_likelihoods))
 
         self._prior_dist = prior
-
+        self._likelihood = likelihood
+        
 
     @reuse_variables
     def encode(self, inputs):
@@ -84,7 +90,10 @@ class ClicVAE(AbstractModule):
         # Get Bernoulli likelihood means
         p_logits = self.decode(latents)
 
-        p = tfd.Normal(loc=p_logits, scale=tf.ones_like(p_logits))
+        if self._likelihood == "gaussian":
+            p = tfd.Normal(loc=p_logits, scale=tf.ones_like(p_logits))
+        else:
+            p = tfd.Laplace(loc=p_logits, scale=tf.ones_like(p_logits))
 
         self._log_prob = p.log_prob(inputs)
 
@@ -100,10 +109,13 @@ class ClicCNN(ClicVAE):
                  top_conv_channels=128,
                  bottom_conv_channels=192,
                  prior="gaussian",
+                 likelihood="gaussian",
                  name="clic_cnn_vae"):
 
         # Initialise the superclass
-        super(ClicCNN, self).__init__(prior=prior, name=name)
+        super(ClicCNN, self).__init__(prior=prior, 
+                                      likelihood=likelihood,
+                                      name=name)
 
         self._top_conv_channels = top_conv_channels
         self._bottom_conv_channels = bottom_conv_channels
@@ -142,12 +154,12 @@ class ClicCNN(ClicVAE):
                                name="encoder_conv_ds2")
 
         # Third convolution layer
-        self.conv_ds2 = ConvDS(output_channels=self._top_conv_channels,
+        self.conv_ds3 = ConvDS(output_channels=self._top_conv_channels,
                                kernel_shape=(5, 5),
                                padding="SAME",
                                downsampling_rate=2,
                                use_gdn=True,
-                               name="encoder_conv_ds2")
+                               name="encoder_conv_ds3")
 
         # Latent distribution moment predictiors
         # Mean
@@ -188,16 +200,18 @@ class ClicCNN(ClicVAE):
         # ----------------------------------------------------------------------
 
         deconv = self.conv_mu.transpose()
+        
+        deconv_us1 = self.conv_ds3.transpose()
 
-        deconv_us1 = self.conv_ds2.transpose()
+        deconv_us2 = self.conv_ds2.transpose()
 
-        deconv_us2 = self.conv_ds1.transpose()
+        deconv_us3 = self.conv_ds1.transpose()
 
         # ----------------------------------------------------------------------
         # Apply layers
         # ----------------------------------------------------------------------
 
-        activations = deconv_us2(deconv_us1(deconv(latents)))
+        activations = deconv_us3(deconv_us2(deconv_us1(deconv(latents))))
 
         logits = tf.squeeze(activations)
 

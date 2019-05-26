@@ -1,0 +1,17 @@
+config = {
+        "training_set_size": 93085,
+
+        "batch_size": 8,
+        "num_epochs": 20,
+
+        "loss": "nll_perceptual_kl",
+        "likelihood": "laplace",
+        "prior": "laplace",
+        "beta": 0.1,
+        "gamma": 0.,
+        "learning_rate": 3e-5,
+        "optimizer": "adam",
+
+        "log_freq": 200,
+        "checkpoint_name": "_ckpt",
+    }
