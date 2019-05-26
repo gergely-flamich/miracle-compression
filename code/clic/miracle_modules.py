@@ -24,6 +24,13 @@ class ConvDS(AbstractModule, Transposable):
     transformation.
     """
 
+    _allowed_activations = {
+        "relu": tf.nn.relu,
+        "leaky_relu": lambda x: tf.nn.leaky_relu(x, alpha=0.1),
+        "tanh": tf.nn.tanh,
+        "none": tf.identity
+    }
+
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -31,6 +38,7 @@ class ConvDS(AbstractModule, Transposable):
                  downsampling_rate=2,
                  padding="SAME",
                  use_gdn=True,
+                 activation="none",
                  data_format=DATA_FORMAT_NHWC,
                  name="conv_gdn_block"):
 
@@ -44,10 +52,27 @@ class ConvDS(AbstractModule, Transposable):
         self._use_gdn = use_gdn
         self._data_format = data_format
 
+        if activation not in self._allowed_activations:
+            raise tf.errors.InvalidArgumentError("activation must be one of {}"
+                                                 .format(self._allowed_activations))
+
+        self._activation = self._allowed_activations[activation]
+        self._activation_name = activation
+
+
+    def set_activation(self, activation):
+        if activation not in self._allowed_activations:
+            raise tf.errors.InvalidArgumentError("activation must be one of {}"
+                                                 .format(self._allowed_activations))
+
+        self._activation = self._allowed_activations[activation]
+        self._activation_name = activation
+
+
     def _build(self, inputs):
 
         self._input_shape = tuple(inputs.get_shape().as_list())
-        
+
         # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
@@ -75,7 +100,7 @@ class ConvDS(AbstractModule, Transposable):
         # ----------------------------------------------------------------------
 
         activations = inputs
-        
+
         # Perform pure convolutions
         for conv in self.pure_convs:
             activations = conv(activations)
@@ -87,6 +112,8 @@ class ConvDS(AbstractModule, Transposable):
         if self._use_gdn:
             activations = tf.contrib.layers.gdn(activations,
                                                 name="gdn")
+        # Activations
+        activations = self._activation(activations)
 
         return activations
 
@@ -108,7 +135,14 @@ class ConvDS(AbstractModule, Transposable):
             else: # NHWC
                 return self.pure_convs[0].input_shape[1:3]
 
-        return DeconvUS(output_channels=lambda: self.last_conv.input_channels,
+        def output_channels():
+            if self._num_convolutions == 1:
+                return self.last_conv.input_channels
+            else:
+                return self.pure_convs[0].input_channels
+
+
+        return DeconvUS(output_channels=output_channels,
                         upsampling_output_shape=upsampling_output_shape,
                         kernel_shape=self._kernel_shape,
                         num_deconvolutions=self._num_convolutions,
@@ -117,14 +151,15 @@ class ConvDS(AbstractModule, Transposable):
                         padding=self._padding,
                         use_igdn=self._use_gdn,
                         data_format=self._data_format,
+                        activation=self._activation_name,
                         name=name)
-    
+
     @property
     def input_shape(self):
         self._ensure_is_connected()
-        
+
         return self._input_shape
-        
+
 
 
 class DeconvUS(AbstractModule, Transposable):
@@ -144,6 +179,13 @@ class DeconvUS(AbstractModule, Transposable):
     transformation.
     """
 
+    _allowed_activations = {
+        "relu": tf.nn.relu,
+        "leaky_relu": lambda x: tf.nn.leaky_relu(x, alpha=0.1),
+        "tanh": tf.nn.tanh,
+        "none": tf.identity
+    }
+
     def __init__(self,
                  output_channels,
                  upsampling_output_shape,
@@ -153,6 +195,7 @@ class DeconvUS(AbstractModule, Transposable):
                  upsampling_rate=2,
                  padding="SAME",
                  use_igdn=True,
+                 activation="none",
                  data_format=DATA_FORMAT_NHWC,
                  name="deconv_igdn_block"):
 
@@ -167,15 +210,24 @@ class DeconvUS(AbstractModule, Transposable):
             raise tf.errors.InvalidArgumentError(
                 "If the number of deconvolutions is greater than 1, pure_output_shape must be specified!")
 
+        self._pure_output_shape = pure_output_shape
         self._upsampling_rate = upsampling_rate
         self._padding = padding
         self._use_igdn = use_igdn
         self._data_format = data_format
 
+        if activation not in self._allowed_activations:
+            raise tf.errors.InvalidArgumentError("activation must be one of {}"
+                                                 .format(self._allowed_activations))
+
+        self._activation = self._allowed_activations[activation]
+        self._activation_name = activation
+
+
     def _build(self, inputs):
 
         self._input_shape = tuple(inputs.get_shape().as_list())
-        
+
         # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
@@ -193,7 +245,7 @@ class DeconvUS(AbstractModule, Transposable):
         pure_deconvs = [Conv2DTranspose(output_channels=self._output_channels,
                                         output_shape=self._pure_output_shape,
                                         kernel_shape=self._kernel_shape,
-                                        stride=self._upsampling_rate,
+                                        stride=1,
                                         padding=self._padding,
                                         data_format=self._data_format,
                                         name="deconv{}".format(deconv_idx))
@@ -204,11 +256,14 @@ class DeconvUS(AbstractModule, Transposable):
         # ----------------------------------------------------------------------
 
         activations = inputs
-        
+
         if self._use_igdn:
             activations = tf.contrib.layers.gdn(activations,
                                                 inverse=True,
                                                 name="igdn")
+
+        # Activate
+        activations = self._activation(activations)
 
         # Upsampling deconvolution
         activations = self.first_deconv(activations)
@@ -216,6 +271,7 @@ class DeconvUS(AbstractModule, Transposable):
         # Pure deconvolutions
         for deconv in pure_deconvs:
             activations = deconv(activations)
+
 
         return activations
 
@@ -232,10 +288,11 @@ class DeconvUS(AbstractModule, Transposable):
                       padding=self._padding,
                       use_gdn=self._use_igdn,
                       data_format=self._data_format,
+                      activation=self._activation_name,
                       name=name)
 
     @property
     def input_shape(self):
         self._ensure_is_connected()
-        
+
         return self._input_shape
