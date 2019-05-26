@@ -4,7 +4,7 @@ from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape, reuse_var
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-from .miracle_modules import ConvDS
+from miracle_modules import ConvDS
 
 # ==============================================================================
 # ==============================================================================
