@@ -4,7 +4,7 @@ from sonnet import AbstractModule, Linear, BatchFlatten, BatchReshape, reuse_var
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-from miracle_modules import ConvDS
+from .miracle_modules import ConvDS
 
 # ==============================================================================
 # ==============================================================================
@@ -328,9 +328,8 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
 
         super(ClicHyperpriorVAE, self).__init__(latent_dist=latent_dist,
                                                 likelihood=likelihood,
-                                                standardized=standardized,
-                                                num_levels=2,
                                                 standardized=True,
+                                                num_levels=2,
                                                 name="clic_hyperprior_vae")
 
         self._first_level_channels = first_level_channels
@@ -339,7 +338,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
         self._first_level_layers = first_level_layers
 
 
-    @reuse_weights
+    @reuse_variables
     def encode(self, inputs, level=1, eps=1e-5):
         # ----------------------------------------------------------------------
         # Define layers
@@ -355,7 +354,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
                    downsampling_rate=2,
                    use_gdn=True,
                    name="encoder_level_1_conv_ds{}".format(idx))
-            for idx in range(1, self._first_level_layers - 1)
+            for idx in range(1, self._first_level_layers)
         ]
 
         self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
@@ -436,7 +435,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
             activations = layer(activations)
 
         # First stochastic level statistics
-        first_level_loc = first_level_loc_head(activations)
+        first_level_loc = self._first_level_loc_head(activations)
         first_level_scale = tf.nn.softplus(first_level_scale_head(activations))
 
         # This is a probabilistic ladder network with this connection
@@ -446,7 +445,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
             activations = layer(activations)
 
         # Second stochastic level statistics
-        second_level_loc = second_level_loc_head(activations)
+        second_level_loc = self._second_level_loc_head(activations)
         second_level_scale = tf.nn.softplus(second_level_scale_head(activations))
 
         # Top distribution
@@ -485,6 +484,8 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
 
         self._latent_posteriors = [first_level_posterior, second_level_posterior]
 
+        return latents
+
 
     @reuse_variables
     def decode(self, latents, level=1):
@@ -500,7 +501,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
 
         # Iterate through in reverse
         for level in self._second_level[:0:-1]:
-            self._decoder_second_level.append(level.transpose())
+            decoder_second_level.append(level.transpose())
 
         first_loc_head = self._second_level[0].transpose(name="decoder_loc_head")
         first_scale_head = self._second_level[0].transpose(name="decoder_scale_head")
@@ -512,16 +513,16 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
 
         # Iterate through in reverse
         for level in self._first_level[::-1]:
-            self._decoder_first_level.append(level.transpose())
+            decoder_first_level.append(level.transpose())
 
         # ----------------------------------------------------------------------
         # Apply layers
         # ----------------------------------------------------------------------
 
-        second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[1]),
-                                               scale=tf.ones_like(latents[1]))
+        second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[0]),
+                                               scale=tf.ones_like(latents[0]))
 
-        activations = latents[1]
+        activations = latents[0]
 
         for layer in decoder_second_level:
             activations = layer(activations)
@@ -533,7 +534,7 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
         first_layer_prior = self._latent_dist(loc=first_loc,
                                               scale=first_scale)
 
-        activations = latents[0]
+        activations = latents[1]
 
         for layer in decoder_first_level:
             activations = layer(activations)
@@ -541,3 +542,4 @@ class ClicHyperpriorVAE(ClicHierarchicalVAE):
         self._latent_priors = [first_layer_prior, second_layer_prior]
 
         return activations, tf.ones_like(activations)
+

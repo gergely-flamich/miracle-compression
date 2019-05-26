@@ -135,7 +135,14 @@ class ConvDS(AbstractModule, Transposable):
             else: # NHWC
                 return self.pure_convs[0].input_shape[1:3]
 
-        return DeconvUS(output_channels=lambda: self.last_conv.input_channels,
+        def output_channels():
+            if self._num_convolutions == 1:
+                return self.last_conv.input_channels
+            else:
+                return self.pure_convs[0].input_channels
+
+
+        return DeconvUS(output_channels=output_channels,
                         upsampling_output_shape=upsampling_output_shape,
                         kernel_shape=self._kernel_shape,
                         num_deconvolutions=self._num_convolutions,
@@ -188,6 +195,7 @@ class DeconvUS(AbstractModule, Transposable):
                  upsampling_rate=2,
                  padding="SAME",
                  use_igdn=True,
+                 activation="none",
                  data_format=DATA_FORMAT_NHWC,
                  name="deconv_igdn_block"):
 
