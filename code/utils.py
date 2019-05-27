@@ -9,6 +9,9 @@ import os, tempfile
 # Miscellaneous helper functions
 # ==============================================================================
 
+class InvalidArgumentError(Exception):
+    pass
+
 def is_valid_file(parser, arg):
     """
     Taken from
