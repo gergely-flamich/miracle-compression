@@ -26,9 +26,10 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** TODO What is the equivalent of the block constraint here?
    - Is there a connection to conditional sampling?
    
-   
+     
 * Ideas
 ** Denoising VAEs -> compress similar images to the same latent representation?
+
 
 * Issues
 ** Check edges of images -> use valid padding instead of same maybe?
@@ -81,7 +82,3 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Meeting on 17 June / Industry day
 
 
-* Stuff [0/2]
-** TODO MS-SSIM loss
-** TODO Non-informative prior
-** 
