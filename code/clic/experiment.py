@@ -81,7 +81,7 @@ def run(config_path=None,
 
         "loss": "nll_perceptual_kl",
         "likelihood": "laplace",
-        "prior": "laplace",
+        "prior": "gaussian",
         
         # % of the number of batches when the coefficient is capped out 
         # (i.e. for 1., the coef caps after the first epoch exactly)
