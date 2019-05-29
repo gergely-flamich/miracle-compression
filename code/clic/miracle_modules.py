@@ -31,6 +31,8 @@ class ConvDS(AbstractModule, Transposable):
         "none": tf.identity
     }
 
+    _allowed_paddings = ["VALID", "SAME", "SAME_MIRRORED"]
+
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -48,7 +50,18 @@ class ConvDS(AbstractModule, Transposable):
         self._kernel_shape = kernel_shape
         self._num_convolutions = num_convolutions
         self._downsampling_rate = downsampling_rate
-        self._padding = padding
+
+        if padding not in self._allowed_paddings:
+            InvalidArgumentError("padding must be one of {}".format(self._allowed_paddings))
+
+        # Mirrored SAME padding can be achieved by a mirrored pad and then doing VALID convolution on it
+        if padding == "SAME_MIRRORED":
+            self._padding = "VALID"
+            self._mirror_pad = True
+        else:
+            self._padding = padding
+            self._mirror_pad = False
+
         self._use_gdn = use_gdn
         self._data_format = data_format
 
@@ -58,6 +71,24 @@ class ConvDS(AbstractModule, Transposable):
 
         self._activation = self._allowed_activations[activation]
         self._activation_name = activation
+
+
+    def required_input_size(self, shape, for_padding="VALID"):
+
+        width, height = shape
+
+        if for_padding == "SAME":
+
+            return (width * self._downsampling_rate, height * self._downsampling_rate)
+
+        elif for_padding == "VALID":
+
+            k_w, k_h = self._kernel_shape
+
+            w_new = width * self._downsampling_rate + self._num_convolutions * (k_w - 1)
+            h_new = height * self._downsampling_rate + self._num_convolutions * (k_h - 1)
+
+            return w_new, h_new
 
 
     def set_activation(self, activation):
@@ -72,6 +103,9 @@ class ConvDS(AbstractModule, Transposable):
     def _build(self, inputs):
 
         self._input_shape = tuple(inputs.get_shape().as_list())
+
+        if len(self._input_shape) != 4:
+            raise Exception("Input must be 4 dimensional")
 
         # ----------------------------------------------------------------------
         # Define layers
@@ -98,6 +132,22 @@ class ConvDS(AbstractModule, Transposable):
         # ----------------------------------------------------------------------
         # Apply layers
         # ----------------------------------------------------------------------
+
+        if self._mirror_pad:
+
+            k_h, k_w = self._kernel_shape
+
+            h_pad = self._num_convolutions * (k_h - 1) // 2
+            w_pad = self._num_convolutions * (k_w - 1) // 2
+
+            # Pad only along height and width (NHWC)
+            pads = tf.constant([[0, 0],
+                                [h_pad, h_pad],
+                                [w_pad, w_pad],
+                                [0, 0]])
+
+            inputs = tf.pad(inputs, pads, mode="REFLECT")
+
 
         activations = inputs
 
@@ -148,7 +198,7 @@ class ConvDS(AbstractModule, Transposable):
                         num_deconvolutions=self._num_convolutions,
                         pure_output_shape=None if self._num_convolutions == 1 else pure_output_shape,
                         upsampling_rate=self._downsampling_rate,
-                        padding=self._padding,
+                        padding="SAME_MIRRORED" if self._mirror_pad else self._padding,
                         use_igdn=self._use_gdn,
                         data_format=self._data_format,
                         activation=self._activation_name,
@@ -186,6 +236,8 @@ class DeconvUS(AbstractModule, Transposable):
         "none": tf.identity
     }
 
+    _allowed_paddings = ["VALID", "SAME", "SAME_MIRRORED"]
+
     def __init__(self,
                  output_channels,
                  upsampling_output_shape,
@@ -212,7 +264,18 @@ class DeconvUS(AbstractModule, Transposable):
 
         self._pure_output_shape = pure_output_shape
         self._upsampling_rate = upsampling_rate
-        self._padding = padding
+
+        if padding not in self._allowed_paddings:
+            InvalidArgumentError("padding must be one of {}".format(self._allowed_paddings))
+
+        # Mirrored SAME padding can be achieved by a mirrored pad and then doing VALID convolution on it
+        if padding == "SAME_MIRRORED":
+            self._padding = "VALID"
+            self._mirror_pad = True
+        else:
+            self._padding = padding
+            self._mirror_pad = False
+
         self._use_igdn = use_igdn
         self._data_format = data_format
 
@@ -222,6 +285,24 @@ class DeconvUS(AbstractModule, Transposable):
 
         self._activation = self._allowed_activations[activation]
         self._activation_name = activation
+
+
+    def required_input_size(self, shape, for_padding="VALID"):
+
+        width, height = shape
+
+        if for_padding == "SAME":
+
+            return (width // self._upsampling_rate, height // self._upsampling_rate)
+
+        elif for_padding == "VALID":
+
+            k_h, k_w = self._kernel_shape
+
+            w_new = (width - self._num_deconvolutions * (k_w - 1)) // self._upsampling_rate
+            h_new = (height - self._num_deconvolutions * (k_h - 1)) // self._upsampling_rate
+
+            return w_new, h_new
 
 
     def _build(self, inputs):
@@ -272,6 +353,14 @@ class DeconvUS(AbstractModule, Transposable):
         for deconv in pure_deconvs:
             activations = deconv(activations)
 
+        if self._mirror_pad:
+
+            k_h, k_w = self._kernel_shape
+
+            h_cut = self._num_deconvolutions * (k_h - 1) // 2
+            w_cut = self._num_deconvolutions * (k_w - 1) // 2
+
+            activations = activations[:, h_cut:-h_cut, w_cut:-w_cut, :]
 
         return activations
 
@@ -285,7 +374,7 @@ class DeconvUS(AbstractModule, Transposable):
                       kernel_shape=self._kernel_shape,
                       num_convolutions=self._num_deconvolutions,
                       downsampling_rate=self._upsampling_rate,
-                      padding=self._padding,
+                      padding="SAME_MIRRORED" if self._mirror_pad else self._padding,
                       use_gdn=self._use_igdn,
                       data_format=self._data_format,
                       activation=self._activation_name,

@@ -75,6 +75,8 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 
 * Meeting on 27 May
 
+  https://en.wikipedia.org/wiki/Elias_delta_coding
+  http://brahma.tcs.tifr.res.in/~prahladh/papers/HJMR/HJMR2010.pdf
 * Meeting on 3 June
 
 * Meeting on 10 June
