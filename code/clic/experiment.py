@@ -25,7 +25,7 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from architectures import ClicCNN, ClicHyperpriorVAE
+from architectures import ClicCNN, ClicHyperpriorVAE, ClicHyperpriorVAE2
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -35,7 +35,8 @@ from load_data import load_and_process_image, create_random_crops, download_proc
 
 models = {
     "cnn": ClicCNN,
-    "hyper_cnn": ClicHyperpriorVAE
+    "hyper_cnn": ClicHyperpriorVAE,
+    "hyper_cnn2": ClicHyperpriorVAE2
 }
 
 
@@ -124,7 +125,7 @@ def run(config_path=None,
         vae = model(prior=config["prior"],
                     likelihood=config["likelihood"])
         
-    elif model_key == "hyper_cnn":
+    elif model_key in ["hyper_cnn", "hyper_cnn2"]:
         vae = ClicHyperpriorVAE(latent_dist=config["prior"],
                                  likelihood=config["likelihood"],
                                  first_level_channels=config["first_level_channels"],
