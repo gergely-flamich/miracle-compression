@@ -14,6 +14,8 @@ TRAIN_DATASET_ARCHIVE = 'train.zip'
 VALIDATION_DATASET_URL = 'https://data.vision.ee.ethz.ch/cvl/clic/professional_valid.zip'
 VALIDATION_DATASET_ARCHIVE = 'valid.zip'
 
+TRAIN_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/train"
+VALIDATION_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/valid"
 
 def process_image(image, normalize=True):
     """
@@ -36,7 +38,7 @@ def load_and_process_image(image_path, normalize=True):
     return process_image(img_raw, normalize=normalize)
 
 
-def create_random_crops(image, crop_coef=5, crop_size=256):
+def create_random_crops(image, crop_coef=10, crop_size=360):
 
     w = image.shape[0]
     h = image.shape[1]
@@ -52,18 +54,26 @@ def create_random_crops(image, crop_coef=5, crop_size=256):
     return crops
 
 
-def download_process_and_load_data():
+def download_process_and_load_data(crop_coef=10, crop_size=360):
 
     # Download stuff using Keras' utilities
-    train_path = tf.keras.utils.get_file(fname=TRAIN_DATASET_ARCHIVE,
-                                         origin=TRAIN_DATASET_URL,
-                                         cache_subdir=COMPRESSION_SUBDIR,
-                                         extract=True)
+    if not os.path.exists(TRAIN_DATASET_FOLDER):
+        train_path = tf.keras.utils.get_file(fname=TRAIN_DATASET_ARCHIVE,
+                                             origin=TRAIN_DATASET_URL,
+                                             cache_subdir=COMPRESSION_SUBDIR,
+                                             extract=True)
+    else:
+        print("Train dataset already downloaded!")
+        train_path = TRAIN_DATASET_FOLDER
 
-    valid_path = tf.keras.utils.get_file(fname=VALIDATION_DATASET_ARCHIVE,
-                                         origin=VALIDATION_DATASET_URL,
-                                         cache_subdir=COMPRESSION_SUBDIR,
-                                         extract=True)
+    if not os.path.exists(VALIDATION_DATASET_FOLDER):
+        valid_path = tf.keras.utils.get_file(fname=VALIDATION_DATASET_ARCHIVE,
+                                             origin=VALIDATION_DATASET_URL,
+                                             cache_subdir=COMPRESSION_SUBDIR,
+                                             extract=True)
+    else:
+        print("Validation dataset already downloaded!")
+        valid_path = VALIDATION_DATASET_FOLDER
 
     # Get the images
     train_path, _ = os.path.splitext(train_path)
@@ -89,12 +99,11 @@ def download_process_and_load_data():
     if not os.path.exists(train_processed_path):
         os.mkdir(train_processed_path)
 
-
         for idx, image in enumerate(train_image_dataset):
 
             print("Processing image {} out of {}".format(idx, len(train_image_paths)))
 
-            crops = create_random_crops(image)
+            crops = create_random_crops(image, crop_coef=crop_coef, crop_size=crop_size)
 
             for i, crop in tqdm(enumerate(crops), total=len(crops)):
 
@@ -110,12 +119,11 @@ def download_process_and_load_data():
     if not os.path.exists(valid_processed_path):
         os.mkdir(valid_processed_path)
 
-
         for idx, image in enumerate(valid_image_dataset):
 
             print("Processing image {} out of {}".format(idx, len(valid_image_paths)))
 
-            crops = create_random_crops(image)
+            crops = create_random_crops(image, crop_coef=crop_coef, crop_size=crop_size)
 
             for i, crop in tqdm(enumerate(crops), total=len(crops)):
                 imwrite(valid_processed_path + "{}_{}.png".format(idx, i), crop.numpy())
