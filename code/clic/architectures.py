@@ -642,15 +642,17 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
                  first_level_channels=192,
                  second_level_channels=128,
                  first_level_layers=4,
-                 padding="SAME",
+                 padding_first_level="SAME",
+                 padding_second_level="SAME",
                  name="clic_hyper_vae"):
 
         super(ClicHyperVAECNN, self).__init__(latent_dist=latent_dist,
-                                                 likelihood=likelihood,
-                                                 standardized=True,
-                                                 num_levels=2,
-                                                 padding=padding,
-                                                 name=name)
+                                              likelihood=likelihood,
+                                              standardized=True,
+                                              num_levels=2,
+                                              padding_first_level=padding_first_level,
+                                              padding_second_level=padding_second_level,
+                                              name=name)
 
         self._first_level_channels = first_level_channels
         self._second_level_channels = second_level_channels
