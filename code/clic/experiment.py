@@ -89,14 +89,14 @@ def run(config_path=None,
         "first_level_layers": 4,
 
         "loss": "nll_perceptual_kl",
-        "likelihood": "laplace",
+        "likelihood": "gaussian",
         "prior": "laplace",
         
         # % of the number of batches when the coefficient is capped out 
         # (i.e. for 1., the coef caps after the first epoch exactly)
         "warmup": 2., 
-        "beta": 2.,
-        "gamma": 0.8,
+        "beta": 1.,
+        "gamma": 0.,
         "learning_rate": 1e-4,
         "optimizer": "adam",
 
@@ -141,8 +141,8 @@ def run(config_path=None,
                     first_level_channels=config["first_level_channels"],
                     second_level_channels=config["second_level_channels"],
                     first_level_layers=config["first_level_layers"],
-                    padding_first_level="SAME",
-                    padding_second_level="SAME")
+                    padding_first_level="SAME_MIRRORED",
+                    padding_second_level="SAME_MIRRORED")
     else:
         raise Exception("Model: {} is not defined!".format(model_key))
         
