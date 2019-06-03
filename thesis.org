@@ -22,18 +22,50 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** TODO Upscale stuff
 
 
-* Questions [0/1]
-** TODO What is the equivalent of the block constraint here?
+* Questions [4/10]
+** DONE What is the equivalent of the block constraint here?
+   CLOSED: [2019-05-31 Fri 10:52]
    - Is there a connection to conditional sampling?
-   
+** DONE How much data should we be training on? Good datasets?   
+   CLOSED: [2019-05-31 Fri 11:52]
+   CC images from FLICKR -> downsample them save as png
+   narrow by camera type lens type.
+
+** DONE Is there a reason to further experiment with loss functions?
+   CLOSED: [2019-05-31 Fri 12:03]
+   How about VGG loss / L1 / L2 only?
+   Just use L2 for comparison
+   Use GAN for nice pictures
+
+** TODO Is there a good justification for Laplace latent distributions?
+** DONE Good image reconstruction activations? Is GDN good?
+   CLOSED: [2019-05-31 Fri 11:45]
+
+** TODO Is there a way to get rid of the edge artifacts?
+** TODO Use VALID or mirrored SAME padding?
+** TODO Using stacked CNN layers instead of one big one?
+** TODO Residual CNN architecture?
+
+** TODO Is a Laplace prior justified or should we attempt to use the non-informative one?
+
      
+* How to choose the beta
+** report the pareto frontier
+** Gaussianise the latent space
+** Decorrelate latent representation
+** autoregressive structure on Gaussianized network
+** Try YUV
+
+   
+* Things to do next
+** 
+
 * Ideas
 ** Denoising VAEs -> compress similar images to the same latent representation?
 
 
 * Issues
 ** Check edges of images -> use valid padding instead of same maybe?
-** 
 
 * Papers [2/9]
 ** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)
