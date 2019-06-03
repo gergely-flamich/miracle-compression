@@ -25,7 +25,7 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from architectures import ClicCNN, ClicHyperpriorVAE, ClicHyperpriorVAE2
+from architectures import ClicCNN, ClicLadderCNN, ClicHyperVAECNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -35,8 +35,8 @@ from load_data import load_and_process_image, create_random_crops, download_proc
 
 models = {
     "cnn": ClicCNN,
-    "hyper_cnn": ClicHyperpriorVAE,
-    "hyper_cnn2": ClicHyperpriorVAE2
+    "hyper_cnn": ClicHyperVAECNN,
+    "ladder_cnn": ClicLadderCNN,
 }
 
 
@@ -53,12 +53,16 @@ optimizers = {
 # ==============================================================================
 # Auxiliary Functions
 # ==============================================================================
-def clic_input_fn(dataset, buffer_size=1000, batch_size=8):
+def clic_input_fn(dataset, image_size=(256, 256), buffer_size=1000, batch_size=8):
     dataset = dataset.shuffle(buffer_size)
+    dataset = dataset.map(lambda i: clic_parse_fn(i, image_size=image_size))
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(1)
     
     return dataset
+
+def clic_parse_fn(image, image_size=(316, 316)):
+    return tf.image.random_crop(image, size=image_size + (3,))
 
 def run(config_path=None,
         model_key="cnn",
@@ -72,6 +76,10 @@ def run(config_path=None,
     config = {
         "training_set_size": 93085,
         "pixels_per_training_image": 256 * 256 * 3,
+        
+        # When using VALID for the hierarchical VAEs, this will give the correct
+        # latent size
+        "image_size": [256, 256],
 
         "batch_size": 8,
         "num_epochs": 20,
@@ -87,12 +95,12 @@ def run(config_path=None,
         # % of the number of batches when the coefficient is capped out 
         # (i.e. for 1., the coef caps after the first epoch exactly)
         "warmup": 2., 
-        "beta": 1.,
+        "beta": 2.,
         "gamma": 0.8,
-        "learning_rate": 3e-5,
+        "learning_rate": 1e-4,
         "optimizer": "adam",
 
-        "log_freq": 200,
+        "log_freq": 50,
         "checkpoint_name": "_ckpt",
     }
 
@@ -113,7 +121,8 @@ def run(config_path=None,
     train_dataset, valid_dataset = download_process_and_load_data()
     
     train_dataset = clic_input_fn(train_dataset,
-                                  batch_size=config["batch_size"])
+                                  batch_size=config["batch_size"],
+                                  image_size=tuple(config["image_size"]))
 
     # ==========================================================================
     # Create VAE model
@@ -123,15 +132,20 @@ def run(config_path=None,
 
     if model_key == "cnn":
         vae = model(prior=config["prior"],
-                    likelihood=config["likelihood"])
+                    likelihood=config["likelihood"],
+                    padding="SAME_MIRRORED")
         
-    elif model_key in ["hyper_cnn", "hyper_cnn2"]:
-        vae = ClicHyperpriorVAE(latent_dist=config["prior"],
-                                 likelihood=config["likelihood"],
-                                 first_level_channels=config["first_level_channels"],
-                                 second_level_channels=config["second_level_channels"],
-                                 first_level_layers=config["first_level_layers"])
-    
+    elif model_key in ["hyper_cnn", "ladder_cnn"]:
+        vae = model(latent_dist=config["prior"],
+                    likelihood=config["likelihood"],
+                    first_level_channels=config["first_level_channels"],
+                    second_level_channels=config["second_level_channels"],
+                    first_level_layers=config["first_level_layers"],
+                    padding_first_level="SAME",
+                    padding_second_level="SAME")
+    else:
+        raise Exception("Model: {} is not defined!".format(model_key))
+        
     # Connect the model computational graph by executing a forward-pass
     vae(tf.zeros((1, 256, 256, 3)))
 
@@ -215,6 +229,7 @@ def run(config_path=None,
                         tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
                         tfs.scalar("Warmup-Coeff", warmup_coef)
                         tfs.image("Reconstruction", output)
+                        tfs.image("Original", batch)
 
                     # Backprop
                     grads = tape.gradient(loss, vae.get_all_variables())
