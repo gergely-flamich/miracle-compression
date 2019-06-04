@@ -64,6 +64,8 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** Denoising VAEs -> compress similar images to the same latent representation?
 
 
+* A* sampling
+
 * Issues
 ** Check edges of images -> use valid padding instead of same maybe?
 
