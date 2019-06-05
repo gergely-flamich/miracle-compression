@@ -66,8 +66,11 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 
 * A* sampling
 
-* Issues
-** Check edges of images -> use valid padding instead of same maybe?
+* Issues [1/2]
+** DONE Check edges of images -> use valid padding instead of same maybe?
+   CLOSED: [2019-06-05 Wed 14:51]
+
+** TODO A* sampling log difference requires the sufficient statistics of the target distribution for the search to work!
 
 * Papers [2/9]
 ** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)

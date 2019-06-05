@@ -1,4 +1,5 @@
 *.tar.gz
+*.miracle
 
 # Mac stuff
 .DS_Store
