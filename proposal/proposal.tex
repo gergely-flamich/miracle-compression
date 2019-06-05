@@ -1,0 +1,140 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{biblatex}
+\usepackage{hyperref}
+\usepackage[a4paper, total={6in, 10in}]{geometry}
+\usepackage{caption}
+
+\addbibresource{citations.bib}
+
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\Oh}{\mathcal{O}}
+\renewcommand{\vec}[1]{\mathbf{#1}}
+
+\title{Bits-Back Efficient Deep Image Compression}
+\author{Gergely Flamich}
+
+\begin{document}
+\maketitle
+\section*{Proposal}
+\paragraph{}
+In this project we aim to create a novel state-of-the-art image compression scheme
+based on Variational Auto-Encoders \cite{kingma2013auto} (VAEs). 
+The images can be mapped to a latent space via the encoder of the VAE, so
+compression can be achieved by producing an efficient description of these latent
+representations. From these the decoder should be able to then
+reconstruct the original images with at most minor distortions.
+\paragraph{}
+The project proposes a Minimum Description Length (MDL) based variational coding scheme
+(based on the ``bits-back argument'', see \cite{hinton1993keeping}) using an
+approach very similar to $\beta$-VAEs \cite{higgins2017beta} 
+to compress images. The starting point for this coding scheme is MIRACLE
+\cite{havasi2018minimal} in which the authors demonstrate both promising
+theoretical results as well as good empirical evidence of their method for
+compressing neural networks.\\\\
+The advantages of this method are that it is
+\begin{itemize}
+\item \textbf{principled}, as it is backed up by solid information-theoretical results
+  that give us nice guarantees,
+\item \textbf{efficient} (in the sense of bits-back efficiency), in that it allows us to
+  compress the data close to the theoretical limit,
+\item \textbf{differentiable} (which sets it apart from most contemporary approaches),
+  meaning it can be trained end-to-end.
+\end{itemize}
+% \paragraph{}
+% At a very high level, the fundamental theoretical result on which the project is
+% based is as follows. Let some data $\D \sim p(D)$, a decoder with parameter set
+% $\vec{w}$ with prior $p(\vec{w})$ be and
+% learned variational posterior $q_{\phi}(\vec{w}) \approx p(\vec{w} \mid \D)$ be given.
+% Now, if we wish to communicate the learned decoder parameters to another party
+% as some message $\M(\D)$, Havasi et al. \cite{havasi2018minimal} propose a
+% method which is guaranteed to upper bound the expected message length reasonably
+% tightly:
+% \[
+%   \Exp_D[|\M(D)|] \leq I[D\,:\,\vec{w}] + 2\log(I[D\,:\,\vec{w}] + 1 ) + \Oh(1),
+% \]
+% where it turns out that $I[D\,:\,\vec{w}] = \Exp_D[\,\KL(\,
+% q_\phi(\vec{w})\,\,||\,\,p(\vec{w})\,)\,]$.
+% \paragraph{}
+% They use their method to encode the parameters of variational distributions
+% over neural network weights, whereas we will aim to apply a modified version to
+% encode the latent space of a $\beta$-VAE trained on image data.
+The following 4 items have been identified as the key challenges of the project\footnotemark[1]
+\begin{enumerate}
+\item Finding the correct benchmarks and metrics to use for evaluating our
+  results. \\ \\
+  \textit{After some preliminary research, the dataset for the Challenge in
+  Learned Image Compression (CLIC) 2018 \cite{clic2018} might be a good resource
+  for state-of-the-art benchmarks. It also seems that \texttt{bits per pixel} (\texttt{bpp})
+  for compression efficiency and \texttt{Multiscale Structural Similarity}
+  (\texttt{MS-SSIM}) \cite{msssim} and \texttt{Peak Signal-to-Noise Ratio}
+  (\texttt{PSNR}) \cite{psnr} for image quality are reasonably well-established
+  metrics within the field.}
+
+\item Dividing the latent space of the VAE into blocks so that the rejection
+  sampling-based method proposed for MIRACLE becomes computationally feasible
+  and can be adapted for this setting.
+\item Finding a suitable encoder/decoder architecture.
+\item Finding a suitable training loss for the VAE. \\ \\
+  \textit{As a starting point, we will likely start with a simple MSE loss.}
+\end{enumerate}
+\paragraph{}
+The aim of this project is to at least match, but hopefully surpass the
+state-of-the-art compression techniques on appropriate datasets
+according to the established metrics.
+
+\footnotetext[1]{These have been identified in a meeting with M. Havasi on 25
+  March 2019. }
+\section*{Workplan}
+\paragraph{}
+To ensure a smooth and continuous progression, we have opted for weekly
+half-hour meetings with our first supervisor (M. Havasi) and occasional meetings
+with our second (J. M. Hern\'andez-Lobato). We are also planning on occasionally
+consulting F. Husz\'ar as he is an expert in the field and can provide key
+insights for the project. Our
+work plan for the project is as follows:
+\paragraph{12 April - 6 May: } Due to deadlines and exams, this period will
+  be the least productive, our goal during this time is to begin the literature
+  review and look for/ implement some benchmarks.
+\paragraph{7 May - 20 May: } Finishing literature review, finishing
+the implementation of benchmarks, implementing first MIRACLE-based model, testing on
+a tractable dataset (e.g. MNIST). This avoids having to worry about point 2) and
+to some extent 3) on the list in the above section.
+\paragraph{21 May - 3 June: } Experimentation with different losses (e.g.
+moving to VGG loss or some more sophisticated perceptual loss) and
+hyperparameters. Attempt to upscale architecture for medium to high-resolution images.
+\paragraph{4 June - 17 June: } Depending on the success of the previous two weeks, carry
+on experimenting with different architectures/hyperparameters/losses or attempt
+to address the chunking problem depending on its severity. Preparation of poster
+and talk for the Industry Day to be held on 17 June.
+\paragraph{18 June - 1 July: } Depending on success so far, either keep
+attempting to overcome the difficulties caused by dealing with high-res images
+or attempt some extensions to the project, e.g. lifting some constraints/
+assumptions made at the start, make the code more time/energy efficient.
+\paragraph{2 July - 15 July: } Start writeup, add literature review, theoretical
+discussion. Set up and run (or re-run) all required
+experiments and add results we have so far.
+\paragraph{16 July - 30 July: } Finish up all remaining experiments, finishing
+first draft of the dissertation.
+\paragraph{31 July - 9 August: } Finalising all results, finalising writeup, submitting.
+\section*{Resource Declaration}
+\paragraph{}
+As the project's fundamental tool will be a convolutional neural network (CNN),
+\textbf{access to a GPU / GPUs} will be crucial for the success of the project as it will
+enable quick experimentation.
+\paragraph{}
+Currently, it does not seem that the project would involve computation that would
+heavily benefit from parallelisation on several CPUs hence it is currently unlikely that
+we would make use of the MLMI grid engine.
+\paragraph{}
+\textbf{No studies involving human participants is planned for this project.}
+\printbibliography
+\end{document}

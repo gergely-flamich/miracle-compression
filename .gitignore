@@ -1,5 +1,11 @@
+# General
 *.tar.gz
 *.miracle
+
+# Poster and thesis stuff
+poster/
+thesis/
+proposal/
 
 # Mac stuff
 .DS_Store

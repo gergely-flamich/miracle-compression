@@ -63,6 +63,8 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Ideas
 ** Denoising VAEs -> compress similar images to the same latent representation?
 
+** Permute quarters of the image and add them up?
+   do something fancier to connect disconnected parts of the image?
 
 * A* sampling
 
@@ -71,6 +73,8 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
    CLOSED: [2019-06-05 Wed 14:51]
 
 ** TODO A* sampling log difference requires the sufficient statistics of the target distribution for the search to work!
+   - Combine Arithmetic coding with A* sampling?
+   - find 2^-i wide interval and resample
 
 * Papers [2/9]
 ** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)
@@ -119,5 +123,15 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 * Meeting on 10 June
 
 * Meeting on 17 June / Industry day
+
+
+* Poster & Presentation
+** Stuff in poster
+  Titles:
+   - Introduction
+   - Coding
+   - Architecture
+   - Results
+   - Conclusion
 
 
