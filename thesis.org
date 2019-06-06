@@ -126,6 +126,20 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 
 
 * Poster & Presentation
+** Stuff to say
+   - Lossy image compression using hieararchical VAE:
+   - Principled:
+     - Can recast former VAE-esque methods using quantization as using a mixture of dirac deltas for coding
+     - Using a technique similar to the original MIRACLE paper, use a continuous coding distribution -> can be reparametrised
+   - Efficient: 
+     - encoding length can be bounded by KL between decoding and encoding distribution
+   - Differentiable:
+     - Since we do away the only non-differentiable part of the architecture, we can now train end-to-end just like a regular VAE with the ELBO
+   
+   - Fully convolutional architecture based on previous architecture by Johannes Balle
+
+   - Train on CLIC 2018 dataset
+
 ** Stuff in poster
   Titles:
    - Introduction
@@ -135,3 +149,4 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
    - Conclusion
 
 
+   

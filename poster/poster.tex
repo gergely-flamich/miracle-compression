@@ -116,10 +116,12 @@ fill=gray!30]
 \renewcommand{\vec}[1]{\mathbf{#1}}
 \renewcommand{\L}{\mathcal{L}}
 \newcommand{\D}{\mathcal{D}}
+\newcommand{\I}{\mathbb{I}}
 \newcommand{\Exp}{\mathbb{E}}
 \newcommand{\KL}[2]{\mathrm{KL}\left(\,#1\,\,||\,\,#2\,\right)}
 \newcommand{\dee}{\mathrm{d}}
 \newcommand{\Q}{\mathcal{Q}}
+\newcommand{\Oh}{\mathcal{O}}
 \newcommand{\N}{\mathcal{N}}
 \newcommand{\diag}{\mathrm{diag}}
 \newcommand{\Reals}{\mathbb{R}}
@@ -237,14 +239,14 @@ natural, as we would want a larger latent representation for larger images.
 \begin{minipage}[t]{.47\textwidth}
   \centering
   \includegraphics[width=\textwidth]{../img/poster/original.png} 
-  \caption{haha}
+  \caption{Original image}
   \label{fig:original_tattoo}
 \end{minipage}%
 \hfill
 \begin{minipage}[t]{.47\textwidth}
   \centering
   \includegraphics[width=\textwidth]{../img/poster/gauss_gauss.png}
-  \caption{hehe}  
+  \caption{Uncompressed using MIRACLE}  
   \label{fig:reconstructed_tattoo}
 \end{minipage}
 \end{figure}
@@ -264,7 +266,7 @@ natural, as we would want a larger latent representation for larger images.
 \begin{block}{Architecture}
   \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{../img/poster/uni_logo.png}
+    \includegraphics[width=\textwidth]{../img/poster/architecture_old.png}
     \label{fig:architecture}
   \end{figure}
 
@@ -306,7 +308,13 @@ natural, as we would want a larger latent representation for larger images.
 %----------------------------------------------------------------------------------------
 
 \begin{block}{Coding}
-
+  We can upper-bound the information $T[\D \,:\, \vec{z}]$ required to code the
+  latent representation $\vec{z}$ of data $\D$ in terms of their mutual
+  information \cite{harsha2007communication}:
+  \begin{equation}
+    T[\D, \,:\, \vec{z}] \leq \I[\D, \,:\, \vec{z}] + 2\log(\I[\D, \,:\, \vec{z}] + 1) + \Oh(1)
+  \end{equation}
+  This bound is achievable using an adaptive rejection sampling algorithm
 \end{block}
 
 %----------------------------------------------------------------------------------------

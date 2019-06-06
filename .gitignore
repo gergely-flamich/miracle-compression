@@ -6,6 +6,7 @@
 poster/
 thesis/
 proposal/
+flickr_dataset/
 
 # Mac stuff
 .DS_Store
