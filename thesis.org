@@ -150,3 +150,9 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 
 
    
+
+* Building the dataset
+** Find popular cameras, search for those
+   - sony a7 mark3
+   - canon eos 5d
+** Exposure triangle
