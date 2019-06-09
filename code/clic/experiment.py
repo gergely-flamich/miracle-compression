@@ -89,15 +89,15 @@ def run(config_path=None,
         "first_level_layers": 4,
 
         "loss": "nll_perceptual_kl",
-        "likelihood": "gaussian",
-        "prior": "laplace",
+        "likelihood": "laplace",
+        "prior": "gaussian",
         
         # % of the number of batches when the coefficient is capped out 
         # (i.e. for 1., the coef caps after the first epoch exactly)
         "warmup": 2., 
-        "beta": 1.,
+        "beta": 0.1,
         "gamma": 0.,
-        "learning_rate": 1e-4,
+        "learning_rate": 3e-5,
         "optimizer": "adam",
 
         "log_freq": 50,
@@ -240,17 +240,11 @@ def run(config_path=None,
                     pbar.set_description("Epoch {}, Loss: {:.2f}, KL: {:.2f}, Log Prob: {:.4f}".format(epoch, loss, kl_div, log_prob))
 
             checkpoint.save(ckpt_prefix)
+            
+        print("Training finished!")
 
     else:
         print("Skipping training!")
-
-
-    # ==========================================================================
-    # Compress images
-    # ==========================================================================
-
-
-    print(vae.encode(tf.convert_to_tensor(test_data[:1, ...] / 255., dtype=tf.float32)))
 
 
 if __name__ == "__main__":

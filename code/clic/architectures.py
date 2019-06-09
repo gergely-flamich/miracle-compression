@@ -546,12 +546,10 @@ class ClicLadderCNN(ClicHierarchicalVAE):
         topdown_scale_sq_inv= 1. / (tf.pow(topdown_scale, 2) + eps)
         first_level_scale_sq_inv= 1. / (tf.pow(first_level_scale, 2) + eps)
 
-        combined_scale = tf.sqrt(1. / topdown_scale_sq_inv + first_level_scale_sq_inv)
+        combined_var = 1. / (topdown_scale_sq_inv + first_level_scale_sq_inv)
+        combined_scale = tf.sqrt(combined_var)
 
-        first_level_natural_mean = first_level_loc * first_level_scale_sq_inv
-        topdown_natural_mean = topdown_loc * topdown_scale_sq_inv
-
-        combined_loc = (first_level_natural_mean + topdown_natural_mean) / combined_scale
+        combined_loc = (topdown_loc * first_level_scale_sq_inv + first_level_loc * topdown_scale_sq_inv) / combined_var
 
         # First level distribution
         first_level_posterior = self._latent_dist(loc=combined_loc,
