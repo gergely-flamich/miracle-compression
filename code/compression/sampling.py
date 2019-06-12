@@ -13,6 +13,8 @@ Currently implemented:
 import numpy as np
 from scipy.stats import truncnorm, norm
 
+from sobol_seq import i4_sobol_generate
+
 np.seterr(all="raise", under="warn")
 
 # Priority Queue
@@ -34,26 +36,36 @@ def normal_normal_log_diff(x, mu_prop, sigma_prop, mu_target, sigma_target):
 
 def normal_normal_region_bound(a, b, mu_prop, sigma_prop, mu_target, sigma_target):
 
+    # The log difference is technically not boundable in this case, but
+    # in reality, we will never tend to infinity with the sampling points
+#     if sigma_prop < sigma_target:
+#         raise SamplingError("Log difference is not boundable!")
+
+    # o(x) is convex
     if sigma_prop < sigma_target:
-        raise SamplingError("Log difference is not boundable!")
-
-    if a < mu_target < b:
-        # The log difference attains its maximum here
-        max_x = (mu_prop * sigma_target**2 - mu_target * sigma_prop**2) / (sigma_target**2 - sigma_prop**2)
-
-        return normal_normal_log_diff(max_x, mu_prop, sigma_prop, mu_target, sigma_target)
-    else:
-        # Both bounds can never be none, because the above branch will always get executed in the case
-        # a = -inf, b = inf since the mean will always be in (-inf, inf)
-        a_bound = None if a == -np.inf else normal_normal_log_diff(a, mu_prop, sigma_prop, mu_target, sigma_target)
-        b_bound = None if b == np.inf else normal_normal_log_diff(b, mu_prop, sigma_prop, mu_target, sigma_target)
-
-        if a_bound is None:
-            return b_bound
-        elif b_bound is None:
-            return a_bound
-        else:
+            a_bound = 10 if a == -np.inf else normal_normal_log_diff(a, mu_prop, sigma_prop, mu_target, sigma_target)
+            b_bound = 10 if b == np.inf else normal_normal_log_diff(b, mu_prop, sigma_prop, mu_target, sigma_target)
+            
             return np.maximum(a_bound, b_bound)
+    # o(x) is concave
+    else:
+        if a < mu_target < b:
+            # The log difference attains its maximum here
+            max_x = (mu_prop * sigma_target**2 - mu_target * sigma_prop**2) / (sigma_target**2 - sigma_prop**2)
+
+            return normal_normal_log_diff(max_x, mu_prop, sigma_prop, mu_target, sigma_target)
+        else:
+            # Both bounds can never be none, because the above branch will always get executed in the case
+            # a = -inf, b = inf since the mean will always be in (-inf, inf)
+            a_bound = None if a == -np.inf else normal_normal_log_diff(a, mu_prop, sigma_prop, mu_target, sigma_target)
+            b_bound = None if b == np.inf else normal_normal_log_diff(b, mu_prop, sigma_prop, mu_target, sigma_target)
+
+            if a_bound is None:
+                return b_bound
+            elif b_bound is None:
+                return a_bound
+            else:
+                return np.maximum(a_bound, b_bound)
 
 # ------------------------------------------------------------------------------
 # Gumbel related stuff
@@ -102,8 +114,172 @@ def trunc_gumbel_sample(trunc, loc=0., size=None):
     u = np.random.uniform(size=size)
     return trunc_gumbel_inv_cdf(u, trunc=trunc, loc=loc)
 
+# ------------------------------------------------------------------------------
+# Efficient Storage for the coded A* sampling
+# ------------------------------------------------------------------------------
+
+class TreeLeaf:
+        def __init__(self, val, idx):
+            # Sample value
+            self.val = val
+            
+            # Sample index
+            self.idx = idx
+            
+            # Children
+            self.left = None
+            self.right = None
+            
+        def __str__(self):
+            return "{} : {}".format(self.val, self.idx)
+
+class IntervalTree:
+        
+    def __init__(self, num_nodes):
+        self.root = None
+        self.idx = 0
+        
+        self.node_list = []
+        
+        uniform_approx_samp_block = i4_sobol_generate(1, num_nodes, skip=10)
+
+        for i in range(num_nodes):
+            self.add(uniform_approx_samp_block[i, 0])
+
+        
+    def add(self, val):
+        
+        leaf = TreeLeaf(val, self.idx)
+         
+        if self.root is None:
+            self.root = leaf
+        else:
+            current = self.root
+            
+            while True:
+                
+                if val < current.val:
+                    
+                    if current.left is None:
+                        current.left = leaf
+                        break
+                    else:
+                        current = current.left
+                    
+                elif val > current.val:
+                    
+                    if current.right is None:
+                        current.right = leaf
+                        break
+                    else:
+                            
+                        current = current.right
+                        
+        self.idx += 1
+        self.node_list.append(leaf)
+       
+    
+    def _to_list(self, node):
+        if node is not None:
+            
+            l = self._to_list(node.left)
+            
+            l += [(node.val, node.idx)]
+            
+            l += self._to_list(node.right)
+            
+            return l
+        else:
+            return []
+        
+    def to_list(self):
+        if self.root is None:
+            raise Exception("No entries in tree!")
+            
+        return self._to_list(self.root)
+    
+                        
+    def between(self, low, high, cdf=None, inv_cdf=None):
+        """
+        This is just the lowest common ancestor algorithm, with the 
+        extra condition that nodes cannot be their own ancestors
+        """
+        
+        if self.root is None:
+            raise Exception("No entries in tree!")
+            
+        if low >= high:
+            raise Exception("Low must be less than high!")
+            
+        # Make sure we always have an invertible transformation
+        if cdf is None or inv_cdf is None:
+            cdf = lambda x: x
+            inv_cdf = lambda x: x
+            
+        low = cdf(low)
+        high = cdf(high)
+        
+        current = self.root
+        
+        while current is not None:
+            
+            # If the ancestors still match, go farther down the tree
+            if current.val < low and current.val < high:
+                current = current.right
+                
+            elif current.val > low and current.val > high:
+                current = current.left
+                
+            # When the ancestors diverge, check three possible cases
+            else:
+                if current.val == low:
+                    current = current.right
+                    
+                    while current is not None:
+                        if current.val < high:
+                            break
+                        else:
+                            should_break = current.val == high
+                            
+                            current = current.left
+                            
+                            if should_break: break
+                
+                elif current.val == high:
+                    current = current.left
+                    
+                    while current is not None:
+                        if current.val > low:
+                            break
+                        else:
+                            should_break = current.val == low
+                            
+                            current = current.right
+                            
+                            if should_break: break
+                        
+                    
+                return None if current is None else (inv_cdf(current.val), current.idx)
+            
+        return None
+    
+                
+    def _pretty_print(self, node, indent):
+        
+        if node is not None:
+            
+            self._pretty_print(node.left, indent + 2)
+            
+            print("  " * indent + " " + str(node),)
+            
+            self._pretty_print(node.right, indent + 2)
+            
+        
+    def pretty_print(self):
+        self._pretty_print(self.root, 0)
+
 # ==============================================================================
-# A* sampling
+# A* sampling (Cannot be coded)
 # ==============================================================================
 
 def a_star_sample(prop_trunc_samp, prop_log_mass, log_diff, region_bound, seed, code_path=None):
@@ -215,3 +391,122 @@ def a_star_sample(prop_trunc_samp, prop_log_mass, log_diff, region_bound, seed, 
                     M.append(0)
 
     return lower_bound, samp, samp_path
+
+# ==============================================================================
+# A* sampling can be coded
+# ==============================================================================
+
+def a_star_sample_codable(prop_log_mass, 
+                          log_diff, 
+                          samp_tree, 
+                          region_bound, 
+                          prop_cdf,
+                          prop_inv_cdf,
+                          eps=1e-4):
+    """
+    prop_log_mass - function taking 2 arguments a, b and calculates \log\int_a^b i(x) dx
+    
+    log_diff - function taking 1 argument, is o(x) in the paper
+    
+    region_bound - function taking 2 arguments a, b; is M(B) in the paper
+    """
+    
+    if type(samp_tree) != IntervalTree:
+        raise SamplingError("samp_tree must be an IntervalTree!")
+    
+    # Initialisation
+    lower_bound = -np.inf
+    samp = None
+    k = 0
+    
+    queue = []
+    
+    samp_idx = 0
+    
+    G = []
+    X = []
+    B = []
+    M = []
+    
+    # First split:
+    # generate maximum and maximum location
+    b_1 = (-np.inf, np.inf)
+    
+    g_1 = gumbel_sample(loc=prop_log_mass(*b_1))
+    
+    x_1, idx = samp_tree.between(low=b_1[0],
+                                 high=b_1[1],
+                                 cdf=prop_cdf,
+                                 inv_cdf=prop_inv_cdf)
+        
+    m_1 = region_bound(*b_1)
+    
+    # Store G_1, X_1, B_1, M_1
+    G.append(g_1)
+    X.append(x_1)
+    B.append(b_1)
+    M.append(m_1)
+    
+    # The heapq implementation of the heap is a min heap not a max heap!
+    hq.heappush(queue, (-(g_1 + m_1), 0, idx))
+    
+    # Run A* search
+    # Note: since we are using the negative of the upper bounds
+    # we have to negate it again at this check
+    while len(queue) > 0 and lower_bound < -min(queue)[0]:
+        
+        # Get the bound with the highest priority
+        _, p, p_idx = hq.heappop(queue)
+        
+        # Calculate new proposed lower bound based on G_p
+        lower_bound_p = G[p] + log_diff(X[p])
+        
+        # Check if the lower bound can be raised
+        if lower_bound < lower_bound_p:
+
+            lower_bound = lower_bound_p
+
+            idx = p_idx
+            samp = X[p] 
+            
+        # Partition the space: split the current interval by X_p
+        L = (B[p][0], X[p])
+        R = (X[p], B[p][1])
+        
+        # Go down the heap / partitions
+        for C, direction in zip([L, R], ['0', '1']):
+            
+            # TODO: check if this is a sufficiently good empty set condition
+            if not np.abs(C[0] - C[1]) < eps:  
+                
+                k += 1
+                
+                b_k = C
+                
+                g_k = trunc_gumbel_sample(loc=prop_log_mass(*C),
+                                          trunc=G[p])
+
+                x_k, k_idx = samp_tree.between(low=b_k[0],
+                                               high=b_k[1],
+                                               cdf=prop_cdf,
+                                               inv_cdf=prop_inv_cdf)
+                    
+                # Store B_k, G_k, X_k
+                B.append(b_k)
+                G.append(g_k)
+                X.append(x_k)
+                
+                # Check if there is a point in continuing the search along this path
+                if lower_bound < g_k + M[p]:
+                    m_k = region_bound(*b_k)
+                    M.append(m_k)
+                    
+                    if lower_bound < g_k + m_k:
+                        
+                        hq.heappush(queue, (-(g_k + m_k), k, k_idx))
+                else:
+                    # We push a non-informative bound here, so that the length of M 
+                    # is the same as the rest
+                    M.append(0)
+
+    return lower_bound, samp, idx
