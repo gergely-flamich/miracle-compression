@@ -853,3 +853,284 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
 
 
         return activations, tf.ones_like(activations)
+
+    # ==============================================================================
+
+class ClicLadderCNN2(ClicHierarchicalVAE):
+
+    def __init__(self,
+                 latent_dist="gaussian",
+                 likelihood="gaussian",
+                 first_level_channels=192,
+                 second_level_channels=128,
+                 first_level_layers=4,
+                 padding_first_level="SAME",
+                 padding_second_level="SAME",
+                 name="clic_ladder_cnn2"):
+
+        super(ClicLadderCNN2, self).__init__(latent_dist=latent_dist,
+                                                likelihood=likelihood,
+                                                standardized=True,
+                                                num_levels=2,
+                                                padding_first_level=padding_first_level,
+                                                padding_second_level=padding_second_level,
+                                                name=name)
+
+        self._first_level_channels = first_level_channels
+        self._second_level_channels = second_level_channels
+
+        self._first_level_layers = first_level_layers
+
+
+    def required_input_size(self, shape):
+
+            shape = self._second_level_loc_head.required_input_size(shape, for_padding=self._padding_second_level)
+
+            for layer in self._second_level[::-1]:
+                shape = layer.required_input_size(shape, for_padding=self._padding_second_level)
+
+            shape = self._first_level_loc_head.required_input_size(shape, for_padding=self._padding_first_level)
+
+            for layer in self._first_level[::-1]:
+                shape = layer.required_input_size(shape, for_padding=self._padding_first_level)
+
+
+            return shape
+
+
+    @reuse_variables
+    def encode(self, inputs, level=1, eps=1e-10):
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
+
+        # First level
+
+        self._first_level = [
+            ConvDS(output_channels=self._first_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=2,
+                   padding=self._padding_first_level,
+                   downsampling_rate=2,
+                   use_gdn=True,
+                   name="encoder_level_1_conv_ds{}".format(idx))
+            for idx in range(1, self._first_level_layers)
+        ]
+
+        self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
+                                      kernel_shape=(3,  3),
+                                      num_convolutions=2,
+                                      padding=self._padding_first_level,
+                                      downsampling_rate=2,
+                                      use_gdn=False,
+                                      name="encoder_level_1_conv_loc")
+
+        first_level_scale_head = ConvDS(output_channels=self._first_level_channels,
+                                        kernel_shape=(3,  3),
+                                        num_convolutions=2,
+                                        padding=self._padding_first_level,
+                                        downsampling_rate=2,
+                                        use_gdn=False,
+                                        name="encoder_level_1_conv_scale")
+
+        # Second level
+
+        self._second_level = [
+            ConvDS(output_channels=self._second_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=1,
+                   padding=self._padding_second_level,
+                   downsampling_rate=1,
+                   use_gdn=False,
+                   activation="leaky_relu",
+                   name="encoder_level_2_conv_ds1"),
+            ConvDS(output_channels=self._second_level_channels,
+                   kernel_shape=(3,  3),
+                   num_convolutions=2,
+                   padding=self._padding_second_level,
+                   downsampling_rate=2,
+                   use_gdn=False,
+                   activation="leaky_relu",
+                   name="encoder_level_2_conv_ds2")
+        ]
+
+        self._second_level_loc_head = ConvDS(output_channels=self._second_level_channels,
+                                       kernel_shape=(3,  3),
+                                       num_convolutions=2,
+                                       padding=self._padding_second_level,
+                                       downsampling_rate=2,
+                                       use_gdn=False,
+                                       activation="none",
+                                       name="encoder_level_2_conv_loc")
+
+        second_level_scale_head = ConvDS(output_channels=self._second_level_channels,
+                                         kernel_shape=(3,  3),
+                                         num_convolutions=2,
+                                         padding=self._padding_second_level,
+                                         downsampling_rate=2,
+                                         use_gdn=False,
+                                         activation="none",
+                                         name="encoder_level_2_conv_scale")
+
+        # The top-down level from the second to the first level
+        self._topdown_level = [
+            self._second_level_loc_head.transpose(),
+        ]
+
+        # Iterate through in reverse
+        for level in self._second_level[:0:-1]:
+            self._topdown_level.append(level.transpose())
+
+        self._topdown_loc_head = self._second_level[0].transpose(name="topdown_loc_head")
+        self._topdown_scale_head = self._second_level[0].transpose(name="topdown_scale_head")
+
+
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
+
+        activations = inputs
+
+        for layer in self._first_level:
+            activations = layer(activations)
+
+        # First stochastic level statistics
+        first_level_loc = self._first_level_loc_head(activations)
+        first_level_scale = tf.nn.softplus(first_level_scale_head(activations))
+
+        # This is a probabilistic ladder network with this connection
+        activations = first_level_loc
+
+        for layer in self._second_level:
+            activations = layer(activations)
+
+        # Second stochastic level statistics
+        second_level_loc = self._second_level_loc_head(activations)
+        
+        # The sigmoid activation enforces that the posterior variance is always less than 
+        # the prior variance
+        second_level_scale = tf.nn.sigmoid(second_level_scale_head(activations))
+
+        # Top distribution
+        second_level_posterior = self._latent_dist(loc=second_level_loc,
+                                                   scale=second_level_scale)
+
+        activations = second_level_posterior.sample()
+
+        latents = (activations,)
+
+        for layer in self._topdown_level:
+            activations = layer(activations)
+
+        # Topdown statistics
+        topdown_loc = self._topdown_loc_head(activations)
+        topdown_scale = tf.nn.softplus(self._topdown_scale_head(activations))
+
+        # Combined first level statistics
+        topdown_scale_sq_inv= 1. / (tf.pow(topdown_scale, 2) + eps)
+        first_level_scale_sq_inv= 1. / (tf.pow(first_level_scale, 2) + eps)
+
+        combined_var = 1. / (topdown_scale_sq_inv + first_level_scale_sq_inv)
+        combined_scale = tf.sqrt(combined_var)
+
+        combined_loc = (topdown_loc * first_level_scale_sq_inv + first_level_loc * topdown_scale_sq_inv) / combined_var
+
+        # First level distribution
+        first_level_posterior = self._latent_dist(loc=combined_loc,
+                                                  scale=combined_scale)
+
+        activations = first_level_posterior.sample()
+
+        latents = latents + (activations,)
+
+        self._latent_posteriors = [first_level_posterior, second_level_posterior]
+
+        return latents
+
+
+    @reuse_variables
+    def decode(self, latents, decode_level=1):
+        # ----------------------------------------------------------------------
+        # Define layers
+        # ----------------------------------------------------------------------
+
+        # Go from top to bottom
+        # Second level
+        decoder_second_level = self._topdown_level
+
+        first_loc_head = self._topdown_loc_head
+        first_scale_head = self._topdown_scale_head
+
+        # First level
+        decoder_first_level = [
+            self._first_level_loc_head.transpose(),
+        ]
+
+        # Iterate through in reverse
+        for level in self._first_level[::-1]:
+            decoder_first_level.append(level.transpose())
+
+        # ----------------------------------------------------------------------
+        # Apply layers
+        # ----------------------------------------------------------------------
+
+        if len(latents) != decode_level:
+            raise InvalidArgumentError("Length of latents ({}) has to equal to level number {}".format(len(latents), decode_level))
+
+        if decode_level == 2:
+            second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[0]),
+                                                scale=tf.ones_like(latents[0]))
+
+            activations = latents[0]
+
+            for layer in decoder_second_level:
+                activations = layer(activations)
+
+            first_loc = first_loc_head(activations)
+            first_scale = tf.nn.softplus(first_loc_head(activations))
+
+            # First layer prior
+            first_layer_prior = self._latent_dist(loc=first_loc,
+                                                scale=first_scale)
+
+            self._latent_priors = [first_layer_prior, second_layer_prior]
+
+            activations = latents[1]
+            
+            for layer in decoder_first_level:
+                activations = layer(activations)
+                
+            return activations, tf.ones_like(activations)
+
+        elif decode_level == "second":
+            second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[0]),
+                                                scale=tf.ones_like(latents[0]))
+
+            activations = latents
+
+            for layer in decoder_second_level:
+                activations = layer(activations)
+
+            first_loc = first_loc_head(activations)
+            first_scale = tf.nn.softplus(first_loc_head(activations))
+
+            # First layer prior
+            first_layer_prior = self._latent_dist(loc=first_loc,
+                                                scale=first_scale)
+
+            self._latent_priors = [first_layer_prior, second_layer_prior]
+
+            return first_loc, first_scale
+        
+        elif decode_level == "first":
+            
+            activations = latents
+            
+            for layer in decoder_first_level:
+                activations = layer(activations)
+                
+            return activations, tf.ones_like(activations)
+        
+        return None
+
+# ==============================================================================

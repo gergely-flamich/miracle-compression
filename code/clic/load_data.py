@@ -115,35 +115,11 @@ def download_process_and_load_data(crop_coef=10, crop_size=360):
         print("Data already processed!")
 
 
-    print("Processing Validation Data!")
-    if not os.path.exists(valid_processed_path):
-        os.mkdir(valid_processed_path)
-
-        for idx, image in enumerate(valid_image_dataset):
-
-            print("Processing image {} out of {}".format(idx, len(valid_image_paths)))
-
-            crops = create_random_crops(image, crop_coef=crop_coef, crop_size=crop_size)
-
-            for i, crop in tqdm(enumerate(crops), total=len(crops)):
-                imwrite(valid_processed_path + "{}_{}.png".format(idx, i), crop.numpy())
-
-            del crops
-
-    else:
-        print("Data already processed!")
-
-
     # Load the data as datasets
     train_image_paths = glob.glob(train_processed_path + "/*.png")
-    valid_image_paths = glob.glob(valid_processed_path + "/*.png")
 
     train_paths_dataset = tf.data.Dataset.from_tensor_slices(train_image_paths)
     train_image_dataset = train_paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
                                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    valid_paths_dataset = tf.data.Dataset.from_tensor_slices(valid_image_paths)
-    valid_image_dataset = valid_paths_dataset.map(lambda im: load_and_process_image(im, normalize=True),
-                                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-    return train_image_dataset, valid_image_dataset
+    return train_image_dataset
