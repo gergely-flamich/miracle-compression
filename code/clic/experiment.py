@@ -25,7 +25,7 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from architectures import ClicCNN, ClicLadderCNN, ClicHyperVAECNN
+from architectures import ClicCNN, ClicLadderCNN, ClicLadderCNN2, ClicHyperVAECNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -37,6 +37,7 @@ models = {
     "cnn": ClicCNN,
     "hyper_cnn": ClicHyperVAECNN,
     "ladder_cnn": ClicLadderCNN,
+    "ladder_cnn2": ClicLadderCNN2,
 }
 
 
@@ -94,8 +95,8 @@ def run(config_path=None,
         
         # % of the number of batches when the coefficient is capped out 
         # (i.e. for 1., the coef caps after the first epoch exactly)
-        "warmup": 2., 
-        "beta": 0.1,
+        "warmup": 4., 
+        "beta": 0.3,
         "gamma": 0.,
         "learning_rate": 3e-5,
         "optimizer": "adam",
@@ -118,7 +119,7 @@ def run(config_path=None,
     # Load dataset
     # ==========================================================================
 
-    train_dataset, valid_dataset = download_process_and_load_data()
+    train_dataset = download_process_and_load_data()
     
     train_dataset = clic_input_fn(train_dataset,
                                   batch_size=config["batch_size"],
@@ -135,7 +136,7 @@ def run(config_path=None,
                     likelihood=config["likelihood"],
                     padding="SAME_MIRRORED")
         
-    elif model_key in ["hyper_cnn", "ladder_cnn"]:
+    elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
         vae = model(latent_dist=config["prior"],
                     likelihood=config["likelihood"],
                     first_level_channels=config["first_level_channels"],
@@ -207,7 +208,7 @@ def run(config_path=None,
                         output = tf.cast(output, tf.float32)
                         output = tf.clip_by_value(output, 0., 1.)
 
-                        ms_ssim = tf.image.ssim_multiscale(batch, output, 1.)
+                        ms_ssim = 0. #tf.image.ssim_multiscale(batch, output, 1.)
                         
                         # This correction is necessary, so that the ms-ssim value is on the order
                         # of the KL and the log probability
