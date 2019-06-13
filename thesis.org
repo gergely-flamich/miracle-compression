@@ -22,7 +22,7 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 ** TODO Upscale stuff
 
 
-* Questions [4/10]
+* Questions [7/10]
 ** DONE What is the equivalent of the block constraint here?
    CLOSED: [2019-05-31 Fri 10:52]
    - Is there a connection to conditional sampling?
@@ -37,16 +37,19 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
    Just use L2 for comparison
    Use GAN for nice pictures
 
-** TODO Is there a good justification for Laplace latent distributions?
+** DONE Is there a good justification for Laplace latent distributions?
+   CLOSED: [2019-06-13 Thu 17:55]
 ** DONE Good image reconstruction activations? Is GDN good?
    CLOSED: [2019-05-31 Fri 11:45]
 
 ** TODO Is there a way to get rid of the edge artifacts?
-** TODO Use VALID or mirrored SAME padding?
+** DONE Use VALID or mirrored SAME padding?
+   CLOSED: [2019-06-13 Thu 17:55]
 ** TODO Using stacked CNN layers instead of one big one?
 ** TODO Residual CNN architecture?
 
-** TODO Is a Laplace prior justified or should we attempt to use the non-informative one?
+** DONE Is a Laplace prior justified or should we attempt to use the non-informative one?
+   CLOSED: [2019-06-13 Thu 17:55]
 
      
 * How to choose the beta
@@ -68,13 +71,17 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
 
 * A* sampling
 
-* Issues [1/2]
+* Issues [1/4]
 ** DONE Check edges of images -> use valid padding instead of same maybe?
    CLOSED: [2019-06-05 Wed 14:51]
 
 ** TODO A* sampling log difference requires the sufficient statistics of the target distribution for the search to work!
    - Combine Arithmetic coding with A* sampling?
    - find 2^-i wide interval and resample
+** TODO A* Log difference for normals can be concave or linear
+   - use scale mixture priors instead?
+** TODO Vanishing mass on truncated regions
+
 
 * Papers [2/9]
 ** TODO Deep Feature Consistent Variational Autoencoder (Hou et al.)

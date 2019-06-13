@@ -17,6 +17,8 @@ from sobol_seq import i4_sobol_generate
 
 np.seterr(all="raise", under="warn")
 
+import line_profiler
+
 # Priority Queue
 import heapq as hq
 
@@ -43,10 +45,14 @@ def normal_normal_region_bound(a, b, mu_prop, sigma_prop, mu_target, sigma_targe
 
     # o(x) is convex
     if sigma_prop < sigma_target:
-            a_bound = 10 if a == -np.inf else normal_normal_log_diff(a, mu_prop, sigma_prop, mu_target, sigma_target)
-            b_bound = 10 if b == np.inf else normal_normal_log_diff(b, mu_prop, sigma_prop, mu_target, sigma_target)
-            
-            return np.maximum(a_bound, b_bound)
+        
+        a = a if a > -np.inf else mu_prop - 3 * sigma_prop
+        b = b if b < np.inf else mu_prop + 3 * sigma_prop
+        
+        a_bound = normal_normal_log_diff(a, mu_prop, sigma_prop, mu_target, sigma_target)
+        b_bound = normal_normal_log_diff(b, mu_prop, sigma_prop, mu_target, sigma_target)
+
+        return np.maximum(a_bound, b_bound)
     # o(x) is concave
     else:
         if a < mu_target < b:
@@ -139,6 +145,8 @@ class IntervalTree:
         self.root = None
         self.idx = 0
         
+        self.depth = 0
+        
         self.node_list = []
         
         uniform_approx_samp_block = i4_sobol_generate(1, num_nodes, skip=10)
@@ -153,10 +161,13 @@ class IntervalTree:
          
         if self.root is None:
             self.root = leaf
+            self.depth = 1
         else:
             current = self.root
+            depth = 1
             
             while True:
+                depth += 1
                 
                 if val < current.val:
                     
@@ -172,8 +183,10 @@ class IntervalTree:
                         current.right = leaf
                         break
                     else:
-                            
                         current = current.right
+                        
+            if self.depth < depth:
+                self.depth = depth
                         
         self.idx += 1
         self.node_list.append(leaf)
@@ -396,93 +409,93 @@ def a_star_sample(prop_trunc_samp, prop_log_mass, log_diff, region_bound, seed, 
 # A* sampling can be coded
 # ==============================================================================
 
-def a_star_sample_codable(prop_log_mass, 
-                          log_diff, 
-                          samp_tree, 
-                          region_bound, 
+def a_star_sample_codable(prop_log_mass,
+                          log_diff,
+                          samp_tree,
+                          region_bound,
                           prop_cdf,
                           prop_inv_cdf,
                           eps=1e-4):
     """
     prop_log_mass - function taking 2 arguments a, b and calculates \log\int_a^b i(x) dx
-    
+
     log_diff - function taking 1 argument, is o(x) in the paper
-    
+
     region_bound - function taking 2 arguments a, b; is M(B) in the paper
     """
-    
+
     if type(samp_tree) != IntervalTree:
         raise SamplingError("samp_tree must be an IntervalTree!")
-    
+
     # Initialisation
     lower_bound = -np.inf
     samp = None
     k = 0
-    
+
     queue = []
-    
+
     samp_idx = 0
-    
+
     G = []
     X = []
     B = []
     M = []
-    
+
     # First split:
     # generate maximum and maximum location
     b_1 = (-np.inf, np.inf)
-    
+
     g_1 = gumbel_sample(loc=prop_log_mass(*b_1))
-    
+
     x_1, idx = samp_tree.between(low=b_1[0],
                                  high=b_1[1],
                                  cdf=prop_cdf,
                                  inv_cdf=prop_inv_cdf)
-        
+
     m_1 = region_bound(*b_1)
-    
+
     # Store G_1, X_1, B_1, M_1
     G.append(g_1)
     X.append(x_1)
     B.append(b_1)
     M.append(m_1)
-    
+
     # The heapq implementation of the heap is a min heap not a max heap!
     hq.heappush(queue, (-(g_1 + m_1), 0, idx))
-    
+
     # Run A* search
     # Note: since we are using the negative of the upper bounds
     # we have to negate it again at this check
     while len(queue) > 0 and lower_bound < -min(queue)[0]:
-        
+
         # Get the bound with the highest priority
         _, p, p_idx = hq.heappop(queue)
-        
+
         # Calculate new proposed lower bound based on G_p
         lower_bound_p = G[p] + log_diff(X[p])
-        
+
         # Check if the lower bound can be raised
         if lower_bound < lower_bound_p:
 
             lower_bound = lower_bound_p
 
             idx = p_idx
-            samp = X[p] 
-            
+            samp = X[p]
+
         # Partition the space: split the current interval by X_p
         L = (B[p][0], X[p])
         R = (X[p], B[p][1])
-        
+
         # Go down the heap / partitions
         for C, direction in zip([L, R], ['0', '1']):
-            
+
             # TODO: check if this is a sufficiently good empty set condition
-            if not np.abs(C[0] - C[1]) < eps:  
-                
+            if not np.abs(C[0] - C[1]) < eps:
+
                 k += 1
-                
+
                 b_k = C
-                
+
                 g_k = trunc_gumbel_sample(loc=prop_log_mass(*C),
                                           trunc=G[p])
 
@@ -490,22 +503,22 @@ def a_star_sample_codable(prop_log_mass,
                                                high=b_k[1],
                                                cdf=prop_cdf,
                                                inv_cdf=prop_inv_cdf)
-                    
+
                 # Store B_k, G_k, X_k
                 B.append(b_k)
                 G.append(g_k)
                 X.append(x_k)
-                
+
                 # Check if there is a point in continuing the search along this path
                 if lower_bound < g_k + M[p]:
                     m_k = region_bound(*b_k)
                     M.append(m_k)
-                    
+
                     if lower_bound < g_k + m_k:
-                        
+
                         hq.heappush(queue, (-(g_k + m_k), k, k_idx))
                 else:
-                    # We push a non-informative bound here, so that the length of M 
+                    # We push a non-informative bound here, so that the length of M
                     # is the same as the rest
                     M.append(0)
 
