@@ -138,7 +138,7 @@ fill=gray!30]
 \title{Compression without Quantization} 
 
 \author{Gergely Flamich, Marton Havasi, Jos\'e Miguel Hern\'andez-Lobato \\
-        5 June 2019} % Author(s) 
+        17 June 2019} % Author(s) 
 
 %\institute{} % Institution(s)
 
@@ -180,13 +180,12 @@ cm)}] at (current page.north east) {\includegraphics[height=7cm]{../img/poster/u
 In this work we propose a novel lossy image compression technique based on
 MIRACLE \cite{havasi2018minimal}, that is:
 \begin{itemize}
-\item \textbf{principled:} our method is based on the MDL principle
-  \cite{hinton1993keeping}, as we
-  l earn encoding and decoding distributions over a latent representation of
-  images, which then allows us to use Arithmetic Coding to compress a random
+\item \textbf{principled:} our method is based on the MDL principle, as we
+  learn encoding and decoding distributions over a latent representation of
+  images, which then allows us to use MIRACLE to compress a random
   latent sample.
 \item \textbf{efficient:} with our method we can compress images close to their
-  information-theoretical limit (in the bits-back sense \cite{hinton1993keeping}).
+  information-theoretical limit (in the bits-back sense).
 \item \textbf{differentiable:} in contrast to previous work, our method does not
   require quantization (which is non-differentiable) for compression, hence our
   system can be trained end-to-end.
@@ -200,75 +199,17 @@ MIRACLE \cite{havasi2018minimal}, that is:
 
 \begin{block}{Introduction}
 Based on earlier work on lossy image compression using VAEs by Ball\'e
-\cite{balle2018variational}, we show that their architecture when interpreted in
-the MIRACLE framework corresponds to a Hieararchical VAE \cite{sonderby2016train}.
+\cite{balle2018variational}, we show that their architecture - when interpreted in
+the MIRACLE framework - corresponds to a Hieararchical VAE. 
 We use the hierarchical structure reported in \cite{balle2018variational}, but
 unlike them, we omit the quantization step and use diagonal Gaussians as the
-latent priors $p(\vec{z})$ and posteriors $q(vec{z} \mid \vec{x})$.
-We train on the CLIC 2018 dataset \cite{clic2018} using the ELBO for Gaussian
-likelihood on the data:
+latent priors $p(\vec{z})$ and posteriors $q(\vec{z} \mid \vec{x})$.
+We train on the CLIC 2018 dataset \cite{clic2018} with the $\beta$-ELBO for Gaussian
+likelihood as the loss:
 \begin{equation}
-  \L = \Exp_q[\log p(\D \mid \vec{z})] + \KL{q(\vec{z} \mid \D)}{p(\vec{z})}
+  \L = \Exp_q[\log p(\D \mid \vec{z})] + \beta\KL{q(\vec{z} \mid \D)}{p(\vec{z})}.
 \end{equation}
-, which equivalent
-to optimizing for the PSNR \cite{psnr} as a perceptual metric. 
-
-\noindent
-To accommodate variable size images, we use a fully convolutional
-architecture, meaning we will have a variable size latent space. This is
-natural, as we would want a larger latent representation for larger images.
-
-\end{block}
-
-%----------------------------------------------------------------------------------------
-
-\end{column} % End of the first column
-
-\begin{column}{\sepwid}\end{column} % Empty spacer column
-
-\begin{column}{\twocolwid} % Begin a column which is two columns wide (column 2)
-
-%----------------------------------------------------------------------------------------
-%	IMPORTANT RESULT
-%----------------------------------------------------------------------------------------
-
-\begin{block}{Results}
-
-\begin{figure}
-\centering
-\begin{minipage}[t]{.47\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../img/poster/original.png} 
-  \caption{Original image}
-  \label{fig:original_tattoo}
-\end{minipage}%
-\hfill
-\begin{minipage}[t]{.47\textwidth}
-  \centering
-  \includegraphics[width=\textwidth]{../img/poster/gauss_gauss.png}
-  \caption{Uncompressed using MIRACLE}  
-  \label{fig:reconstructed_tattoo}
-\end{minipage}
-\end{figure}
-
-\end{block}
-
-%----------------------------------------------------------------------------------------
-
-\begin{columns}[t,totalwidth=\twocolwid] % Split up the two columns wide column again
-
-\begin{column}{\onecolwid} % The first column within column 2 (column 2.1)
-
-%----------------------------------------------------------------------------------------
-%	MATHEMATICAL SECTION
-%----------------------------------------------------------------------------------------
-
-\begin{block}{Architecture}
-  \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{../img/poster/architecture_old.png}
-    \label{fig:architecture}
-  \end{figure}
+This is equivalent to optimizing for the PSNR as a perceptual metric. 
 
   \noindent
   For a single training example $\vec{x}$, our encoding distribution $q(\vec{z} \mid \vec{x})$
@@ -290,12 +231,110 @@ natural, as we would want a larger latent representation for larger images.
   \end{gather*}
   The $\mu^{(\cdot)}_i(\cdot), \sigma^{(\cdot)}_i(\cdot)$ are given by the layers
   of the network as in Figure \ref{fig:architecture}.
-  We use General Divisive Normalization \cite{balle2016end} as the activation
+  We use General Divisive Normalization \cite{balle2018variational} as the activation
 \begin{equation}
   a^{(k + 1)}_i(m, n) = \frac{u^{(k)}_i(m, n)}{\sqrt{\beta^{(k)}_i + \sum_j \gamma^{(k)}_jw^{(k)}_j(m, n)^2}}
 \end{equation}
+before the first stochastic layer. We use these as they have been shown to
+outperform other activations at the task of image compression / reconstruction \cite{balle2018variational}.
 
 \end{block}
+
+
+
+%----------------------------------------------------------------------------------------
+
+\end{column} % End of the first column
+
+\begin{column}{\sepwid}\end{column} % Empty spacer column
+
+\begin{column}{\twocolwid} % Begin a column which is two columns wide (column 2)
+
+%----------------------------------------------------------------------------------------
+%	IMPORTANT RESULT
+%----------------------------------------------------------------------------------------
+
+
+\begin{figure}
+\centering
+\begin{minipage}[t]{.47\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../img/poster/new_court.jpeg} 
+  \caption{Original image (JPEG), $1599 \times 777$: New Court, St John's College}
+  \label{fig:original_johns}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{.47\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../img/poster/new_court_uncompressed.png}
+  \caption{Reconstructed image using MIRACLE. MS-SSIM=0.9751, PSNR=34.91, KL=209750 bits}  
+  \label{fig:reconstructed_johns}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{minipage}[t]{.47\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../img/poster/thong-vo.png} 
+  \caption{Original image (PNG), $1264 \times 790$: \texttt{thong-vo.png} from the CLIC 2018
+    validation set.}
+  \label{fig:original_thong}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{.47\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../img/poster/thong_vo_uncompressed.png}
+  \caption{Uncompressed using MIRACLE. MS-SSIM=0.9480, PSNR=25.53, KL=301033 bits}
+  \label{fig:reconstructed_thong}
+\end{minipage}
+\end{figure}
+
+
+%----------------------------------------------------------------------------------------
+
+\begin{columns}[t,totalwidth=\twocolwid] % Split up the two columns wide column again
+
+\begin{column}{\onecolwid} % The first column within column 2 (column 2.1)
+
+%----------------------------------------------------------------------------------------
+%	MATHEMATICAL SECTION
+%----------------------------------------------------------------------------------------
+
+  \begin{block}{Coding}
+    \noindent
+    A mild but very helpful assumption is that the encoding and the
+    decoding parties \textbf{share some random string} $S$. This can be realized
+    e.g. via a common random generation by sharing the starting seed of the generator. 
+
+    \noindent
+    Using the above assumption, we can upper-bound the information $T[\D \,:\,
+    \vec{z}]$ required to code the latent representation $\vec{z}$ of data $\D$
+    in terms of their mutual information \cite{harsha2007communication}:
+    \begin{equation}
+      \label{eq:coding_bound}
+      T[\D, \,:\, \vec{z}] \leq \I[\D \,:\, \vec{z}] + 2\log(\I[\D \,:\, \vec{z}] + 1) + \Oh(1)
+    \end{equation}
+    This bound is achievable using an adaptive rejection sampling algorithm e.g.
+    the one presented in \cite{harsha2007communication} or \cite{havasi2018minimal}. 
+
+    \noindent At a high level the procedure is as follows:
+    \begin{itemize}
+      \item To \textbf{code} image $\vec{x}$, pass it through the VAE so that we have
+        $q(\vec{z} \mid \vec{x})$ and $p(\vec{z})$.
+      \item Using $p(\vec{z})$ as a proposal distribution, rejection sample 
+        from $q(\vec{z} \mid \vec{x})$. The samples $\{x_k\}_{k = 1}^{\infty}$
+        drawn from $p(\vec{z})$ should be driven by the shared random string $S$.
+      \item If $x_k$ is accepted as a sample from $q(\vec{z} \mid \vec{x})$,
+        communicate $k$.
+      \item To \textbf{decode}, we simply take the $k$th sample $\vec{z}$ from
+        $p(\vec{z})$, where the sampling is driven by the same shared random
+        string $S$.
+      \item Pass $\vec{z}$ through the decoder of the VAE to obtain the
+        reconstructed image $\hat{\vec{x}}$.
+    \end{itemize}
+\end{block}
+
 
 %----------------------------------------------------------------------------------------
 
@@ -306,16 +345,44 @@ natural, as we would want a larger latent representation for larger images.
 %----------------------------------------------------------------------------------------
 %	RESULTS
 %----------------------------------------------------------------------------------------
+\begin{block}{Results}
+  \begin{table}[H]
+    \begin{tabular}{|c|c|c|}
+      \hline
+      & \textbf{PSNR} & \textbf{MS-SSIM} \\ \hline
+      CLIC Valid. Set &  $0.9667 \pm 0.0001$ & $32.49 \pm 0.0054$ \\ \hline
+    \end{tabular}
+    \caption{Performance of our model on the 41 validation images.}
+    \label{tab:reconstruction_metrics}
+  \end{table}
+\indent Our architecture achieves close to state-of-the-art performance on the
+CLIC dataset (see Table \ref{tab:reconstruction_metrics}).
 
-\begin{block}{Coding}
-  We can upper-bound the information $T[\D \,:\, \vec{z}]$ required to code the
-  latent representation $\vec{z}$ of data $\D$ in terms of their mutual
-  information \cite{harsha2007communication}:
-  \begin{equation}
-    T[\D, \,:\, \vec{z}] \leq \I[\D, \,:\, \vec{z}] + 2\log(\I[\D, \,:\, \vec{z}] + 1) + \Oh(1)
-  \end{equation}
-  This bound is achievable using an adaptive rejection sampling algorithm
+\indent Given \ref{eq:coding_bound} we can calculate the upper bound on the
+compressed size of an image by calculating 
+\begin{equation}
+  \KL{q(\vec{z} \mid \vec{x})}{p(\vec{z})} +
+  2\log(\KL{q(\vec{z} \mid \vec{x})}{p(\vec{z})} + 1) + c
+\end{equation}
+where $c$ is a small constant. The bounds for Figures \ref{fig:original_johns}
+and \ref{fig:original_thong} are in Table \ref{tab:compression_bounds}.
+  \begin{table}[H]
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      \textbf{Image} & \textbf{Original Size} & \textbf{Compressed} & \textbf{Bits / Pixel} \\ \hline
+      Figure \ref{fig:original_johns} & 114 KB &  26.2 KB & 0.1688 \\ \hline
+      Figure \ref{fig:original_thong} & 1.8 MB & 37.6 KB & 0.3014 \\ \hline
+    \end{tabular}
+    \caption{Compression upper bounds on the presented images. The gain on
+      Figure \ref{fig:original_johns} is not that great, since the original
+      image is already lossy compressed as a JPEG, although the \texttt{bpp} is
+      good. The gain is much more significant on Figure
+      \ref{fig:original_thong} which is losslessly coded as a PNG,
+      with a reasonable \texttt{bpp}.}
+    \label{tab:compression_bounds}
+  \end{table}
 \end{block}
+
 
 %----------------------------------------------------------------------------------------
 
@@ -333,9 +400,36 @@ natural, as we would want a larger latent representation for larger images.
 %	CONCLUSION
 %----------------------------------------------------------------------------------------
 
-\begin{block}{Conclusion}
+\begin{block}{Architecture}
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{../img/poster/architecture.png}
+    \label{fig:architecture}
+    \caption{Our fully convolutional architecture. The $H\times W\times C / D$ convolutional
+      blocks represent $H \times W$ sized kernels with $C$ channels, with $D$
+      times down/upsampling, indicated by the arrow.}
+  \end{figure}
 
-Nunc tempus venenatis facilisis. \textbf{Curabitur suscipit} consequat eros non porttitor. Sed a massa dolor, id ornare enim. Fusce quis massa dictum tortor \textbf{tincidunt mattis}. Donec quam est, lobortis quis pretium at, laoreet scelerisque lacus. Nam quis odio enim, in molestie libero. Vivamus cursus mi at \textit{nulla elementum sollicitudin}.
+\noindent
+To accommodate variable size images, we use a fully convolutional
+architecture, meaning we will have a variable size latent space. This is
+natural, as we would want a larger latent representation for larger images.
+
+\end{block}
+
+\begin{block}{Challenges and Future Directions}
+
+  While very promising, coding the latent space presents several
+  challenges:
+  \begin{itemize}
+  \item Coding a single multivariate sample of the latent space is infeasible
+    with rejection sampling, it would simply take too long (the number of
+    latents is on the order of $10^6$).
+  \item It might be possible to code each individual latent using rejection sampling and
+    then use arithmetic coding to compress a sequence of them. 
+  \item $A^*$-sampling could be adopted to this scenario to greatly speed up the
+    rejection sampling step.
+  \end{itemize}
 
 \end{block}
 
