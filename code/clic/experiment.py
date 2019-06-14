@@ -229,6 +229,7 @@ def run(config_path=None,
                         tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
                         tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
                         tfs.scalar("Warmup-Coeff", warmup_coef)
+                        tfs.scalar("Average PSNR", tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B)
                         tfs.image("Reconstruction", output)
                         tfs.image("Original", batch)
 
