@@ -59,7 +59,7 @@ def clic_input_fn(dataset, image_size=(256, 256), buffer_size=1000, batch_size=8
     dataset = dataset.map(lambda i: clic_parse_fn(i, image_size=image_size))
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(1)
-    
+
     return dataset
 
 def clic_parse_fn(image, image_size=(316, 316)):
@@ -77,14 +77,14 @@ def run(config_path=None,
     config = {
         "training_set_size": 93085,
         "pixels_per_training_image": 256 * 256 * 3,
-        
+
         # When using VALID for the hierarchical VAEs, this will give the correct
         # latent size
         "image_size": [256, 256],
 
         "batch_size": 8,
         "num_epochs": 20,
-        
+
         "first_level_channels": 192,
         "second_level_channels": 128,
         "first_level_layers": 4,
@@ -92,10 +92,10 @@ def run(config_path=None,
         "loss": "nll_perceptual_kl",
         "likelihood": "laplace",
         "prior": "gaussian",
-        
-        # % of the number of batches when the coefficient is capped out 
+
+        # % of the number of batches when the coefficient is capped out
         # (i.e. for 1., the coef caps after the first epoch exactly)
-        "warmup": 4., 
+        "warmup": 4.,
         "beta": 0.3,
         "gamma": 0.,
         "learning_rate": 3e-5,

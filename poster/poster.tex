@@ -138,6 +138,7 @@ fill=gray!30]
 \title{Compression without Quantization} 
 
 \author{Gergely Flamich, Marton Havasi, Jos\'e Miguel Hern\'andez-Lobato \\
+  \texttt{\{gf332,mh740,jmh233\}@cam.ac.uk} \\
         17 June 2019} % Author(s) 
 
 %\institute{} % Institution(s)
@@ -303,36 +304,38 @@ outperform other activations at the task of image compression / reconstruction \
 
   \begin{block}{Coding}
     \noindent
-    A mild but very helpful assumption is that the encoding and the
-    decoding parties \textbf{share some random string} $S$. This can be realized
-    e.g. via a common random generation by sharing the starting seed of the generator. 
-
-    \noindent
-    Using the above assumption, we can upper-bound the information $T[\D \,:\,
-    \vec{z}]$ required to code the latent representation $\vec{z}$ of data $\D$
-    in terms of their mutual information \cite{harsha2007communication}:
-    \begin{equation}
-      \label{eq:coding_bound}
-      T[\D, \,:\, \vec{z}] \leq \I[\D \,:\, \vec{z}] + 2\log(\I[\D \,:\, \vec{z}] + 1) + \Oh(1)
-    \end{equation}
-    This bound is achievable using an adaptive rejection sampling algorithm e.g.
-    the one presented in \cite{harsha2007communication} or \cite{havasi2018minimal}. 
-
-    \noindent At a high level the procedure is as follows:
     \begin{itemize}
-      \item To \textbf{code} image $\vec{x}$, pass it through the VAE so that we have
+      \item Assume parties \textbf{share random string} $S$. (i.e. shared RNG
+        with shared seed)
+      \item Given the above, the following upperbound holds:
+        \begin{equation}
+          \label{eq:coding_bound}
+          T[\D \,:\, \vec{z}] \leq \I[\D \,:\, \vec{z}] + 2\log(\I[\D \,:\, \vec{z}] + 1) + \Oh(1)
+        \end{equation}
+        where $T[\D \,:\, \vec{z}]$ is the communication cost \cite{harsha2007communication}.
+    \end{itemize}
+    \noindent
+    The rejection sampling algorithm presented in \cite{harsha2007communication}
+    or \cite{havasi2018minimal} can hence be used to code images effectively. 
+
+    \noindent To \textbf{code} image $\vec{x}$:
+    \begin{enumerate}
+      \item Pass it through the VAE so that we have
         $q(\vec{z} \mid \vec{x})$ and $p(\vec{z})$.
       \item Using $p(\vec{z})$ as a proposal distribution, rejection sample 
         from $q(\vec{z} \mid \vec{x})$. The samples $\{x_k\}_{k = 1}^{\infty}$
         drawn from $p(\vec{z})$ should be driven by the shared random string $S$.
       \item If $x_k$ is accepted as a sample from $q(\vec{z} \mid \vec{x})$,
         communicate $k$.
-      \item To \textbf{decode}, we simply take the $k$th sample $\vec{z}$ from
+    \end{enumerate}
+    \noindent To \textbf{decode}:
+    \begin{enumerate}
+      \item We simply take the $k$th sample $\vec{z}$ from
         $p(\vec{z})$, where the sampling is driven by the same shared random
         string $S$.
       \item Pass $\vec{z}$ through the decoder of the VAE to obtain the
         reconstructed image $\hat{\vec{x}}$.
-    \end{itemize}
+    \end{enumerate}
 \end{block}
 
 
@@ -419,7 +422,7 @@ natural, as we would want a larger latent representation for larger images.
 
 \begin{block}{Challenges and Future Directions}
 
-  While very promising, coding the latent space presents several
+  While promising, coding the latents presents several
   challenges:
   \begin{itemize}
   \item Coding a single multivariate sample of the latent space is infeasible

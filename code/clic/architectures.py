@@ -834,7 +834,7 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
                 activations = layer(activations)
 
             first_loc = first_loc_head(activations)
-            first_scale = tf.nn.softplus(first_loc_head(activations))
+            first_scale = tf.nn.softplus(first_scale_head(activations))
 
             # First layer prior
             first_layer_prior = self._latent_dist(loc=first_loc,
@@ -908,8 +908,8 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
 
         self._first_level = [
             ConvDS(output_channels=self._first_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_first_level,
                    downsampling_rate=2,
                    use_gdn=True,
@@ -918,16 +918,16 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         ]
 
         self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
-                                      kernel_shape=(3,  3),
-                                      num_convolutions=2,
+                                      kernel_shape=(5,  5),
+                                      num_convolutions=1,
                                       padding=self._padding_first_level,
                                       downsampling_rate=2,
                                       use_gdn=False,
                                       name="encoder_level_1_conv_loc")
 
         first_level_scale_head = ConvDS(output_channels=self._first_level_channels,
-                                        kernel_shape=(3,  3),
-                                        num_convolutions=2,
+                                        kernel_shape=(5,  5),
+                                        num_convolutions=1,
                                         padding=self._padding_first_level,
                                         downsampling_rate=2,
                                         use_gdn=False,
@@ -945,8 +945,8 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
                    activation="leaky_relu",
                    name="encoder_level_2_conv_ds1"),
             ConvDS(output_channels=self._second_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_second_level,
                    downsampling_rate=2,
                    use_gdn=False,
@@ -955,8 +955,8 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         ]
 
         self._second_level_loc_head = ConvDS(output_channels=self._second_level_channels,
-                                       kernel_shape=(3,  3),
-                                       num_convolutions=2,
+                                       kernel_shape=(5,  5),
+                                       num_convolutions=1,
                                        padding=self._padding_second_level,
                                        downsampling_rate=2,
                                        use_gdn=False,
@@ -964,8 +964,8 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
                                        name="encoder_level_2_conv_loc")
 
         second_level_scale_head = ConvDS(output_channels=self._second_level_channels,
-                                         kernel_shape=(3,  3),
-                                         num_convolutions=2,
+                                         kernel_shape=(5,  5),
+                                         num_convolutions=1,
                                          padding=self._padding_second_level,
                                          downsampling_rate=2,
                                          use_gdn=False,
@@ -1006,9 +1006,9 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
 
         # Second stochastic level statistics
         second_level_loc = self._second_level_loc_head(activations)
-        
+
         # The sigmoid activation enforces that the posterior variance is always less than 
-        # the prior variance
+        # the prior variance (which is 1)
         second_level_scale = tf.nn.sigmoid(second_level_scale_head(activations))
 
         # Top distribution
@@ -1025,15 +1025,18 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         # Topdown statistics
         topdown_loc = self._topdown_loc_head(activations)
         topdown_scale = tf.nn.softplus(self._topdown_scale_head(activations))
+        
+        self.topdown_s = topdown_scale
 
         # Combined first level statistics
-        topdown_scale_sq_inv= 1. / (tf.pow(topdown_scale, 2) + eps)
-        first_level_scale_sq_inv= 1. / (tf.pow(first_level_scale, 2) + eps)
+        topdown_precision = 1. / (tf.pow(topdown_scale, 2) + eps)
+        first_level_precision = 1. / (tf.pow(first_level_scale, 2) + eps)
 
-        combined_var = 1. / (topdown_scale_sq_inv + first_level_scale_sq_inv)
+        combined_var = 1. / (topdown_precision + first_level_precision)
         combined_scale = tf.sqrt(combined_var)
 
-        combined_loc = (topdown_loc * first_level_scale_sq_inv + first_level_loc * topdown_scale_sq_inv) / combined_var
+        combined_loc = (topdown_loc * first_level_precision + \
+                        first_level_loc * topdown_precision) / combined_var
 
         # First level distribution
         first_level_posterior = self._latent_dist(loc=combined_loc,
@@ -1074,12 +1077,12 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         # Apply layers
         # ----------------------------------------------------------------------
 
-        if len(latents) != decode_level:
-            raise InvalidArgumentError("Length of latents ({}) has to equal to level number {}".format(len(latents), decode_level))
+        # if len(latents) != decode_level:
+        #     raise InvalidArgumentError("Length of latents ({}) has to equal to level number {}".format(len(latents), decode_level))
 
         if decode_level == 2:
             second_layer_prior = self._latent_dist(loc=tf.zeros_like(latents[0]),
-                                                scale=tf.ones_like(latents[0]))
+                                                   scale=tf.ones_like(latents[0]))
 
             activations = latents[0]
 
@@ -1087,19 +1090,21 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
                 activations = layer(activations)
 
             first_loc = first_loc_head(activations)
-            first_scale = tf.nn.softplus(first_loc_head(activations))
+            first_scale = tf.nn.softplus(first_scale_head(activations))
+            
+            self.first_s = first_scale
 
             # First layer prior
             first_layer_prior = self._latent_dist(loc=first_loc,
-                                                scale=first_scale)
+                                                  scale=first_scale)
 
             self._latent_priors = [first_layer_prior, second_layer_prior]
 
             activations = latents[1]
-            
+
             for layer in decoder_first_level:
                 activations = layer(activations)
-                
+
             return activations, tf.ones_like(activations)
 
         elif decode_level == "second":
@@ -1112,7 +1117,7 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
                 activations = layer(activations)
 
             first_loc = first_loc_head(activations)
-            first_scale = tf.nn.softplus(first_loc_head(activations))
+            first_scale = tf.nn.softplus(first_scale_head(activations))
 
             # First layer prior
             first_layer_prior = self._latent_dist(loc=first_loc,
@@ -1121,16 +1126,16 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
             self._latent_priors = [first_layer_prior, second_layer_prior]
 
             return first_loc, first_scale
-        
+
         elif decode_level == "first":
-            
+
             activations = latents
-            
+
             for layer in decoder_first_level:
                 activations = layer(activations)
-                
+
             return activations, tf.ones_like(activations)
-        
+
         return None
 
 # ==============================================================================

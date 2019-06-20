@@ -163,3 +163,28 @@ Azure: https://portal.azure.com/#blade/Microsoft_Azure_Education
    - sony a7 mark3
    - canon eos 5d
 ** Exposure triangle
+
+* Industry day talk
+
+Hi my name is Greg, and I am working on compression without quantization.
+In particular, I am working on a novel image compression algorithm.
+
+The 3 key "selling points" of our approach is that it is principled, 
+efficient and differentiable.
+
+Principled, as our approach is using the mathematical framework of information
+theory. In particular, it gives us direct control over the the compression rate,
+and it also gives upper bound on how badly the algorithm might do in the worst 
+case for given settings.
+
+Our method is efficient, because the upper bound it quite close to the theoretical lower bound 
+in our framework.
+
+Finally differentiable is nice, as it makes it easy to train using standard optimizers. This makes
+training compression architectures widely available.
+
+To illustrate, here's a comparison between our method and JPEG. 
+
+73 KB is as 
+The original image size was 1.8 MB
+
