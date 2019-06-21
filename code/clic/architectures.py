@@ -177,10 +177,6 @@ class ClicHierarchicalVAE(AbstractModule):
 
         self._standardized = standardized
 
-
-    def required_input_size(self, shape, for_padding="VALID"):
-        raise NotImplementedError
-
     @reuse_variables
     def encode(self, inputs):
         raise NotImplementedError
@@ -401,22 +397,6 @@ class ClicLadderCNN(ClicHierarchicalVAE):
         self._first_level_layers = first_level_layers
 
 
-    def required_input_size(self, shape):
-
-            shape = self._second_level_loc_head.required_input_size(shape, for_padding=self._padding_second_level)
-
-            for layer in self._second_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_second_level)
-
-            shape = self._first_level_loc_head.required_input_size(shape, for_padding=self._padding_first_level)
-
-            for layer in self._first_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_first_level)
-
-
-            return shape
-
-
     @reuse_variables
     def encode(self, inputs, level=1, eps=1e-5):
         # ----------------------------------------------------------------------
@@ -427,8 +407,8 @@ class ClicLadderCNN(ClicHierarchicalVAE):
 
         self._first_level = [
             ConvDS(output_channels=self._first_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_first_level,
                    downsampling_rate=2,
                    use_gdn=True,
@@ -437,16 +417,16 @@ class ClicLadderCNN(ClicHierarchicalVAE):
         ]
 
         self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
-                                      kernel_shape=(3,  3),
-                                      num_convolutions=2,
-                                      padding=self._padding_first_level,
-                                      downsampling_rate=2,
-                                      use_gdn=False,
-                                      name="encoder_level_1_conv_loc")
+                                            kernel_shape=(5,  5),
+                                            num_convolutions=1,
+                                            padding=self._padding_first_level,
+                                            downsampling_rate=2,
+                                            use_gdn=False,
+                                            name="encoder_level_1_conv_loc")
 
         first_level_scale_head = ConvDS(output_channels=self._first_level_channels,
-                                        kernel_shape=(3,  3),
-                                        num_convolutions=2,
+                                        kernel_shape=(5,  5),
+                                        num_convolutions=1,
                                         padding=self._padding_first_level,
                                         downsampling_rate=2,
                                         use_gdn=False,
@@ -464,8 +444,8 @@ class ClicLadderCNN(ClicHierarchicalVAE):
                    activation="leaky_relu",
                    name="encoder_level_2_conv_ds1"),
             ConvDS(output_channels=self._second_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_second_level,
                    downsampling_rate=2,
                    use_gdn=False,
@@ -474,8 +454,8 @@ class ClicLadderCNN(ClicHierarchicalVAE):
         ]
 
         self._second_level_loc_head = ConvDS(output_channels=self._second_level_channels,
-                                       kernel_shape=(3,  3),
-                                       num_convolutions=2,
+                                       kernel_shape=(5,  5),
+                                       num_convolutions=1,
                                        padding=self._padding_second_level,
                                        downsampling_rate=2,
                                        use_gdn=False,
@@ -483,8 +463,8 @@ class ClicLadderCNN(ClicHierarchicalVAE):
                                        name="encoder_level_2_conv_loc")
 
         second_level_scale_head = ConvDS(output_channels=self._second_level_channels,
-                                         kernel_shape=(3,  3),
-                                         num_convolutions=2,
+                                         kernel_shape=(5,  5),
+                                         num_convolutions=1,
                                          padding=self._padding_second_level,
                                          downsampling_rate=2,
                                          use_gdn=False,
@@ -609,7 +589,7 @@ class ClicLadderCNN(ClicHierarchicalVAE):
                 activations = layer(activations)
 
             first_loc = first_loc_head(activations)
-            first_scale = tf.nn.softplus(first_loc_head(activations))
+            first_scale = tf.nn.softplus(first_scale_head(activations))
 
             # First layer prior
             first_layer_prior = self._latent_dist(loc=first_loc,
@@ -658,22 +638,6 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
         self._first_level_layers = first_level_layers
 
 
-    def required_input_size(self, shape):
-
-            shape = self._second_level_loc_head.required_input_size(shape, for_padding=self._padding_second_level)
-
-            for layer in self._second_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_second_level)
-
-            shape = self._first_level_loc_head.required_input_size(shape, for_padding=self._padding_first_level)
-
-            for layer in self._first_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_first_level)
-
-
-            return shape
-
-
     @reuse_variables
     def encode(self, inputs, level=1, eps=1e-5):
         # ----------------------------------------------------------------------
@@ -684,8 +648,8 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
 
         self._first_level = [
             ConvDS(output_channels=self._first_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_first_level,
                    downsampling_rate=2,
                    use_gdn=True,
@@ -694,16 +658,16 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
         ]
 
         self._first_level_loc_head = ConvDS(output_channels=self._first_level_channels,
-                                      kernel_shape=(3,  3),
-                                      num_convolutions=2,
+                                      kernel_shape=(5,  5),
+                                      num_convolutions=1,
                                       padding=self._padding_first_level,
                                       downsampling_rate=2,
                                       use_gdn=False,
                                       name="encoder_level_1_conv_loc")
 
         first_level_scale_head = ConvDS(output_channels=self._first_level_channels,
-                                        kernel_shape=(3,  3),
-                                        num_convolutions=2,
+                                        kernel_shape=(5,  5),
+                                        num_convolutions=1,
                                         padding=self._padding_first_level,
                                         downsampling_rate=2,
                                         use_gdn=False,
@@ -721,8 +685,8 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
                    activation="leaky_relu",
                    name="encoder_level_2_conv_ds1"),
             ConvDS(output_channels=self._second_level_channels,
-                   kernel_shape=(3,  3),
-                   num_convolutions=2,
+                   kernel_shape=(5,  5),
+                   num_convolutions=1,
                    padding=self._padding_second_level,
                    downsampling_rate=2,
                    use_gdn=False,
@@ -731,8 +695,8 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
         ]
 
         self._second_level_loc_head = ConvDS(output_channels=self._second_level_channels,
-                                       kernel_shape=(3,  3),
-                                       num_convolutions=2,
+                                       kernel_shape=(5,  5),
+                                       num_convolutions=1,
                                        padding=self._padding_second_level,
                                        downsampling_rate=2,
                                        use_gdn=False,
@@ -740,8 +704,8 @@ class ClicHyperVAECNN(ClicHierarchicalVAE):
                                        name="encoder_level_2_conv_loc")
 
         second_level_scale_head = ConvDS(output_channels=self._second_level_channels,
-                                         kernel_shape=(3,  3),
-                                         num_convolutions=2,
+                                         kernel_shape=(5,  5),
+                                         num_convolutions=1,
                                          padding=self._padding_second_level,
                                          downsampling_rate=2,
                                          use_gdn=False,
@@ -882,24 +846,8 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         self._first_level_layers = first_level_layers
 
 
-    def required_input_size(self, shape):
-
-            shape = self._second_level_loc_head.required_input_size(shape, for_padding=self._padding_second_level)
-
-            for layer in self._second_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_second_level)
-
-            shape = self._first_level_loc_head.required_input_size(shape, for_padding=self._padding_first_level)
-
-            for layer in self._first_level[::-1]:
-                shape = layer.required_input_size(shape, for_padding=self._padding_first_level)
-
-
-            return shape
-
-
     @reuse_variables
-    def encode(self, inputs, level=1, eps=1e-10):
+    def encode(self, inputs, level=1, eps=1e-6):
         # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
@@ -996,7 +944,7 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
 
         # First stochastic level statistics
         first_level_loc = self._first_level_loc_head(activations)
-        first_level_scale = tf.nn.softplus(first_level_scale_head(activations))
+        first_level_precision = tf.nn.softplus(first_level_scale_head(activations))
 
         # This is a probabilistic ladder network with this connection
         activations = first_level_loc
@@ -1025,12 +973,9 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
         # Topdown statistics
         topdown_loc = self._topdown_loc_head(activations)
         topdown_scale = tf.nn.softplus(self._topdown_scale_head(activations))
-        
-        self.topdown_s = topdown_scale
 
         # Combined first level statistics
         topdown_precision = 1. / (tf.pow(topdown_scale, 2) + eps)
-        first_level_precision = 1. / (tf.pow(first_level_scale, 2) + eps)
 
         combined_var = 1. / (topdown_precision + first_level_precision)
         combined_scale = tf.sqrt(combined_var)
@@ -1091,8 +1036,6 @@ class ClicLadderCNN2(ClicHierarchicalVAE):
 
             first_loc = first_loc_head(activations)
             first_scale = tf.nn.softplus(first_scale_head(activations))
-            
-            self.first_s = first_scale
 
             # First layer prior
             first_layer_prior = self._latent_dist(loc=first_loc,

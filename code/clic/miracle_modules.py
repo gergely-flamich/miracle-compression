@@ -91,15 +91,6 @@ class ConvDS(AbstractModule, Transposable):
             return w_new, h_new
 
 
-    def set_activation(self, activation):
-        if activation not in self._allowed_activations:
-            raise tf.errors.InvalidArgumentError("activation must be one of {}"
-                                                 .format(self._allowed_activations))
-
-        self._activation = self._allowed_activations[activation]
-        self._activation_name = activation
-
-
     def _build(self, inputs):
 
         self._input_shape = tuple(inputs.get_shape().as_list())
