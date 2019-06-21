@@ -96,9 +96,9 @@ def run(config_path=None,
         # % of the number of batches when the coefficient is capped out
         # (i.e. for 1., the coef caps after the first epoch exactly)
         "warmup": 4.,
-        "beta": 0.3,
+        "beta": 0.1,
         "gamma": 0.,
-        "learning_rate": 3e-5,
+        "learning_rate": 1e-5,
         "optimizer": "adam",
 
         "log_freq": 50,
