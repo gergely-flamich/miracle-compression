@@ -195,10 +195,10 @@ class ClicHierarchicalVAE(AbstractModule):
 
             raise Exception("Need a full pass through the VAE to calculate KL!")
 
-        klds = [tf.reduce_sum(tfd.kl_divergence(posterior, prior))
+        klds = [tfd.kl_divergence(posterior, prior)
                 for posterior, prior in zip(self._latent_posteriors, self._latent_priors)]
 
-        return sum(klds)
+        return klds
 
     @property
     def log_prob(self):

@@ -82,7 +82,7 @@ def run(config_path=None,
         # latent size
         "image_size": [256, 256],
 
-        "batch_size": 8,
+        "batch_size": 16,
         "num_epochs": 20,
 
         "first_level_channels": 192,
@@ -95,8 +95,8 @@ def run(config_path=None,
 
         # % of the number of batches when the coefficient is capped out
         # (i.e. for 1., the coef caps after the first epoch exactly)
-        "warmup": 4.,
-        "beta": 0.1,
+        "warmup": 2.,
+        "beta": 0.03,
         "gamma": 0.,
         "learning_rate": 1e-5,
         "optimizer": "adam",
@@ -173,6 +173,9 @@ def run(config_path=None,
     logdir = os.path.join(model_dir, "log")
     writer = tfs.create_file_writer(logdir)
     writer.set_as_default()
+    
+    # Record the graph structure of the architecture
+    tfs.graph(tf.get_default_graph())
 
     # ==========================================================================
     # Train VAE
@@ -203,7 +206,9 @@ def run(config_path=None,
                         warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
 
                         log_prob = vae.log_prob
-                        kl_div = vae.kl_divergence
+                        kl_divs = vae.kl_divergence
+                        
+                        total_kl = sum([tf.reduce_sum(kls) for kls in kl_divs])
 
                         output = tf.cast(output, tf.float32)
                         output = tf.clip_by_value(output, 0., 1.)
@@ -215,7 +220,7 @@ def run(config_path=None,
                         ms_ssim_loss = tf.reduce_sum(1 - ms_ssim) * config["pixels_per_training_image"]
 
                         if config["loss"] == "nll_perceptual_kl":
-                            loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * kl_div) / B
+                            loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
 
                         else:
                             raise Exception("Loss {} not available!".format(config["loss"]))
@@ -224,14 +229,17 @@ def run(config_path=None,
                         # Add tensorboard summaries
                         tfs.scalar("Loss", loss)
                         tfs.scalar("Log-Probability", log_prob / B)
-                        tfs.scalar("KL", kl_div / B)
-                        tfs.scalar("Beta-KL", beta * kl_div / B)
-                        tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
-                        tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
+                        tfs.scalar("KL", total_kl / B)
+                        tfs.scalar("Beta-KL", beta * total_kl / B)
+                        #tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
+                        #tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
                         tfs.scalar("Warmup-Coeff", warmup_coef)
                         tfs.scalar("Average PSNR", tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B)
                         tfs.image("Reconstruction", output)
                         tfs.image("Original", batch)
+                        
+                        for i, level_kl_divs in enumerate(kl_divs): 
+                            tfs.scalar("Max-KL-on-Level-{}".format(i + 1), tf.reduce_max(level_kl_divs))
 
                     # Backprop
                     grads = tape.gradient(loss, vae.get_all_variables())
@@ -239,7 +247,7 @@ def run(config_path=None,
 
                     # Update the progress bar
                     pbar.update(1)
-                    pbar.set_description("Epoch {}, Loss: {:.2f}, KL: {:.2f}, Log Prob: {:.4f}".format(epoch, loss, kl_div, log_prob))
+                    pbar.set_description("Epoch {}, Loss: {:.2f}, KL: {:.2f}, Log Prob: {:.4f}".format(epoch, loss, total_kl, log_prob))
 
             checkpoint.save(ckpt_prefix)
             
