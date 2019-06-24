@@ -82,7 +82,7 @@ def run(config_path=None,
         # latent size
         "image_size": [256, 256],
 
-        "batch_size": 16,
+        "batch_size": 8,
         "num_epochs": 20,
 
         "first_level_channels": 192,
@@ -98,7 +98,7 @@ def run(config_path=None,
         "warmup": 2.,
         "beta": 0.03,
         "gamma": 0.,
-        "learning_rate": 1e-5,
+        "learning_rate": 3e-5,
         "optimizer": "adam",
 
         "log_freq": 50,
@@ -130,12 +130,38 @@ def run(config_path=None,
     # ==========================================================================
 
     model = models[model_key]
+    
+    g = tf.get_default_graph()
+    
+    # TODO: This is a temporary hack to log the graph in eager mode
+    with g.as_default():
+        if model_key == "cnn":
+            vae = model(prior=config["prior"],
+                        likelihood=config["likelihood"],
+                        padding="SAME_MIRRORED")
 
+        elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
+            vae = model(latent_dist=config["prior"],
+                        likelihood=config["likelihood"],
+                        first_level_channels=config["first_level_channels"],
+                        second_level_channels=config["second_level_channels"],
+                        first_level_layers=config["first_level_layers"],
+                        padding_first_level="SAME_MIRRORED",
+                        padding_second_level="SAME_MIRRORED")
+        else:
+            raise Exception("Model: {} is not defined!".format(model_key))
+
+        # Connect the model computational graph by executing a forward-pass
+        vae(tf.zeros((1, 256, 256, 3)))
+
+        del vae
+    
+    # Create actual model here
     if model_key == "cnn":
         vae = model(prior=config["prior"],
                     likelihood=config["likelihood"],
                     padding="SAME_MIRRORED")
-        
+
     elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
         vae = model(latent_dist=config["prior"],
                     likelihood=config["likelihood"],
@@ -146,7 +172,7 @@ def run(config_path=None,
                     padding_second_level="SAME_MIRRORED")
     else:
         raise Exception("Model: {} is not defined!".format(model_key))
-        
+
     # Connect the model computational graph by executing a forward-pass
     vae(tf.zeros((1, 256, 256, 3)))
 
@@ -175,7 +201,8 @@ def run(config_path=None,
     writer.set_as_default()
     
     # Record the graph structure of the architecture
-    tfs.graph(tf.get_default_graph())
+    tfs.graph(g)
+    tfs.flush(writer)
 
     # ==========================================================================
     # Train VAE
