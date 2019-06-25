@@ -3,7 +3,7 @@ import sonnet as snt
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-from .miracle_modules import ConvDS
+from miracle_modules import ConvDS
 
 from utils import InvalidArgumentError
 
@@ -218,7 +218,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         first_level_latents = self.first_level_posterior.sample()
 
         latents = (second_level_latents, first_level_latents)
-        self._latent_posteriors = (self.first_level_posterior, self.second_level_posterior)
+        self.latent_posteriors = (self.first_level_posterior, self.second_level_posterior)
 
         return latents
 

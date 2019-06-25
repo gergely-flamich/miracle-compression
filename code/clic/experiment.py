@@ -5,6 +5,7 @@
 # This is needed so that python finds the utils
 import sys
 sys.path.append("/home/gf332/miracle-compession/code")
+sys.path.append("/homes/gf332/miracle-compession/code")
 
 from imageio import imwrite
 
@@ -26,6 +27,7 @@ tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
 from architectures import ClicCNN, ClicLadderCNN, ClicLadderCNN2, ClicHyperVAECNN
+from new_architectures import ClicNewLadderCNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -38,6 +40,7 @@ models = {
     "hyper_cnn": ClicHyperVAECNN,
     "ladder_cnn": ClicLadderCNN,
     "ladder_cnn2": ClicLadderCNN2,
+    "new_ladder": ClicNewLadderCNN
 }
 
 
@@ -64,6 +67,34 @@ def clic_input_fn(dataset, image_size=(256, 256), buffer_size=1000, batch_size=8
 
 def clic_parse_fn(image, image_size=(316, 316)):
     return tf.image.random_crop(image, size=image_size + (3,))
+
+def create_model(model_key, config):
+    model = models[model_key]
+    
+    if model_key == "cnn":
+        vae = model(prior=config["prior"],
+                    likelihood=config["likelihood"],
+                    padding="SAME_MIRRORED")
+
+    elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
+        vae = model(latent_dist=config["prior"],
+                    likelihood=config["likelihood"],
+                    first_level_channels=config["first_level_channels"],
+                    second_level_channels=config["second_level_channels"],
+                    first_level_layers=config["first_level_layers"],
+                    padding_first_level="SAME_MIRRORED",
+                    padding_second_level="SAME_MIRRORED")
+
+    elif model_key == "new_ladder":
+        vae = model(latent_dist=config["prior"],
+                    likelihood=config["likelihood"])
+    else:
+        raise Exception("Model: {} is not defined!".format(model_key))
+
+    # Connect the model computational graph by executing a forward-pass
+    vae(tf.zeros((1, 256, 256, 3)))
+        
+    return vae
 
 def run(config_path=None,
         model_key="cnn",
@@ -129,52 +160,20 @@ def run(config_path=None,
     # Create VAE model
     # ==========================================================================
 
-    model = models[model_key]
-    
     g = tf.get_default_graph()
     
     # TODO: This is a temporary hack to log the graph in eager mode
     with g.as_default():
-        if model_key == "cnn":
-            vae = model(prior=config["prior"],
-                        likelihood=config["likelihood"],
-                        padding="SAME_MIRRORED")
-
-        elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
-            vae = model(latent_dist=config["prior"],
-                        likelihood=config["likelihood"],
-                        first_level_channels=config["first_level_channels"],
-                        second_level_channels=config["second_level_channels"],
-                        first_level_layers=config["first_level_layers"],
-                        padding_first_level="SAME_MIRRORED",
-                        padding_second_level="SAME_MIRRORED")
-        else:
-            raise Exception("Model: {} is not defined!".format(model_key))
-
+        
+        vae = create_model(model_key, config)
+        
         # Connect the model computational graph by executing a forward-pass
         vae(tf.zeros((1, 256, 256, 3)))
 
         del vae
     
     # Create actual model here
-    if model_key == "cnn":
-        vae = model(prior=config["prior"],
-                    likelihood=config["likelihood"],
-                    padding="SAME_MIRRORED")
-
-    elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
-        vae = model(latent_dist=config["prior"],
-                    likelihood=config["likelihood"],
-                    first_level_channels=config["first_level_channels"],
-                    second_level_channels=config["second_level_channels"],
-                    first_level_layers=config["first_level_layers"],
-                    padding_first_level="SAME_MIRRORED",
-                    padding_second_level="SAME_MIRRORED")
-    else:
-        raise Exception("Model: {} is not defined!".format(model_key))
-
-    # Connect the model computational graph by executing a forward-pass
-    vae(tf.zeros((1, 256, 256, 3)))
+    vae = create_model(model_key, config)
 
     optimizer = optimizers[config["optimizer"]](config["learning_rate"])
 

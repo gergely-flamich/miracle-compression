@@ -7,6 +7,7 @@ import tensorflow as tf
 tf.enable_eager_execution()
 
 COMPRESSION_SUBDIR = 'datasets/miracle_image_compression'
+COMPRESSION_DIR = '/scratch/gf332/'
 
 TRAIN_DATASET_URL = 'https://data.vision.ee.ethz.ch/cvl/clic/professional_train.zip'
 TRAIN_DATASET_ARCHIVE = 'train.zip'
@@ -14,8 +15,12 @@ TRAIN_DATASET_ARCHIVE = 'train.zip'
 VALIDATION_DATASET_URL = 'https://data.vision.ee.ethz.ch/cvl/clic/professional_valid.zip'
 VALIDATION_DATASET_ARCHIVE = 'valid.zip'
 
-TRAIN_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/train"
-VALIDATION_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/valid"
+#TRAIN_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/train"
+#VALIDATION_DATASET_FOLDER = "/home/gf332/.keras/datasets/miracle_image_compression/valid"
+
+TRAIN_DATASET_FOLDER = "/scratch/gf332/datasets/miracle_image_compression/train"
+VALIDATION_DATASET_FOLDER = "/scratch/gf332/datasets/miracle_image_compression/valid"
+
 
 def process_image(image, normalize=True):
     """
@@ -60,6 +65,7 @@ def download_process_and_load_data(crop_coef=10, crop_size=360):
     if not os.path.exists(TRAIN_DATASET_FOLDER):
         train_path = tf.keras.utils.get_file(fname=TRAIN_DATASET_ARCHIVE,
                                              origin=TRAIN_DATASET_URL,
+                                             cache_dir=COMPRESSION_DIR,
                                              cache_subdir=COMPRESSION_SUBDIR,
                                              extract=True)
     else:
@@ -69,6 +75,7 @@ def download_process_and_load_data(crop_coef=10, crop_size=360):
     if not os.path.exists(VALIDATION_DATASET_FOLDER):
         valid_path = tf.keras.utils.get_file(fname=VALIDATION_DATASET_ARCHIVE,
                                              origin=VALIDATION_DATASET_URL,
+                                             cache_dir=COMPRESSION_DIR,
                                              cache_subdir=COMPRESSION_SUBDIR,
                                              extract=True)
     else:
