@@ -2,6 +2,9 @@
 *.tar.gz
 *.miracle
 
+# Python profiling logs
+*.lprof
+
 # Poster and thesis stuff
 poster/
 thesis/
