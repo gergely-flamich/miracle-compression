@@ -87,7 +87,9 @@ def create_model(model_key, config):
 
     elif model_key == "new_ladder":
         vae = model(latent_dist=config["prior"],
-                    likelihood=config["likelihood"])
+                    likelihood=config["likelihood"],
+                    first_level_latents=config["first_level_latents"],
+                    second_level_latents=config["second_level_latents"])
     else:
         raise Exception("Model: {} is not defined!".format(model_key))
 
@@ -115,6 +117,9 @@ def run(config_path=None,
 
         "batch_size": 8,
         "num_epochs": 20,
+        
+        "first_level_latents": 64,
+        "second_level_latents": 64,
 
         "first_level_channels": 192,
         "second_level_channels": 128,
@@ -126,8 +131,8 @@ def run(config_path=None,
 
         # % of the number of batches when the coefficient is capped out
         # (i.e. for 1., the coef caps after the first epoch exactly)
-        "warmup": 2.,
-        "beta": 0.03,
+        "warmup": 4.,
+        "beta": 0.1,
         "gamma": 0.,
         "learning_rate": 3e-5,
         "optimizer": "adam",

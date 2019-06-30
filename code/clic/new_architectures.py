@@ -22,6 +22,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
     def __init__(self,
                  latent_dist="gaussian",
                  likelihood="gaussian",
+                 first_level_latents=192,
+                 second_level_latents=192,
                  first_level_layers=4,
                  name="new_clic_ladder_cnn"):
 
@@ -43,6 +45,9 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.likelihood_dist = self._allowed_likelihoods[likelihood]
 
         self.first_level_layers = first_level_layers
+        self.first_level_latents = first_level_latents
+        
+        self.second_level_latents = second_level_latents
 
     @property
     def log_prob(self):
@@ -84,7 +89,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
             for idx in range(1, self.first_level_layers)
         ]
 
-        self.first_level_loc = ConvDS(output_channels=first_level_channels,
+        self.first_level_loc = ConvDS(output_channels=self.first_level_latents,
                                       kernel_shape=kernel_shape,
                                       num_convolutions=1,
                                       downsampling_rate=2,
@@ -92,7 +97,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                       use_gdn=False,
                                       name="encoder_level_1_loc")
 
-        self.first_level_log_scale = ConvDS(output_channels=first_level_channels,
+        self.first_level_log_scale = ConvDS(output_channels=self.first_level_latents,
                                         kernel_shape=kernel_shape,
                                         num_convolutions=1,
                                         downsampling_rate=2,
@@ -119,7 +124,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                    activation="leaky_relu")
         ]
 
-        self.second_level_loc = ConvDS(output_channels=second_level_channels,
+        self.second_level_loc = ConvDS(output_channels=self.second_level_latents,
                                        kernel_shape=kernel_shape,
                                        num_convolutions=1,
                                        padding=padding,
@@ -127,7 +132,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                        use_gdn=False,
                                        name="encoder_level_2_loc")
 
-        self.second_level_log_scale = ConvDS(output_channels=second_level_channels,
+        self.second_level_log_scale = ConvDS(output_channels=self.second_level_latents,
                                          kernel_shape=kernel_shape,
                                          num_convolutions=1,
                                          padding=padding,
@@ -281,6 +286,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
         latents = self.encode(inputs)
         reconstruction = self.decode(latents)
+        
+        reconstruction = tf.nn.sigmoid(reconstruction)
 
         self.likelihood = self.likelihood_dist(loc=reconstruction,
                                                scale=tf.ones_like(reconstruction))
