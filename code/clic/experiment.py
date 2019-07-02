@@ -18,6 +18,8 @@ from tqdm import tqdm
 from sobol_seq import i4_sobol_generate
 from scipy.stats import norm
 
+import numpy as np
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 tf.enable_eager_execution()
@@ -30,6 +32,8 @@ from architectures import ClicCNN, ClicLadderCNN, ClicLadderCNN2, ClicHyperVAECN
 from new_architectures import ClicNewLadderCNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
+
+from compression import coded_sample, decode_sample
 
 # ==============================================================================
 # Predefined Stuff
@@ -101,6 +105,7 @@ def create_model(model_key, config):
 def run(config_path=None,
         model_key="cnn",
         is_training=True,
+        build_ac_dict=False,
         model_dir="/tmp/clic_test"):
 
     # ==========================================================================
@@ -119,7 +124,7 @@ def run(config_path=None,
         "num_epochs": 20,
         
         "first_level_latents": 64,
-        "second_level_latents": 64,
+        "second_level_latents": 192,
 
         "first_level_channels": 192,
         "second_level_channels": 128,
@@ -286,7 +291,50 @@ def run(config_path=None,
 
     else:
         print("Skipping training!")
+        
+       
+    if build_ac_dict:
+        
+        miracle_bits = 8
+        num_draws = 2**8
+        
+        train_image_dir = "/scratch/gf332/datasets/miracle_image_compression/train"
+        train_image_paths = glob.glob(train_image_dir + "/*.png")
 
+        probability_mass = [0] * num_draws
+
+        for im_idx, im_path in enumerate(train_image_paths):
+
+            print("Processing image {}/{}, {}".format(im_idx + 1, len(train_image_paths), im_path))
+
+            image = load_and_process_image(im_path)[None, ...]
+
+            reconstruction = vae(image)
+
+            for i, (p, q) in enumerate(zip(vae.latent_priors, vae.latent_posteriors)):
+
+                # Code layers
+                print("Coding layer {}".format(i + 1))
+                coded_samps = coded_sample(proposal=vae.latent_priors[1], 
+                                           target=vae.latent_posteriors[1], 
+                                           seed=im_idx, 
+                                           n_points=30, 
+                                           miracle_bits=miracle_bits)
+
+                # Count up latent codes
+                unique, _, counts = tf.unique_with_counts(coded_samps)
+
+                unique = unique.numpy()
+                counts = counts.numpy()
+
+                for i, idx in enumerate(unique[unique < num_draws]):
+                    probability_mass[idx] += counts[i]
+
+            print("---------------------------------------")
+
+            np.save("probability_mass.npy", np.array(probability_mass, np.int64))
+        
+        
 
 if __name__ == "__main__":
 
@@ -301,6 +349,11 @@ if __name__ == "__main__":
                         dest="is_training",
                         default=True,
                         help='Should we just evaluate?')
+    parser.add_argument('--build_ac_dict',
+                        action="store_true",
+                        dest="build_ac_dict",
+                        default=False,
+                        help='Should we build the Arithmetic Coding dictionary?')
     parser.add_argument('--model_dir',
                         type=lambda x: is_valid_file(parser, x),
                         default='/tmp/miracle_compress_clic',
@@ -311,4 +364,5 @@ if __name__ == "__main__":
     run(config_path=args.config,
         model_key=args.model,
         is_training=args.is_training,
+        build_ac_dict=args.build_ac_dict,
         model_dir=args.model_dir)
