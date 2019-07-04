@@ -23,7 +23,7 @@ ctypedef np.int64_t DTYPE_t
 # Helper Functions
 # ==============================================================================
 
-def write_bin_code(code, path):
+def write_bin_code(code, path, extras=None):
 
     # Pad the code
     code += "0" * (8 - len(code) % 8) if len(code) % 8 != 0 else ""
@@ -31,15 +31,25 @@ def write_bin_code(code, path):
     message_bytes = [int('0b' + code[s:s + 8], 2) for s in range(0, len(code), 8)]
 
     with open(path, "wb") as compressed_file:
+        
+        if extras is not None:
+            for extra in extras:
+                compressed_file.write(bytes([extra // 256, extra % 256]))
+        
         compressed_file.write(bytes(message_bytes))
 
 
-def read_bin_code(path):
+def read_bin_code(path, num_extras=0):
 
     with open(path, "rb") as compressed_file:
         compressed = ''.join(["{:08b}".format(x) for x in compressed_file.read()])
 
-    return compressed
+    extra_bits = compressed[:num_extras * 16]
+    compressed = compressed[num_extras * 16:]
+    
+    extras = [int('0b' + extra_bits[s:s + 16], 2) for s in range(0, num_extras * 16, 16)]
+    
+    return compressed, extras
 
 # ==============================================================================
 # Arithmetic coding

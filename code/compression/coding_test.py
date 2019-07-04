@@ -6,7 +6,7 @@ from coding import ArithmeticCoder, write_bin_code, read_bin_code
 
 
 num_symbols = 2**16
-message_length = 2000000
+message_length = 2000
 test_file_path = "scratch_compression_test.miracle"
 
 P = np.ones(num_symbols + 1, dtype=np.int32)
@@ -25,10 +25,11 @@ code = ac.encode(message)
 
 print("Coded in {:.4f}s".format(time.time() - start))
 
-write_bin_code(''.join(code), test_file_path)
+write_bin_code(''.join(code), test_file_path, [152, 42069, 1231, 6272])
 
-code = read_bin_code(test_file_path)
+code, extras = read_bin_code(test_file_path, 4)
 
+print(extras)
 # start = time.time()
 
 # print("Decoding...")
@@ -43,5 +44,6 @@ start = time.time()
 print("Fast Decoding...")
 decompressed = ac.decode_fast(code)
 print("Decoded in {:.4f}s".format(time.time() - start))
+
 
 print(np.all(decompressed == message))

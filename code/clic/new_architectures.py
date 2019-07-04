@@ -1,9 +1,16 @@
+import numpy as np
+
 import tensorflow as tf
+tfq = tf.quantization
+
 import sonnet as snt
+
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 from miracle_modules import ConvDS
+from compression import coded_sample, decode_sample
+from coding import ArithmeticCoder, write_bin_code, read_bin_code
 
 from utils import InvalidArgumentError
 
@@ -279,15 +286,13 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
         self.latent_priors = (self.first_level_prior, self.second_level_prior)
 
-        return activations
+        return tf.nn.sigmoid(activations)
 
 
     def _build(self, inputs):
 
         latents = self.encode(inputs)
         reconstruction = self.decode(latents)
-        
-        reconstruction = tf.nn.sigmoid(reconstruction)
 
         self.likelihood = self.likelihood_dist(loc=reconstruction,
                                                scale=tf.ones_like(reconstruction))
@@ -295,3 +300,163 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self._log_prob = self.likelihood.log_prob(inputs)
 
         return reconstruction
+    
+    
+    # =========================================================================================
+    # Compression
+    # =========================================================================================
+    
+    def expand_prob_mass(self, probability_mass, gamma, miracle_bits, verbose=False):
+        # Create a probability mass for 16-bit symbols
+        P = gamma * np.ones(2**16)
+        
+        P[1:2**miracle_bits + 1] = probability_mass
+        
+        if verbose: 
+            miracle_mass = np.sum(probability_mass)
+            outlier_mass = (gamma * 2**16) - 2**miracle_bits
+
+            print("Outlier / Miracle Mass Ratio: {:.4f}".format(outlier_mass / miracle_mass))
+        
+        return P
+
+    def code_image(self, image, seed, miracle_bits, probability_mass, comp_file_path, n_points=30, gamma=100, precision=32):
+        
+        # -------------------------------------------------------------------------------------
+        # Step 1: Set the latent distributions for the image
+        # -------------------------------------------------------------------------------------
+        
+        # Calculate the posteriors
+        latents = self.encode(image)
+        
+        # Calculate the priors
+        self.decode(latents)
+        
+        # -------------------------------------------------------------------------------------
+        # Step 2: Create a coded sample of the latent space
+        # -------------------------------------------------------------------------------------
+    
+        # Code first level
+        coded_first_level = coded_sample(proposal=self.latent_priors[0], 
+                                         target=self.latent_posteriors[0], 
+                                         seed=seed, 
+                                         n_points=n_points, 
+                                         miracle_bits=miracle_bits)
+        # Code second level
+        coded_second_level = coded_sample(proposal=self.latent_priors[1], 
+                                          target=self.latent_posteriors[1], 
+                                          seed=seed, 
+                                          n_points=n_points, 
+                                          miracle_bits=miracle_bits)
+        
+        first_level_shape = self.latent_priors[0].loc.shape.as_list()
+        second_level_shape = self.latent_priors[1].loc.shape.as_list()
+        
+        # The -1 at the end will turn into a 0 (EOF) on the next line
+        coded_latents = tf.concat([coded_first_level, coded_second_level, [-1]], axis=0).numpy()
+        
+        # -------------------------------------------------------------------------------------
+        # Step 3: Arithmetic code the coded samples
+        # -------------------------------------------------------------------------------------
+        
+        # Shift the code symbols forward by one, since 0 is a special end of file symbol
+        coded_latents = coded_latents + 1
+        
+        # Create a probability mass for 16-bit symbols
+        probability_mass = self.expand_prob_mass(probability_mass, gamma, miracle_bits, True)
+        
+        # Create coder
+        coder = ArithmeticCoder(probability_mass, precision=precision)
+        
+        bitcode = coder.encode(coded_latents)
+        
+        # -------------------------------------------------------------------------------------
+        # Step 4: Write the compressed file
+        # -------------------------------------------------------------------------------------
+        
+        extras = [seed, gamma] + first_level_shape[1:3] + second_level_shape[1:3]
+    
+        write_bin_code(''.join(bitcode), 
+                       comp_file_path, 
+                       extras=extras)
+        
+    
+    def decode_image(self, comp_file_path, probability_mass, miracle_bits, n_points=30, precision=32):
+        
+        # -------------------------------------------------------------------------------------
+        # Step 1: Read the compressed file
+        # -------------------------------------------------------------------------------------
+        
+        # the extras are: seed, gamma and W x H of the two latent levels
+        code, extras = read_bin_code(comp_file_path, num_extras=6)
+        
+        print(extras)
+        
+        seed = extras[0]
+        gamma = extras[1]
+        
+        # Get shape information back
+        first_level_shape = [1] + extras[2:4] + [self.first_level_latents]
+        second_level_shape = [1] + extras[4:] + [self.second_level_latents]
+        
+        # Total number of latents on levels
+        num_first_level = np.prod(first_level_shape)
+        num_second_level = np.prod(second_level_shape)
+        
+        # -------------------------------------------------------------------------------------
+        # Step 2: Decode the arithmetic code
+        # -------------------------------------------------------------------------------------
+        
+        # Create a probability mass for 16-bit symbols
+        probability_mass = self.expand_prob_mass(probability_mass, gamma, miracle_bits, True)
+        
+        decoder = ArithmeticCoder(probability_mass, precision=precision)
+    
+        decompressed = decoder.decode_fast(code)
+        
+        # -------------------------------------------------------------------------------------
+        # Step 3: Decode the samples using MIRACLE
+        # -------------------------------------------------------------------------------------
+        
+        # Decode second level
+        proposal = tfd.Normal(loc=tf.zeros(second_level_shape),
+                              scale=tf.ones(second_level_shape))
+        
+        # Remember to shift the codes back by one, since we shifted them forward during encoding
+        # Note: the second level needs to have the EOF 0 cut off from the end
+        coded_first_level = tf.convert_to_tensor(decompressed[:num_first_level]) - 1
+        coded_second_level = tf.convert_to_tensor(decompressed[num_first_level:-1]) - 1
+        
+        decoded_second_level = decode_sample(coded_sample=coded_second_level,
+                                             proposal=proposal, 
+                                             seed=seed, 
+                                             n_points=n_points, 
+                                             miracle_bits=miracle_bits, 
+                                             outlier_mode="quantize")
+        
+        decoded_second_level = tf.reshape(decoded_second_level, second_level_shape)
+        
+        # Now we can calculate the the first level priors
+        self.decode((decoded_second_level,
+                     tf.zeros(first_level_shape)))
+        
+        # Decode first level
+        
+        decoded_first_level = decode_sample(coded_sample=coded_first_level,
+                                            proposal=self.latent_priors[0], 
+                                            seed=seed, 
+                                            n_points=n_points, 
+                                            miracle_bits=miracle_bits, 
+                                            outlier_mode="quantize")
+        
+        decoded_first_level = tf.reshape(decoded_first_level, first_level_shape)
+        
+        
+        # -------------------------------------------------------------------------------------
+        # Step 4: Reconstruct the image with the VAE
+        # -------------------------------------------------------------------------------------
+        
+        reconstruction = self.decode((decoded_second_level,
+                                      decoded_first_level))
+        
+        return tf.squeeze(reconstruction)
