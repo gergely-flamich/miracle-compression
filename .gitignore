@@ -1,6 +1,7 @@
 # Misc
 coding.c
 coding.html
+.nfs*
 
 # General
 *.tar.gz

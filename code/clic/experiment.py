@@ -6,6 +6,7 @@
 import sys
 sys.path.append("/home/gf332/miracle-compession/code")
 sys.path.append("/homes/gf332/miracle-compession/code")
+sys.path.append("/homes/gf332/miracle-compession/code/compression")
 
 from imageio import imwrite
 
@@ -124,7 +125,7 @@ def run(config_path=None,
         "num_epochs": 20,
         
         "first_level_latents": 64,
-        "second_level_latents": 192,
+        "second_level_latents": 32,
 
         "first_level_channels": 192,
         "second_level_channels": 128,

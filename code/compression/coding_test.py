@@ -6,7 +6,7 @@ from coding import ArithmeticCoder, write_bin_code, read_bin_code
 
 
 num_symbols = 2**16
-message_length = 2000
+message_length = 2000000
 test_file_path = "scratch_compression_test.miracle"
 
 P = np.ones(num_symbols + 1, dtype=np.int32)

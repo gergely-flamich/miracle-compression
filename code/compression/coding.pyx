@@ -7,7 +7,7 @@ Currently implemented:
 """
 
 from collections import deque
-from data_structures import IntervalTreeV2
+from data_structures import IntervalAVLTree
 
 import numpy as np
 cimport numpy as np
@@ -78,7 +78,7 @@ class ArithmeticCoder(object):
 
             D[i] = c
 
-        self.symbol_tree = IntervalTreeV2(C)
+        self.symbol_tree = IntervalAVLTree(C)
         print("Depth of symbol tree: {}".format(self.symbol_tree.depth))
 
         self.C = np.array(C)
