@@ -27,6 +27,7 @@ def rejection_sample(p,
                      q,
                      num_draws,
                      seed,
+                     calculate_importance_weights=False,
                      n_points=20):
 
     
@@ -86,6 +87,13 @@ def rejection_sample(p,
     # Initialise all samples to infinity (as an invalid value)
     sample = np.inf * tf.ones((num_latents))
     sample_indices = np.inf * tf.ones((num_latents))
+    
+    if calculate_importance_weights:
+        max_importance_weights = -np.inf * tf.ones((num_latents))
+        max_importance_indices = np.inf * tf.ones((num_latents))
+        
+    else:
+        max_importance_indices = None
 
     for j in tqdm(range(num_draws)):
         
@@ -127,14 +135,23 @@ def rejection_sample(p,
         
         sample = tf.where(update_indices, new_sample, sample)
         sample_indices = tf.where(update_indices, j * tf.ones_like(sample_indices), sample_indices)
-        #print(sample)
         
         accepted = tf.math.logical_or(new_accepted, accepted)
-        #print(accepted)
+        
+        if calculate_importance_weights:
+            importance_weights = q.prob(new_sample) / p.prob(new_sample)
+            
+            max_importance_indices = tf.where(importance_weights > max_importance_weights, 
+                                              j * tf.ones_like(max_importance_indices), 
+                                              max_importance_indices)
+            
+            max_importance_weights = tf.where(importance_weights > max_importance_weights, 
+                                              importance_weights, 
+                                              max_importance_weights)
         
         p_i = p_i + alpha_i
 
-    return sample, sample_indices, accepted
+    return sample, sample_indices, accepted, max_importance_indices
 
 
 
@@ -172,11 +189,21 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
     
     num_draws = 2**miracle_bits
     
-    samples, sample_indices, accepted = rejection_sample(p=proposal,
-                                                           q=target,
-                                                           n_points=30,
-                                                           num_draws=num_draws,
-                                                           seed=seed)
+    
+    result = rejection_sample(p=proposal,
+                              q=target,
+                              n_points=30,
+                              num_draws=num_draws,
+                              calculate_importance_weights=outlier_mode == "importance_sample",
+                              seed=seed)
+    
+    samples, sample_indices, accepted, max_importance_indices = result
+    
+    accept_indicator = tf.cast(accepted, tf.float32)
+    accept_ratio = tf.reduce_mean(accept_indicator)
+    num_not_accepted = tf.reduce_sum(1 - accept_indicator)
+    
+    print("Accepted {:.4}% of samples, {} latents not accepted.".format(100 * accept_ratio, num_not_accepted))
     
     # How should we deal with latent dimensions that weren't accepted?
     
@@ -194,7 +221,7 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
 
     # TODO: Do Miracle-style importance sampling
     elif outlier_mode == "importance_sample":
-        pass
+        outlier_samples = max_importance_indices
     
     # Combine sample indices with outliers
     coded_samples = tf.where(accepted, sample_indices, outlier_samples)
@@ -218,10 +245,11 @@ def decode_sample(coded_sample, proposal, seed, n_points=30, miracle_bits=8, out
         
         decoded_outliers = tfq.dequantize(tf.cast(coded_sample, tf.quint16), -30, 30)
         
-    # TODO: Do Miracle-style importance sampling
+        decoded_sample = tf.where(coded_sample < num_draws, decoded_sample, decoded_outliers)
+        
+    # Do Miracle-style importance sampling
     elif outlier_mode == "importance_sample":
         pass
     
-    decoded_sample = tf.where(coded_sample < num_draws, decoded_sample, decoded_outliers)
     
     return decoded_sample

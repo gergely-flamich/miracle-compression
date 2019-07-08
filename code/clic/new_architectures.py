@@ -306,21 +306,43 @@ class ClicNewLadderCNN(snt.AbstractModule):
     # Compression
     # =========================================================================================
     
-    def expand_prob_mass(self, probability_mass, gamma, miracle_bits, verbose=False):
-        # Create a probability mass for 16-bit symbols
-        P = gamma * np.ones(2**16)
+    def expand_prob_mass(self, 
+                         probability_mass, 
+                         gamma, 
+                         miracle_bits,
+                         outlier_mode="quantize",
+                         verbose=False):
         
-        P[1:2**miracle_bits + 1] = probability_mass
-        
-        if verbose: 
-            miracle_mass = np.sum(probability_mass)
-            outlier_mass = (gamma * 2**16) - 2**miracle_bits
+        if outlier_mode == "quantize":
+            
+            # Create a probability mass for 16-bit symbols
+            P = gamma * np.ones(2**16)
 
-            print("Outlier / Miracle Mass Ratio: {:.4f}".format(outlier_mass / miracle_mass))
+            P[1:2**miracle_bits + 1] = probability_mass
+
+            if verbose: 
+                miracle_mass = np.sum(probability_mass)
+                outlier_mass = (gamma * 2**16) - 2**miracle_bits
+
+                print("Outlier / Miracle Mass Ratio: {:.4f}".format(outlier_mass / miracle_mass))
+                
+        elif outlier_mode == "importance_sample":
+            
+            P = np.ones(1 + 2**miracle_bits)
+            P[1:2**miracle_bits + 1] = probability_mass
         
         return P
 
-    def code_image(self, image, seed, miracle_bits, probability_mass, comp_file_path, n_points=30, gamma=100, precision=32):
+    def code_image(self, 
+                   image, 
+                   seed, 
+                   miracle_bits, 
+                   probability_mass, 
+                   comp_file_path, 
+                   n_points=30, 
+                   gamma=100, 
+                   precision=32,
+                   outlier_mode="quantize"):
         
         # -------------------------------------------------------------------------------------
         # Step 1: Set the latent distributions for the image
@@ -341,13 +363,15 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                          target=self.latent_posteriors[0], 
                                          seed=seed, 
                                          n_points=n_points, 
-                                         miracle_bits=miracle_bits)
+                                         miracle_bits=miracle_bits,
+                                         outlier_mode=outlier_mode)
         # Code second level
         coded_second_level = coded_sample(proposal=self.latent_priors[1], 
                                           target=self.latent_posteriors[1], 
                                           seed=seed, 
                                           n_points=n_points, 
-                                          miracle_bits=miracle_bits)
+                                          miracle_bits=miracle_bits,
+                                          outlier_mode=outlier_mode)
         
         first_level_shape = self.latent_priors[0].loc.shape.as_list()
         second_level_shape = self.latent_priors[1].loc.shape.as_list()
@@ -363,7 +387,11 @@ class ClicNewLadderCNN(snt.AbstractModule):
         coded_latents = coded_latents + 1
         
         # Create a probability mass for 16-bit symbols
-        probability_mass = self.expand_prob_mass(probability_mass, gamma, miracle_bits, True)
+        probability_mass = self.expand_prob_mass(probability_mass, 
+                                                 gamma, 
+                                                 miracle_bits, 
+                                                 outlier_mode,
+                                                 True)
         
         # Create coder
         coder = ArithmeticCoder(probability_mass, precision=precision)
@@ -381,7 +409,13 @@ class ClicNewLadderCNN(snt.AbstractModule):
                        extras=extras)
         
     
-    def decode_image(self, comp_file_path, probability_mass, miracle_bits, n_points=30, precision=32):
+    def decode_image(self, 
+                     comp_file_path, 
+                     probability_mass, 
+                     miracle_bits, 
+                     n_points=30, 
+                     precision=32,
+                     outlier_mode="quantize"):
         
         # -------------------------------------------------------------------------------------
         # Step 1: Read the compressed file
@@ -408,7 +442,11 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # -------------------------------------------------------------------------------------
         
         # Create a probability mass for 16-bit symbols
-        probability_mass = self.expand_prob_mass(probability_mass, gamma, miracle_bits, True)
+        probability_mass = self.expand_prob_mass(probability_mass,
+                                                 gamma, 
+                                                 miracle_bits, 
+                                                 outlier_mode,
+                                                 True)
         
         decoder = ArithmeticCoder(probability_mass, precision=precision)
     
@@ -432,7 +470,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                              seed=seed, 
                                              n_points=n_points, 
                                              miracle_bits=miracle_bits, 
-                                             outlier_mode="quantize")
+                                             outlier_mode=outlier_mode)
         
         decoded_second_level = tf.reshape(decoded_second_level, second_level_shape)
         
@@ -447,7 +485,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                             seed=seed, 
                                             n_points=n_points, 
                                             miracle_bits=miracle_bits, 
-                                            outlier_mode="quantize")
+                                            outlier_mode=outlier_mode)
         
         decoded_first_level = tf.reshape(decoded_first_level, first_level_shape)
         

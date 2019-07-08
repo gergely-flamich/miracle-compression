@@ -124,8 +124,8 @@ def run(config_path=None,
         "batch_size": 8,
         "num_epochs": 20,
         
-        "first_level_latents": 64,
-        "second_level_latents": 32,
+        "first_level_latents": 48,
+        "second_level_latents": 24,
 
         "first_level_channels": 192,
         "second_level_channels": 128,
