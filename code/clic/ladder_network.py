@@ -14,6 +14,12 @@ from coding import ArithmeticCoder, write_bin_code, read_bin_code
 
 from utils import InvalidArgumentError
 
+# ==============================================================================
+# ==============================================================================
+# Ladder network
+# ==============================================================================
+# ==============================================================================
+
 class ClicNewLadderCNN(snt.AbstractModule):
 
     _allowed_latent_dists = {
@@ -342,7 +348,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
                    n_points=30, 
                    gamma=100, 
                    precision=32,
-                   outlier_mode="quantize"):
+                   outlier_mode="quantize",
+                   verbose=False):
         
         # -------------------------------------------------------------------------------------
         # Step 1: Set the latent distributions for the image
@@ -391,13 +398,30 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                  gamma, 
                                                  miracle_bits, 
                                                  outlier_mode,
-                                                 True)
+                                                 verbose)
         
         # Create coder
         coder = ArithmeticCoder(probability_mass, precision=precision)
         
         bitcode = coder.encode(coded_latents)
         
+        # Log code length and expected code length
+        if verbose:
+            total_mass = np.sum(probability_mass)
+            log_prob_mass = np.log(probability_mass)
+            log_total_mass = np.log(total_mass)
+            
+            code_log_prob = 0
+            
+            for i in range(len(coded_latents)):
+                code_log_prob += log_prob_mass[coded_latents[i]]
+                
+            # Normalize
+            code_log_prob -= log_total_mass * len(coded_latents)
+            
+            print("Expected code length: {:.2f} bits".format(-code_log_prob))
+            print("Actual code length: {} bits".format(len(bitcode))) 
+
         # -------------------------------------------------------------------------------------
         # Step 4: Write the compressed file
         # -------------------------------------------------------------------------------------
@@ -415,7 +439,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
                      miracle_bits, 
                      n_points=30, 
                      precision=32,
-                     outlier_mode="quantize"):
+                     outlier_mode="quantize",
+                     verbose=False):
         
         # -------------------------------------------------------------------------------------
         # Step 1: Read the compressed file
@@ -446,11 +471,11 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                  gamma, 
                                                  miracle_bits, 
                                                  outlier_mode,
-                                                 True)
+                                                 verbose)
         
         decoder = ArithmeticCoder(probability_mass, precision=precision)
     
-        decompressed = decoder.decode_fast(code)
+        decompressed = decoder.decode_fast(code, verbose=verbose)
         
         # -------------------------------------------------------------------------------------
         # Step 3: Decode the samples using MIRACLE
@@ -498,3 +523,4 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                       decoded_first_level))
         
         return tf.squeeze(reconstruction)
+    
