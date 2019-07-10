@@ -30,7 +30,7 @@ tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
 from architectures import ClicCNN, ClicLadderCNN, ClicLadderCNN2, ClicHyperVAECNN
-from new_architectures import ClicNewLadderCNN
+from ladder_network import ClicNewLadderCNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
 
@@ -124,11 +124,11 @@ def run(config_path=None,
         "batch_size": 8,
         "num_epochs": 20,
         
-        "first_level_latents": 48,
+        "first_level_latents": 24,
         "second_level_latents": 24,
 
-        "first_level_channels": 192,
-        "second_level_channels": 128,
+        "first_level_channels": 64,
+        "second_level_channels": 64,
         "first_level_layers": 4,
 
         "loss": "nll_perceptual_kl",
@@ -316,8 +316,8 @@ def run(config_path=None,
 
                 # Code layers
                 print("Coding layer {}".format(i + 1))
-                coded_samps = coded_sample(proposal=vae.latent_priors[1], 
-                                           target=vae.latent_posteriors[1], 
+                coded_samps = coded_sample(proposal=vae.latent_priors[i], 
+                                           target=vae.latent_posteriors[i], 
                                            seed=im_idx, 
                                            n_points=30, 
                                            miracle_bits=miracle_bits)

@@ -248,7 +248,7 @@ class ArithmeticCoder(object):
 
     # ------------------------------------------------------------------------------
 
-    def decode_fast(self, code):
+    def decode_fast(self, code, verbose=False):
 
         cdef long precision = self._precision
 
@@ -300,6 +300,9 @@ class ArithmeticCoder(object):
 
             # Are we at the end?
             if j == 0:
+                if verbose:
+                    print("Remaining bits at end of code: {}".format(len(code) - i))
+                    
                 return list(message)
 
             # Interval rescaling
