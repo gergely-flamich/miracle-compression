@@ -47,16 +47,16 @@ class ClicTwoStageVAE(snt.AbstractModule):
 
         # Error checking
         if latent_dist not in self._allowed_latent_dists:
-            raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
-                                                 .format(self._allowed_latent_dists))
+            raise InvalidArgumentError("latent_dist must be one of {}, was {}"
+                                                 .format(self._allowed_latent_dists, latent_dist))
         if likelihood not in self._allowed_likelihoods:
-            raise tf.errors.InvalidArgumentError("likelihood must be one of {}"
-                                                 .format(self._allowed_likelihoods))
+            raise InvalidArgumentError("likelihood must be one of {}, was {}"
+                                                 .format(self._allowed_likelihoods, likelihood))
 
 
         # Set variables
-        self.latent_dist = self._allowed_latent_dists[latent_dist]
-        self.likelihood_dist = self._allowed_likelihoods[likelihood]
+        self.latent_dist = latent_dist
+        self.likelihood_dist = likelihood
 
         self.first_level_layers = first_level_layers
         self.second_level_layers = second_level_layers
@@ -64,26 +64,27 @@ class ClicTwoStageVAE(snt.AbstractModule):
         self.latent_filters = latent_filters
         
         self.train_first = True
+        self.train_second = False
         
         self.first_run = True
 
     @property
-    def log_prob(self, use_second=False):
+    def log_prob(self):
         self._ensure_is_connected()
 
-        return self.measure_vae.log_prob if use_second else self.manifold_vae.log_prob
+        return self.manifold_vae.log_prob if self.train_first else self.measure_vae.log_prob
 
     @property
-    def kl_divergence(self, use_second=False):
+    def kl_divergence(self):
         self._ensure_is_connected()
 
-        return self.measure_vae.kl_divergence if use_second else self.manifold_vae.kl_divergence
+        return self.manifold_vae.kl_divergence if self.train_first else self.measure_vae.kl_divergence
 
     
-    def get_all_training_variables(self, use_second=False):
+    def get_all_training_variables(self):
         self._ensure_is_connected()
         
-        return self.measure_vae.get_all_variables() if use_second else self.manifold_vae.get_all_variables()
+        return self.manifold_vae.get_all_variables() if self.train_first else self.measure_vae.get_all_variables()
         
     
     @snt.reuse_variables
@@ -101,11 +102,14 @@ class ClicTwoStageVAE(snt.AbstractModule):
     def decode(self, latents, use_second=False):
         
         if use_second:    
-            latents = self.measure_vae.decode(latents)
+            reconstruction = self.measure_vae.decode(latents)
             
-        latents = self.manifold_vae.decode(inputs)
+            if self.train_second:
+                return reconstruction
+                
+        reconstruction = self.manifold_vae.decode(reconstruction)
    
-        return latents
+        return reconstruction
 
 
     def _build(self, inputs):
@@ -381,10 +385,10 @@ class ClicTwoStageVAE_Manifold(snt.AbstractModule):
 
         # Error checking
         if latent_dist not in self._allowed_latent_dists:
-            raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
+            raise InvalidArgumentError("latent_dist must be one of {}"
                                                  .format(self._allowed_latent_dists))
         if likelihood not in self._allowed_likelihoods:
-            raise tf.errors.InvalidArgumentError("likelihood must be one of {}"
+            raise InvalidArgumentError("likelihood must be one of {}"
                                                  .format(self._allowed_likelihoods))
 
 
@@ -543,10 +547,10 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
 
         # Error checking
         if latent_dist not in self._allowed_latent_dists:
-            raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
+            raise InvalidArgumentError("latent_dist must be one of {}"
                                                  .format(self._allowed_latent_dists))
         if likelihood not in self._allowed_likelihoods:
-            raise tf.errors.InvalidArgumentError("likelihood must be one of {}"
+            raise InvalidArgumentError("likelihood must be one of {}"
                                                  .format(self._allowed_likelihoods))
 
 
