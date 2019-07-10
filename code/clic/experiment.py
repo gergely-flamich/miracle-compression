@@ -334,8 +334,8 @@ def run(config_path=None,
             print("---------------------------------------")
 
             np.save("probability_mass.npy", np.array(probability_mass, np.int64))
-        
-        
+
+
 
 if __name__ == "__main__":
 
@@ -361,7 +361,7 @@ if __name__ == "__main__":
                         help='The model directory.')
 
     args = parser.parse_args()
-    
+
     run(config_path=args.config,
         model_key=args.model,
         is_training=args.is_training,

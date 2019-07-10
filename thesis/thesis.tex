@@ -13,7 +13,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{graphicx}
-\usepackage{biblatex}
+
+\usepackage[
+backend=biber,
+style=alphabetic,
+citestyle=authoryear]{biblatex}
+
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{graphicx}
@@ -21,7 +26,8 @@
 \usepackage{hyperref}
 \usepackage{algorithm, algpseudocode}
 
-\addbibresource{cite.bib}
+
+\usepackage[a4paper, total={6in, 8in}]{geometry}
 
 
 % ==============================================================================
@@ -31,6 +37,25 @@
 %
 % ==============================================================================
 % ==============================================================================
+\addbibresource{cite.bib}
+
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\renewcommand{\d}{\text{d}}
+
+\renewcommand{\L}{\mathcal{L}}
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\E}{\mathcal{E}}
+
+\newcommand{\Oh}{\mathcal{O}}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\I}{\mathbb{I}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
 
 \title{Compression without Quantization}
 \author{Gergely Flamich}
@@ -121,15 +146,69 @@ Wordcount: \textbf{16384} words
 % ==============================================================================
 
 \section{Introduction}
+\subsection{Motivation}
+\subsection{Our Contributions}
+\subsection{Thesis Outline}
+\paragraph{}
+
+\section{Background}
+\subsection{Image Compression}
+rate-distorsion
+pnsr
+\cite{psnr}
+\cite{msssim}
+\subsection{The Bits-Back Argument}
+\paragraph{}
+The bits-back argument was first introduced in \cite{hinton1993keeping}, and states
+the following. Imagine the following communication problem: Given two parties,
+Alice and Bob, Alice wants to send a sample $\vec{x}$ according to some
+distribution 
+
 \section{Related Work}
-\subsection{The Bits Back Argument}
+\paragraph{}
+There have been several recent advances in neural network-based compression
+techniques, most notably \cite{balle2016end}, \cite{theis2017lossy},
+\cite{rippel2017real}, \cite{balle2018variational}. 
+\paragraph{}
+Notably, all previous VAE-based approaches have addressed the
+non-differentiablility of quantization indirectly.
+\paragraph{}
+\cite{theis2017lossy} use an approximation for the derivative of the rounding
+operator and optimize an upper bound on the error term introduced by the
+quantiztion.
+\paragraph{}
+In \cite{balle2016end},\cite{balle2018variational} they model the quantizer by
+adding uniform noise to the samples 
 \subsection{VAE-based image compression}
 \section{Method}
 
 \subsection{Architecture}
+\subsubsection{VAEs}
+\paragraph{}
+Unlike earlier work, since we do not require the quantization step at all, we
+can train a classical VAE. On the data
+
+\subsubsection{Hierarchical VAE}
 \paragraph{}
 
+\subsubsection{Probabilistic Ladder Network}
+\paragraph{}
+
+\subsection{MIRACLE Coding}
+\paragraph{}
+\cite{havasi2018minimal}
+
+\subsubsection{Rejection sampling}
+\paragraph{}
+\cite{harsha2007communication}
+
+\subsection{Arithmetic Coding}
+\paragraph{}
+ac reference \cite{rissanen1981universal}
+
 \section{Experimental Results}
+
+\cite{zhao2015loss}
 \section{Discussion}
 \section{Conclusion}
 

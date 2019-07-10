@@ -188,3 +188,7 @@ To illustrate, here's a comparison between our method and JPEG.
 73 KB is as 
 The original image size was 1.8 MB
 
+
+
+* Things to do [/]
+** 
