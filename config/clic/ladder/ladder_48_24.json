@@ -1,0 +1,25 @@
+{
+    "batch_size": 8, 
+    "beta": 0.1, 
+    "checkpoint_name": "_ckpt", 
+    "first_level_channels": 64, 
+    "first_level_latents": 24, 
+    "first_level_layers": 4, 
+    "gamma": 0.0, 
+    "image_size": [
+        256, 
+        256
+    ], 
+    "learning_rate": 3e-05, 
+    "likelihood": "gaussian", 
+    "log_freq": 50, 
+    "loss": "nll_perceptual_kl", 
+    "num_epochs": 20, 
+    "optimizer": "adam", 
+    "pixels_per_training_image": 196608, 
+    "prior": "gaussian", 
+    "second_level_channels": 64, 
+    "second_level_latents": 24, 
+    "training_set_size": 93085, 
+    "warmup": 4.0
+}
