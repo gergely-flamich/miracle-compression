@@ -8,16 +8,10 @@ sys.path.append("/home/gf332/miracle-compession/code")
 sys.path.append("/homes/gf332/miracle-compession/code")
 sys.path.append("/homes/gf332/miracle-compession/code/compression")
 
-from imageio import imwrite
-
 import argparse
 import os, glob
 import json
 from tqdm import tqdm
-
-# Needed for compression as the common source of randomness
-from sobol_seq import i4_sobol_generate
-from scipy.stats import norm
 
 import numpy as np
 
@@ -29,126 +23,20 @@ tfe = tf.contrib.eager
 tfs = tf.contrib.summary
 tfs_logger = tfs.record_summaries_every_n_global_steps
 
-from architectures import ClicCNN, ClicLadderCNN, ClicLadderCNN2, ClicHyperVAECNN
-from ladder_network import ClicNewLadderCNN
 from utils import is_valid_file, setup_eager_checkpoints_and_restore
 from load_data import load_and_process_image, create_random_crops, download_process_and_load_data
-
 from compression import coded_sample, decode_sample
-
-# ==============================================================================
-# Predefined Stuff
-# ==============================================================================
-
-models = {
-    "cnn": ClicCNN,
-    "hyper_cnn": ClicHyperVAECNN,
-    "ladder_cnn": ClicLadderCNN,
-    "ladder_cnn2": ClicLadderCNN2,
-    "new_ladder": ClicNewLadderCNN
-}
+from pipeline import clic_input_fn, create_model, optimizers, models
 
 
-optimizers = {
-    "sgd": tf.train.GradientDescentOptimizer,
-    "momentum": lambda lr:
-                    tf.train.MomentumOptimizer(learning_rate=lr,
-                                               momentum=0.9,
-                                               use_nesterov=False),
-    "adam": tf.train.AdamOptimizer,
-    "rmsprop": tf.train.RMSPropOptimizer
-}
-
-# ==============================================================================
-# Auxiliary Functions
-# ==============================================================================
-def clic_input_fn(dataset, image_size=(256, 256), buffer_size=1000, batch_size=8):
-    dataset = dataset.shuffle(buffer_size)
-    dataset = dataset.map(lambda i: clic_parse_fn(i, image_size=image_size))
-    dataset = dataset.batch(batch_size)
-    dataset = dataset.prefetch(1)
-
-    return dataset
-
-def clic_parse_fn(image, image_size=(316, 316)):
-    return tf.image.random_crop(image, size=image_size + (3,))
-
-def create_model(model_key, config):
-    model = models[model_key]
-    
-    if model_key == "cnn":
-        vae = model(prior=config["prior"],
-                    likelihood=config["likelihood"],
-                    padding="SAME_MIRRORED")
-
-    elif model_key in ["hyper_cnn", "ladder_cnn", "ladder_cnn2"]:
-        vae = model(latent_dist=config["prior"],
-                    likelihood=config["likelihood"],
-                    first_level_channels=config["first_level_channels"],
-                    second_level_channels=config["second_level_channels"],
-                    first_level_layers=config["first_level_layers"],
-                    padding_first_level="SAME_MIRRORED",
-                    padding_second_level="SAME_MIRRORED")
-
-    elif model_key == "new_ladder":
-        vae = model(latent_dist=config["prior"],
-                    likelihood=config["likelihood"],
-                    first_level_latents=config["first_level_latents"],
-                    second_level_latents=config["second_level_latents"])
-    else:
-        raise Exception("Model: {} is not defined!".format(model_key))
-
-    # Connect the model computational graph by executing a forward-pass
-    vae(tf.zeros((1, 256, 256, 3)))
-        
-    return vae
-
-def run(config_path=None,
-        model_key="cnn",
+def run(config_path
+        model_key="ladder",
+        two_stage_state=0, # 0 - train first stage, 1 - train second stage, 2 - trained
         is_training=True,
         build_ac_dict=False,
         model_dir="/tmp/clic_test"):
-
-    # ==========================================================================
-    # Configuration
-    # ==========================================================================
-
-    config = {
-        "training_set_size": 93085,
-        "pixels_per_training_image": 256 * 256 * 3,
-
-        # When using VALID for the hierarchical VAEs, this will give the correct
-        # latent size
-        "image_size": [256, 256],
-
-        "batch_size": 8,
-        "num_epochs": 20,
-        
-        "first_level_latents": 24,
-        "second_level_latents": 24,
-
-        "first_level_channels": 64,
-        "second_level_channels": 64,
-        "first_level_layers": 4,
-
-        "loss": "nll_perceptual_kl",
-        "likelihood": "laplace",
-        "prior": "gaussian",
-
-        # % of the number of batches when the coefficient is capped out
-        # (i.e. for 1., the coef caps after the first epoch exactly)
-        "warmup": 4.,
-        "beta": 0.1,
-        "gamma": 0.,
-        "learning_rate": 3e-5,
-        "optimizer": "adam",
-
-        "log_freq": 50,
-        "checkpoint_name": "_ckpt",
-    }
-
-    if config_path is not None:
-        config = json.load(config_path)
+    
+    config = json.load(config_path)
 
     num_batches = config["training_set_size"] // config["batch_size"]
 
@@ -176,10 +64,7 @@ def run(config_path=None,
     # TODO: This is a temporary hack to log the graph in eager mode
     with g.as_default():
         
-        vae = create_model(model_key, config)
-        
-        # Connect the model computational graph by executing a forward-pass
-        vae(tf.zeros((1, 256, 256, 3)))
+        vae = create_model(model_key, config, train_stage=train_stage)
 
         del vae
     
@@ -213,15 +98,114 @@ def run(config_path=None,
     # Record the graph structure of the architecture
     tfs.graph(g)
     tfs.flush(writer)
-
+    
     # ==========================================================================
-    # Train VAE
+    # Define training steps
     # ==========================================================================
-
+    
     beta = config["beta"]
 
     # Combination coefficient for the mixture losses
     gamma = config["gamma"]
+    
+
+    def ladder_train_step(batch):
+        
+        with tf.GradientTape() as tape, tfs_logger(config["log_freq"]):
+
+            B = batch.shape.as_list()[0]
+
+            # Predict the means of the pixels
+            output = vae(batch)
+
+            warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
+
+            log_prob = vae.log_prob
+            kl_divs = vae.kl_divergence
+
+            total_kl = sum([tf.reduce_sum(kls) for kls in kl_divs])
+
+            output = tf.cast(output, tf.float32)
+            output = tf.clip_by_value(output, 0., 1.)
+
+            ms_ssim = 0. #tf.image.ssim_multiscale(batch, output, 1.)
+
+            # This correction is necessary, so that the ms-ssim value is on the order
+            # of the KL and the log probability
+            ms_ssim_loss = tf.reduce_sum(1 - ms_ssim) * config["pixels_per_training_image"]
+
+            if config["loss"] == "nll_perceptual_kl":
+                loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
+
+            else:
+                raise Exception("Loss {} not available!".format(config["loss"]))
+
+
+            # Add tensorboard summaries
+            tfs.scalar("Loss", loss)
+            tfs.scalar("Log-Probability", log_prob / B)
+            tfs.scalar("KL", total_kl / B)
+            tfs.scalar("Beta-KL", beta * total_kl / B)
+            #tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
+            #tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
+            tfs.scalar("Warmup-Coeff", warmup_coef)
+            tfs.scalar("Average PSNR", tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B)
+            tfs.image("Reconstruction", output)
+            tfs.image("Original", batch)
+
+            for i, level_kl_divs in enumerate(kl_divs): 
+                tfs.scalar("Max-KL-on-Level-{}".format(i + 1), tf.reduce_max(level_kl_divs))
+
+        # Backprop
+        grads = tape.gradient(loss, vae.get_all_variables())
+        optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
+        
+    # ==========================================================================
+    
+    def two_stage_train_step(batch):          
+        
+        with tf.GradientTape() as tape, tfs_logger(config["log_freq"]):
+
+            B = batch.shape.as_list()[0]
+
+            # Predict the means of the pixels
+            output = vae(batch)
+
+            warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
+
+            log_prob = vae.log_prob
+            kl_divs = vae.kl_divergence
+
+            total_kl = sum([tf.reduce_sum(kls) for kls in kl_divs])
+
+            output = tf.cast(output, tf.float32)
+
+            loss = ( -log_prob + warmup_coef * beta * total_kl) / B
+
+            # Add tensorboard summaries
+            sum_num = two_stage_state + 1
+            
+            tfs.scalar("Loss-{}".format(sum_num), loss)
+            tfs.scalar("Log-Probability-{}".format(sum_num), log_prob / B)
+            tfs.scalar("KL-{}".format(sum_num), total_kl / B)
+            tfs.scalar("Beta-KL-{}".format(sum_num), beta * total_kl / B)
+            tfs.scalar("Warmup-Coeff-{}".format(sum_num), warmup_coef)
+            
+            average_psnr = tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B
+            
+            tfs.scalar("Average PSNR-{}".format(sum_num), average_psnr)
+            tfs.image("Reconstruction", output)
+            tfs.image("Original", batch)
+            tfs.scalar("Gamma-{}".format(sum_num), tf.exp(vae.gamma))
+            
+        # Backprop
+        grads = tape.gradient(loss, vae.get_all_variables())
+        optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
+        
+    
+    # ==========================================================================
+    # Train VAE
+    # ==========================================================================
 
     if is_training:
 
@@ -233,54 +217,12 @@ def run(config_path=None,
                     # Increment global step
                     global_step.assign_add(1)
 
-                    with tf.GradientTape() as tape, tfs_logger(config["log_freq"]):
-
-                        B = batch.shape.as_list()[0]
-
-                        # Predict the means of the pixels
-                        output = vae(batch)
+                    if model_key in ["ladder"]:
+                        ladder_train_step(batch)
                         
-                        warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
-
-                        log_prob = vae.log_prob
-                        kl_divs = vae.kl_divergence
-                        
-                        total_kl = sum([tf.reduce_sum(kls) for kls in kl_divs])
-
-                        output = tf.cast(output, tf.float32)
-                        output = tf.clip_by_value(output, 0., 1.)
-
-                        ms_ssim = 0. #tf.image.ssim_multiscale(batch, output, 1.)
-                        
-                        # This correction is necessary, so that the ms-ssim value is on the order
-                        # of the KL and the log probability
-                        ms_ssim_loss = tf.reduce_sum(1 - ms_ssim) * config["pixels_per_training_image"]
-
-                        if config["loss"] == "nll_perceptual_kl":
-                            loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
-
-                        else:
-                            raise Exception("Loss {} not available!".format(config["loss"]))
-
-
-                        # Add tensorboard summaries
-                        tfs.scalar("Loss", loss)
-                        tfs.scalar("Log-Probability", log_prob / B)
-                        tfs.scalar("KL", total_kl / B)
-                        tfs.scalar("Beta-KL", beta * total_kl / B)
-                        #tfs.scalar("Average MS-SSIM", tf.reduce_sum(ms_ssim) / B)
-                        #tfs.scalar("MS-SSIM Loss", ms_ssim_loss)
-                        tfs.scalar("Warmup-Coeff", warmup_coef)
-                        tfs.scalar("Average PSNR", tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B)
-                        tfs.image("Reconstruction", output)
-                        tfs.image("Original", batch)
-                        
-                        for i, level_kl_divs in enumerate(kl_divs): 
-                            tfs.scalar("Max-KL-on-Level-{}".format(i + 1), tf.reduce_max(level_kl_divs))
-
-                    # Backprop
-                    grads = tape.gradient(loss, vae.get_all_variables())
-                    optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
+                    elif model_key in ["two_stage"]:
+                        two_stage_step(batch)
+                    
 
                     # Update the progress bar
                     pbar.update(1)
@@ -359,6 +301,10 @@ if __name__ == "__main__":
                         type=lambda x: is_valid_file(parser, x),
                         default='/tmp/miracle_compress_clic',
                         help='The model directory.')
+                                       
+    parser.add_argument('--two_stage_state',
+                        type=int,
+                        default=0)                                   
 
     args = parser.parse_args()
 
@@ -366,4 +312,5 @@ if __name__ == "__main__":
         model_key=args.model,
         is_training=args.is_training,
         build_ac_dict=args.build_ac_dict,
-        model_dir=args.model_dir)
+        model_dir=args.model_dir,
+        two_stage_state=args.two_stage_state)
