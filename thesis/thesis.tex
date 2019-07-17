@@ -129,7 +129,12 @@ Wordcount: \textbf{16384} words
 % ==============================================================================
 
 \begin{abstract}
+  We provide an implementation of our proposed method written in \texttt{Tensorflow}
+  \cite{tensorflow2015-whitepaper} and \texttt{Sonnet} \cite{sonnetblog},
+  available on GitHub \footnotemark.
 \end{abstract}
+
+\footnotetext{https://github.com/gergely-flamich/miracle-compression}
 
 \newpage
 
@@ -147,22 +152,92 @@ Wordcount: \textbf{16384} words
 
 \section{Introduction}
 \subsection{Motivation}
+- adaptive
+- need for compression in a lot of new areas for which existing techniques might
+not work well
+lightfield cameras, 360 images / video, VR, video streams
+- good handcrafted codecs are hard to design
+- put the problem in a well-grounded mathematical framework, get theoretical guarantees
+
+\subsubsection{Why Image Compression?}
+\paragraph{}
+Well studied problem, good literature availability, on handcrafted methods, NN
+based methods and performance evaluation.
+
+\subsubsection{Why Lossy?}
+\paragraph{}
+In lossless image compression we are limited by the true distribution of image
+pixels in how much we can compress stuff.
+
+In lossy compression we can make a huge saving, by only concentrating on details
+that are perceptually important to the viewer.
+
+\subsection{Our Goals}
+
+Several metrics to optimise for:
+- compression quality
+- compression size
+- compression time
+- compressor size
+- compressor power consumption
+- robustness of compressor (i.e. resistance to errors / adversarial attacks)
+- security / privacy of compression
+- scalability: image size, image quality
+
 \subsection{Our Contributions}
+\paragraph{}
+
+We present:
+\begin{itemize}
+\item a brief introduction to the technical background on neural-network
+  based lossy image compression
+\item a review of recent influential works in the area
+
+\item a novel image compression algorithm trained on the CLIC 2018 dataset \cite{clic2018}
+
+\item experiments and analysis of performance to confirm its theoretical properties
+\end{itemize}
+
 \subsection{Thesis Outline}
 \paragraph{}
 
 \section{Background}
 \subsection{Image Compression}
+Main goal: use the statistical / topological properties of images and properties
+of the human visual system (HVS) to achieve
+better compression rates than generic data compression algorithms
+
+Types of image compression: lossless and lossy
+
+lossy is suited for \textbf{natural images} -> imperceptible loss of quality can
+lead to dramatic reduction in bit-rate
+
 rate-distorsion
 pnsr
+
+
 \cite{psnr}
 \cite{msssim}
+\subsection{Metrics}
+\paragraph{}
+\subsubsection{PSNR}
+\subsubsection{MS-SSIM}
 \subsection{The Bits-Back Argument}
 \paragraph{}
 The bits-back argument was first introduced in \cite{hinton1993keeping}, and states
 the following. Imagine the following communication problem: Given two parties,
 Alice and Bob, Alice wants to send a sample $\vec{x}$ according to some
 distribution 
+
+\subsection{Neural Networks for Image Compression}
+\paragraph{}
+
+Why not compress images straight away?
+- intractable due to high dimensionality
+- ineffective due to spatial and cross-channel dependencies
+
+solution:
+- map into smaller dimensional representation and reduce dependencies between dimensions
 
 \section{Related Work}
 \paragraph{}
@@ -193,6 +268,10 @@ can train a classical VAE. On the data
 
 \subsubsection{Probabilistic Ladder Network}
 \paragraph{}
+
+\subsubsection{Two-Stage VAE}
+\paragraph{}
+\cite{dai2019diagnosing}
 
 \subsection{MIRACLE Coding}
 \paragraph{}
