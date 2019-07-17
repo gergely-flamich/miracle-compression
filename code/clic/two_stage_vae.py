@@ -310,6 +310,8 @@ class ClicTwoStageVAE_Manifold(snt.AbstractModule):
 
         latents = self.encode(inputs)  
         reconstruction = self.decode(latents)
+        
+        self._log_prob = self.likelihood.log_prob(inputs)
 
         return reconstruction
     
@@ -334,6 +336,7 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
                  likelihood="gaussian",
                  latent_filters=192,
                  num_layers=4,
+                 residual=True,
                  name="clic_two_stage_vae_measure"):
 
         # Call superclass
@@ -355,6 +358,17 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
 
         self.num_layers = num_layers        
         self.latent_filters = latent_filters
+        
+        # Should we have residual connections?
+        self.residual = residual
+        
+        # ----------------------------------------------------------------------
+        # Define constants
+        # ----------------------------------------------------------------------
+
+        self.kernel_shape = (5, 5)
+        self.channels = 192
+        self.padding = "SAME_MIRRORED"
 
     @property
     def log_prob(self):
@@ -370,13 +384,6 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
 
     @snt.reuse_variables
     def encode(self, inputs):
-        # ----------------------------------------------------------------------
-        # Define constants
-        # ----------------------------------------------------------------------
-
-        kernel_shape = (5, 5)
-        channels = 192
-        padding = "SAME_MIRRORED"
 
         # ----------------------------------------------------------------------
         # Define layers
@@ -384,10 +391,10 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
 
         # First level
         self.layers = [
-            ConvDS(output_channels=channels,
-                   kernel_shape=kernel_shape,
+            ConvDS(output_channels=self.channels,
+                   kernel_shape=self.kernel_shape,
                    num_convolutions=1,
-                   padding=padding,
+                   padding=self.padding,
                    downsampling_rate=1,
                    use_gdn=False,
                    activation="leaky_relu",
@@ -396,18 +403,18 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
         ]
 
         self.encoder_loc_head = ConvDS(output_channels=self.latent_filters,
-                                      kernel_shape=kernel_shape,
+                                      kernel_shape=self.kernel_shape,
                                       num_convolutions=1,
                                       downsampling_rate=1,
-                                      padding=padding,
+                                      padding=self.padding,
                                       use_gdn=False,
                                       name="encoder_loc")
 
         self.encoder_log_scale_head = ConvDS(output_channels=self.latent_filters,
-                                        kernel_shape=kernel_shape,
+                                        kernel_shape=self.kernel_shape,
                                         num_convolutions=1,
                                         downsampling_rate=1,
-                                        padding=padding,
+                                        padding=self.padding,
                                         use_gdn=False,
                                         name="encoder_log_scale")
 
@@ -421,6 +428,10 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
         for layer in self.layers:
             activations = layer(activations)
 
+        
+        if self.residual:
+            # concatenate along channels
+            activations = tf.concat([activations, inputs], axis=-1)
 
         # Get first level statistics
         loc = self.encoder_loc_head(activations)
@@ -442,11 +453,19 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
         # Define layers
         # ----------------------------------------------------------------------
 
-        layers = [self.encoder_loc_head.transpose()]
+        layers = [ConvDS(output_channels=self.channels,
+                         kernel_shape=self.kernel_shape,
+                         num_convolutions=1,
+                         padding=self.padding,
+                         downsampling_rate=1,
+                         use_gdn=False,
+                         activation="leaky_relu",
+                         name="decoder_conv_ds")]
 
         for layer in self.layers[::-1]:
             layers.append(layer.transpose())
-
+           
+            
         # ----------------------------------------------------------------------
         # Apply layers
         # ----------------------------------------------------------------------
@@ -457,9 +476,16 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
         
         activations = latents
 
-        for layer in layers:
+        for layer in layers[:-1]:
             activations = layer(activations)
+            
+        if self.residual:
+            # concatenate along channels
+            activations = tf.concat([activations, latents], axis=-1)
 
+        # Final layer
+        activations = layers[-1](activations)
+        
         reconstruction = tf.nn.sigmoid(activations)
             
         self.log_gamma = tf.get_variable("gamma_z", dtype=tf.float32, initializer=0.)
@@ -474,5 +500,7 @@ class ClicTwoStageVAE_Measure(snt.AbstractModule):
         latents = self.encode(inputs)
 
         reconstruction = self.decode(latents)
+        
+        self._log_prob = self.likelihood.log_prob(inputs)
         
         return reconstruction

@@ -11,15 +11,16 @@
         256
     ], 
     
-    "beta": 0.1, 
+    "beta": 1.0, 
     "gamma": 0.0, 
+    
     "learning_rate": 3e-05, 
     "optimizer": "adam", 
     "warmup": 4.0,
-    "learn_log_gamma": false,
+    "learn_log_gamma": true,
     
     "latent_dist": "gaussian", 
-    "likelihood": "gaussian", 
+    "likelihood": "laplace", 
     
     "first_level_channels": 192,
     "second_level_channels": 192, 

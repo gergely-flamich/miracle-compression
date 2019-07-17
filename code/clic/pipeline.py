@@ -28,7 +28,7 @@ from load_data import load_and_process_image, create_random_crops, download_proc
 
 # Models
 from ladder_network import ClicNewLadderCNN
-from two_stage_vae import ClicTwoStageVAE
+from two_stage_vae import ClicTwoStageVAE, ClicTwoStageVAE_Measure, ClicTwoStageVAE_Manifold
 
 # ==============================================================================
 # Predefined Stuff
@@ -57,7 +57,7 @@ def clic_input_fn(dataset, image_size=(256, 256), buffer_size=1000, batch_size=8
     dataset = dataset.shuffle(buffer_size)
     dataset = dataset.map(lambda i: clic_parse_fn(i, image_size=image_size))
     dataset = dataset.batch(batch_size)
-    dataset = dataset.prefetch(1)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
     return dataset
 
@@ -69,23 +69,42 @@ def create_model(model_key, config, train_stage=0):
    
     if model_key == "two_stage":
         
-        vae = model(latent_dist=config["prior"],
-                     likelihood=config["likelihood"],
-                     latent_filters=config["two_stage_latent_dims"],
-                     first_level_layers=config["two_stage_first_level_layers"],
-                     second_level_layers=config["two_stage_second_level_layers"])
+        vae_man = ClicTwoStageVAE_Manifold(latent_dist=config["latent_dist"],
+                                           likelihood=config["likelihood"],
+                                           latent_filters=config["latent_dims"],
+                                           num_layers=config["first_level_layers"])
         
-        vae.train_stage = train_stage
+        
+        vae_mes = ClicTwoStageVAE_Measure(latent_dist=config["latent_dist"],
+                                           likelihood=config["likelihood"],
+                                           latent_filters=config["latent_dims"],
+                                           residual=config["residual"],
+                                           num_layers=config["second_level_layers"])
+
+        
+        # Connect the model computational graph by executing a forward-pass
+        vae_man(tf.zeros((1, 256, 256, 3)))
+        
+        z = vae_man.encode(tf.zeros((1, 256, 256, 3)))
+        
+        z_ = vae_mes(z)
+        
+        vae_man.decode(z_)
+        
+        vae = (vae_man, vae_mes)
 
     elif model_key == "ladder":
-        vae = model(latent_dist=config["prior"],
+        vae = model(latent_dist=config["latent_dist"],
                     likelihood=config["likelihood"],
                     first_level_latents=config["first_level_latents"],
-                    second_level_latents=config["second_level_latents"])
+                    second_level_latents=config["second_level_latents"],
+                    learn_log_gamma=config["learn_log_gamma"])
+        
+        # Connect the model computational graph by executing a forward-pass
+        vae(tf.zeros((1, 256, 256, 3)))
     else:
         raise Exception("Model: {} is not defined!".format(model_key))
 
-    # Connect the model computational graph by executing a forward-pass
-    vae(tf.zeros((1, 256, 256, 3)))
+    
         
     return vae

@@ -38,6 +38,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                  first_level_latents=192,
                  second_level_latents=192,
                  first_level_layers=4,
+                 learn_log_gamma=False,
                  name="new_clic_ladder_cnn"):
 
         # Call superclass
@@ -61,7 +62,12 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.first_level_latents = first_level_latents
         
         self.second_level_latents = second_level_latents
-
+        
+        self.learn_log_gamma = learn_log_gamma
+        
+        self.log_gamma = 0
+     
+        
     @property
     def log_prob(self):
         self._ensure_is_connected()
@@ -299,9 +305,12 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
         latents = self.encode(inputs)
         reconstruction = self.decode(latents)
+        
+        self.log_gamma = tf.get_variable("gamma", dtype=tf.float32, initializer=0.) if self.learn_log_gamma else 0.
+        gamma = tf.exp(self.log_gamma)
 
         self.likelihood = self.likelihood_dist(loc=reconstruction,
-                                               scale=tf.ones_like(reconstruction))
+                                               scale=gamma)
 
         self._log_prob = self.likelihood.log_prob(inputs)
 

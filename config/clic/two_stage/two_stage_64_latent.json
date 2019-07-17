@@ -4,6 +4,9 @@
     "num_epochs": 20,
     "batch_size": 8, 
     
+    "residual": true,
+    "use_reconstruction_loss": true,
+    
     "pixels_per_training_image": 196608, 
     "training_set_size": 93085,
     "image_size": [
@@ -13,21 +16,22 @@
     
     "beta": 0.1, 
     "gamma": 0.0, 
+    
     "learning_rate": 3e-05, 
     "optimizer": "adam", 
     "warmup": 4.0,
-    "learn_log_gamma": false,
+    "learn_log_gamma": true,
     
     "latent_dist": "gaussian", 
     "likelihood": "gaussian", 
     
-    "first_level_channels": 192,
-    "second_level_channels": 192, 
+    "latent_dims": 64, 
     
     "first_level_layers": 4, 
-
-    "first_level_latents": 48,
-    "second_level_latents": 24, 
+    "second_level_layers": 4, 
+    
+    "first_stage_channels": 192,
+    "second_stage_channels": 192, 
     
     "log_freq": 50
 }

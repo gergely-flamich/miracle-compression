@@ -29,9 +29,9 @@ from compression import coded_sample, decode_sample
 from pipeline import clic_input_fn, create_model, optimizers, models
 
 
-def run(config_path
+def run(config_path,
         model_key="ladder",
-        two_stage_state=0, # 0 - train first stage, 1 - train second stage, 2 - trained
+        train_stage=0, # 0 - train first stage, 1 - train second stage, 2 - trained
         is_training=True,
         build_ac_dict=False,
         model_dir="/tmp/clic_test"):
@@ -79,7 +79,12 @@ def run(config_path
 
     global_step = tf.train.get_or_create_global_step()
 
-    trainable_vars = vae.get_all_variables() + (global_step,)
+    if isinstance(vae, tuple):
+        trainable_vars = vae[0].get_all_variables() + vae[1].get_all_variables() + (global_step,)
+        
+    else:
+        trainable_vars = vae.get_all_variables() + (global_step,)
+        
     checkpoint_dir = os.path.join(model_dir, "checkpoints")
 
     checkpoint, ckpt_prefix = setup_eager_checkpoints_and_restore(
@@ -134,12 +139,7 @@ def run(config_path
             # of the KL and the log probability
             ms_ssim_loss = tf.reduce_sum(1 - ms_ssim) * config["pixels_per_training_image"]
 
-            if config["loss"] == "nll_perceptual_kl":
-                loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
-
-            else:
-                raise Exception("Loss {} not available!".format(config["loss"]))
-
+            loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
 
             # Add tensorboard summaries
             tfs.scalar("Loss", loss)
@@ -152,6 +152,9 @@ def run(config_path
             tfs.scalar("Average PSNR", tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B)
             tfs.image("Reconstruction", output)
             tfs.image("Original", batch)
+            
+            if vae.learn_log_gamma:
+                tfs.scalar("Gamma", tf.exp(vae.log_gamma))
 
             for i, level_kl_divs in enumerate(kl_divs): 
                 tfs.scalar("Max-KL-on-Level-{}".format(i + 1), tf.reduce_max(level_kl_divs))
@@ -160,48 +163,75 @@ def run(config_path
         grads = tape.gradient(loss, vae.get_all_variables())
         optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
         
+        return loss, total_kl, log_prob
+        
     # ==========================================================================
     
-    def two_stage_train_step(batch):          
+    def two_stage_train_step(batch):      
+        
+        vae_man, vae_mes = vae
         
         with tf.GradientTape() as tape, tfs_logger(config["log_freq"]):
 
             B = batch.shape.as_list()[0]
-
-            # Predict the means of the pixels
-            output = vae(batch)
-
             warmup_coef = tf.minimum(1., global_step.numpy() / (config["warmup"] * num_batches))
 
-            log_prob = vae.log_prob
-            kl_divs = vae.kl_divergence
+            if train_stage == 0:
+                output = vae_man(batch)
 
-            total_kl = sum([tf.reduce_sum(kls) for kls in kl_divs])
+                log_prob = vae_man.log_prob
+                kl_divs = vae_man.kl_divergence
 
-            output = tf.cast(output, tf.float32)
-
+                total_kl = tf.reduce_sum(kl_divs)
+                
+                output = tf.cast(output, tf.float32)
+                
+            elif train_stage == 1:
+                z = vae_man.encode(batch)
+                z_ = vae_mes(z)
+                
+                log_prob = vae_mes.log_prob
+                kl_divs = vae_mes.kl_divergence
+                total_kl = tf.reduce_sum(kl_divs)
+                
+                if config["use_reconstruction_loss"]:
+                    output = vae_man.decode(z_)
+                    log_prob = vae_man.likelihood.log_prob(batch)
+            
             loss = ( -log_prob + warmup_coef * beta * total_kl) / B
 
             # Add tensorboard summaries
-            sum_num = two_stage_state + 1
+            sum_num = train_stage + 1
             
             tfs.scalar("Loss-{}".format(sum_num), loss)
             tfs.scalar("Log-Probability-{}".format(sum_num), log_prob / B)
             tfs.scalar("KL-{}".format(sum_num), total_kl / B)
             tfs.scalar("Beta-KL-{}".format(sum_num), beta * total_kl / B)
+            tfs.scalar("Max-KL-{}".format(sum_num), tf.reduce_max(kl_divs))
+
             tfs.scalar("Warmup-Coeff-{}".format(sum_num), warmup_coef)
             
-            average_psnr = tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B
             
-            tfs.scalar("Average PSNR-{}".format(sum_num), average_psnr)
-            tfs.image("Reconstruction", output)
-            tfs.image("Original", batch)
-            tfs.scalar("Gamma-{}".format(sum_num), tf.exp(vae.gamma))
+            tfs.scalar("Gamma-{}".format(sum_num), tf.exp(vae[train_stage].log_gamma))
+            
+            if train_stage == 0 or config["use_reconstruction_loss"]:
+                average_psnr = tf.reduce_sum(tf.image.psnr(batch, output, max_val=1.0)) / B
+                tfs.scalar("Average PSNR-{}".format(sum_num), average_psnr)
+                
+                tfs.image("Reconstruction-{}".format(sum_num), output)
+                tfs.image("Original-{}".format(sum_num), batch)
+                
             
         # Backprop
-        grads = tape.gradient(loss, vae.get_all_variables())
-        optimizer.apply_gradients(zip(grads, vae.get_all_variables()))
+        if train_stage == 0:
+            grads = tape.gradient(loss, vae_man.get_all_variables())
+            optimizer.apply_gradients(zip(grads, vae_man.get_all_variables()))
+            
+        elif train_stage == 1:
+            grads = tape.gradient(loss, vae_mes.get_all_variables())
+            optimizer.apply_gradients(zip(grads, vae_mes.get_all_variables()))
         
+        return loss, total_kl, log_prob
     
     # ==========================================================================
     # Train VAE
@@ -218,10 +248,10 @@ def run(config_path
                     global_step.assign_add(1)
 
                     if model_key in ["ladder"]:
-                        ladder_train_step(batch)
+                        loss, total_kl, log_prob = ladder_train_step(batch)
                         
                     elif model_key in ["two_stage"]:
-                        two_stage_step(batch)
+                        loss, total_kl, log_prob = two_stage_train_step(batch)
                     
 
                     # Update the progress bar
@@ -283,8 +313,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Experimental models for CLIC')
 
-    parser.add_argument('--config', type=open, default=None,
-                    help='Path to the config JSON file.')
+    parser.add_argument('--config', 
+                        type=open,
+                        help='Path to the config JSON file.')
     parser.add_argument('--model', choices=list(models.keys()), default='cnn',
                     help='The model to train.')
     parser.add_argument('--no_training',
@@ -302,7 +333,7 @@ if __name__ == "__main__":
                         default='/tmp/miracle_compress_clic',
                         help='The model directory.')
                                        
-    parser.add_argument('--two_stage_state',
+    parser.add_argument('--train_stage',
                         type=int,
                         default=0)                                   
 
@@ -313,4 +344,4 @@ if __name__ == "__main__":
         is_training=args.is_training,
         build_ac_dict=args.build_ac_dict,
         model_dir=args.model_dir,
-        two_stage_state=args.two_stage_state)
+        train_stage=args.train_stage)
