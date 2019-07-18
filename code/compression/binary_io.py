@@ -4,6 +4,31 @@ import numpy as np
 # Helper Functions
 # ==============================================================================
 
+def to_bit_string(num, num_bits):
+    
+    if num >= 2**num_bits:
+        raise Exception("The number is bigger than what we can encode!")
+        
+    bitcode = []
+    
+    for i in range(num_bits):
+        bitcode.append(str(num % 2))
+        
+        num //= 2
+        
+    return ''.join(bitcode)
+
+def from_bit_string(bitcode):
+    
+    num = 0
+    
+    for i in range(len(bitcode)):
+        
+        if bitcode[i] == "1":
+            num += 2**i
+        
+    return num
+
 def write_bin_code(code, path, extras=None, var_length_extras=None, var_length_bytes=3):
 
     # Pad the code
@@ -25,31 +50,42 @@ def write_bin_code(code, path, extras=None, var_length_extras=None, var_length_b
                 
                 # Write the rest on var_length_bytes bytes
                 for item in extra:
-                    compressed_file.write(bytes([item // (256 * 256), item // 256, item % 256]))
+                    
+                    byte_list = []
+                    for i in range(var_length_bytes - 1, -1, -1):
+                        octet = int(256**i)
+                        
+                        byte_list.append(item // octet)
+                        item = item % octet
+
+                    compressed_file.write(bytes(byte_list))
                 
         
         compressed_file.write(bytes(message_bytes))
 
 
-def read_bin_code(path, num_extras=0, num_var_length_extras=0):
+def read_bin_code(path, num_extras=0, num_var_length_extras=0, extra_bytes=2, var_length_extra_bytes=3):
 
     with open(path, "rb") as compressed_file:
         compressed = ''.join(["{:08b}".format(x) for x in compressed_file.read()])
 
-    extra_bits = compressed[:num_extras * 16]
-    compressed = compressed[num_extras * 16:]
+    extra_bits = compressed[:num_extras * extra_bytes * 8]
+    compressed = compressed[num_extras * extra_bytes * 8:]
     
-    extras = [int('0b' + extra_bits[s:s + 16], 2) for s in range(0, num_extras * 16, 16)]
+    extras = [int('0b' + extra_bits[s:s + extra_bytes * 8], 2) for s in range(0, 
+                                                                              num_extras * extra_bytes * 8, 
+                                                                              extra_bytes * 8)]
     
     var_length_extras = []
     
     for i in range(num_var_length_extras):
         
         # Read length of current extra
-        extra_length = int('0b' + compressed[:16], 2)
-        extra = [int('0b' + extra_bits[16 + s:16 + s], 2) for s in range(0, extra_length * 24, 24)]
+        extra_length = int('0b' + compressed[:extra_bytes * 8], 2)
+        extra = [int('0b' + compressed[extra_bytes * 8 + s:extra_bytes * 8 + s + var_length_extra_bytes * 8], 2) 
+                 for s in range(0, extra_length * var_length_extra_bytes * 8, var_length_extra_bytes * 8)]
         
-        compressed = compressed[16 + extra_length * 24:]
+        compressed = compressed[extra_bytes * 8 + extra_length * var_length_extra_bytes * 8:]
         
         var_length_extras.append(extra)
     

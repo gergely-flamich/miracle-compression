@@ -12,6 +12,7 @@ from miracle_modules import ConvDS
 from compression import coded_sample, decode_sample
 from coding import ArithmeticCoder
 from binary_io import write_bin_code, read_bin_code
+from greedy_compression import code_grouped_greedy_sample, decode_grouped_greedy_sample
 
 from utils import InvalidArgumentError
 
@@ -598,10 +599,37 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Step 2: Create a coded sample of the latent space
         # -------------------------------------------------------------------------------------
         
+        s, c, gi = code_grouped_greedy_sample(target, 
+                                       proposal, 
+                                       n_bits_per_step, 
+                                       n_steps, 
+                                       seed, 
+                                       max_group_size_bits=12, # group size limited to 2^max_group_size_bits
+                                       adaptive=True)
+
+
+        
+        # -------------------------------------------------------------------------------------
+        # Step 4: Write the compressed file
+        # -------------------------------------------------------------------------------------
+        
+        extras = [seed, gamma] + first_level_shape[1:3] + second_level_shape[1:3]
+    
+        write_bin_code(''.join(bitcode), 
+                       comp_file_path, 
+                       extras=extras)
         
     
     def decode_image_greedy(self,
                             comp_file_path,
                             verbose=False):
-        pass
+        
+        s_ = decode_grouped_greedy_sample(c,
+                                  gi,
+                                   proposal, 
+                                   n_bits_per_step, 
+                                   n_steps, 
+                                   seed, 
+                                   max_group_size_bits=12, # group size limited to 2^max_group_size_bits
+                                   adaptive=True)
                             
