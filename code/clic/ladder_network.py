@@ -10,7 +10,8 @@ tfd = tfp.distributions
 
 from miracle_modules import ConvDS
 from compression import coded_sample, decode_sample
-from coding import ArithmeticCoder, write_bin_code, read_bin_code
+from coding import ArithmeticCoder
+from binary_io import write_bin_code, read_bin_code
 
 from utils import InvalidArgumentError
 
