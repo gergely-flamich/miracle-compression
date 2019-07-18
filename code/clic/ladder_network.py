@@ -37,7 +37,12 @@ class ClicNewLadderCNN(snt.AbstractModule):
                  likelihood="gaussian",
                  first_level_latents=192,
                  second_level_latents=192,
-                 first_level_layers=4,
+                 first_level_residual=False,
+                 second_level_residual=False,
+                 first_level_channels=192,
+                 second_level_channels=128,
+                 kernel_shape=(5, 5),
+                 padding="SAME_MIRRORED",
                  learn_log_gamma=False,
                  name="new_clic_ladder_cnn"):
 
@@ -58,14 +63,22 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.latent_dist = self._allowed_latent_dists[latent_dist]
         self.likelihood_dist = self._allowed_likelihoods[likelihood]
 
-        self.first_level_layers = first_level_layers
         self.first_level_latents = first_level_latents
-        
         self.second_level_latents = second_level_latents
         
+        self.first_level_residual = first_level_residual
+        self.second_level_residual = second_level_residual
+        
+        self.first_level_channels = first_level_channels
+        self.second_level_channels = second_level_channels
+
         self.learn_log_gamma = learn_log_gamma
         
         self.log_gamma = 0
+        self.first_level_layers = 4
+        
+        self.padding = padding
+        self.kernel_shape = kernel_shape
      
         
     @property
@@ -84,24 +97,15 @@ class ClicNewLadderCNN(snt.AbstractModule):
     @snt.reuse_variables
     def encode(self, inputs, eps=1e-12):
         # ----------------------------------------------------------------------
-        # Define constants
-        # ----------------------------------------------------------------------
-
-        kernel_shape = (5, 5)
-        first_level_channels = 192
-        second_level_channels = 128
-        padding = "SAME_MIRRORED"
-
-        # ----------------------------------------------------------------------
         # Define layers
         # ----------------------------------------------------------------------
 
         # First level
         self.first_level = [
-            ConvDS(output_channels=first_level_channels,
-                   kernel_shape=kernel_shape,
+            ConvDS(output_channels=self.first_level_channels,
+                   kernel_shape=self.kernel_shape,
                    num_convolutions=1,
-                   padding=padding,
+                   padding=self.padding,
                    downsampling_rate=2,
                    use_gdn=True,
                    name="encoder_level_1_conv_ds{}".format(idx))
@@ -109,52 +113,74 @@ class ClicNewLadderCNN(snt.AbstractModule):
         ]
 
         self.first_level_loc = ConvDS(output_channels=self.first_level_latents,
-                                      kernel_shape=kernel_shape,
+                                      kernel_shape=self.kernel_shape,
                                       num_convolutions=1,
                                       downsampling_rate=2,
-                                      padding=padding,
+                                      padding=self.padding,
                                       use_gdn=False,
                                       name="encoder_level_1_loc")
 
         self.first_level_log_scale = ConvDS(output_channels=self.first_level_latents,
-                                        kernel_shape=kernel_shape,
+                                        kernel_shape=self.kernel_shape,
                                         num_convolutions=1,
                                         downsampling_rate=2,
-                                        padding=padding,
+                                        padding=self.padding,
                                         use_gdn=False,
                                         name="encoder_level_1_scale")
+        
+        # ----------------------------------------------------------------
+        # First level residual connections
+        # ----------------------------------------------------------------
+        
+        if self.first_level_residual:
+            
+            self.first_level_res1 = ConvDS(output_channels=self.first_level_channels,
+                                           kernel_shape=(7, 7),
+                                           num_convolutions=1,
+                                           padding=self.padding,
+                                           downsampling_rate=4,
+                                           use_gdn=False,
+                                           name="encoder_level_1_res_1".format(idx))
+            
+            self.first_level_res2 = ConvDS(output_channels=self.first_level_channels,
+                                           kernel_shape=(5, 5),
+                                           num_convolutions=1,
+                                           padding=self.padding,
+                                           downsampling_rate=2,
+                                           use_gdn=False,
+                                           name="encoder_level_1_res_2".format(idx))
 
         # Second Level
 
         self.second_level = [
-            ConvDS(output_channels=second_level_channels,
-                   kernel_shape=kernel_shape,
+            ConvDS(output_channels=self.second_level_channels,
+                   kernel_shape=self.kernel_shape,
                    num_convolutions=1,
                    downsampling_rate=1,
-                   padding=padding,
+                   padding=self.padding,
                    use_gdn=False,
                    activation="leaky_relu"),
-            ConvDS(output_channels=second_level_channels,
-                   kernel_shape=kernel_shape,
+            ConvDS(output_channels=self.second_level_channels,
+                   kernel_shape=self.kernel_shape,
                    num_convolutions=1,
                    downsampling_rate=1,
-                   padding=padding,
+                   padding=self.padding,
                    use_gdn=False,
                    activation="leaky_relu")
         ]
 
         self.second_level_loc = ConvDS(output_channels=self.second_level_latents,
-                                       kernel_shape=kernel_shape,
+                                       kernel_shape=self.kernel_shape,
                                        num_convolutions=1,
-                                       padding=padding,
+                                       padding=self.padding,
                                        downsampling_rate=2,
                                        use_gdn=False,
                                        name="encoder_level_2_loc")
 
         self.second_level_log_scale = ConvDS(output_channels=self.second_level_latents,
-                                         kernel_shape=kernel_shape,
+                                         kernel_shape=self.kernel_shape,
                                          num_convolutions=1,
-                                         padding=padding,
+                                         padding=self.padding,
                                          downsampling_rate=2,
                                          use_gdn=False,
                                          name="encoder_level_2_loc")
@@ -178,8 +204,25 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # First level
         activations = inputs
 
-        for layer in self.first_level:
-            activations = layer(activations)
+        if not self.first_level_residual:
+            for layer in self.first_level:
+                activations = layer(activations)
+                
+        else:
+            activations = self.first_level[0](activations)
+            
+            # First residual activations
+            res1 = self.first_level_res1(activations)
+            
+            activations = self.first_level[1](activations)
+            
+            # Second residual activations
+            res2 = self.first_level_res2(activations)
+            
+            activations = self.first_level[2](activations)
+            
+            # Residual connections along the channels
+            activations = tf.concat([activations, res1, res2], axis=-1)
 
 
         # Get first level statistics
@@ -533,3 +576,32 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         return tf.squeeze(reconstruction)
     
+# ==============================================================================================
+
+    def code_image_greedy(self, 
+                          image, 
+                          seed, 
+                          comp_file_path,
+                          verbose=False):
+        
+        # -------------------------------------------------------------------------------------
+        # Step 1: Set the latent distributions for the image
+        # -------------------------------------------------------------------------------------
+        
+        # Calculate the posteriors
+        latents = self.encode(image)
+        
+        # Calculate the priors
+        self.decode(latents)
+        
+        # -------------------------------------------------------------------------------------
+        # Step 2: Create a coded sample of the latent space
+        # -------------------------------------------------------------------------------------
+        
+        
+    
+    def decode_image_greedy(self,
+                            comp_file_path,
+                            verbose=False):
+        pass
+                            
