@@ -159,7 +159,7 @@ class ConvDS(AbstractModule, Transposable):
         return activations
 
 
-    def transpose(self, name=None):
+    def transpose(self, force_output_channels=None, name=None):
 
         if name is None:
             name = self.module_name + "_transpose"
@@ -177,10 +177,15 @@ class ConvDS(AbstractModule, Transposable):
                 return self.pure_convs[0].input_shape[1:3]
 
         def output_channels():
-            if self._num_convolutions == 1:
-                return self.last_conv.input_channels
+            if force_output_channels is None:
+                
+                if self._num_convolutions == 1:
+                    return self.last_conv.input_channels
+                else:
+                    return self.pure_convs[0].input_channels
+                
             else:
-                return self.pure_convs[0].input_channels
+                return force_output_channels
 
 
         return DeconvUS(output_channels=output_channels,

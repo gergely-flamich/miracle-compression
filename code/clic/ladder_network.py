@@ -140,7 +140,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                            padding=self.padding,
                                            downsampling_rate=4,
                                            use_gdn=False,
-                                           name="encoder_level_1_res_1".format(idx))
+                                           name="encoder_level_1_res_1")
             
             self.first_level_res2 = ConvDS(output_channels=self.first_level_channels,
                                            kernel_shape=(5, 5),
@@ -148,7 +148,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                            padding=self.padding,
                                            downsampling_rate=2,
                                            use_gdn=False,
-                                           name="encoder_level_1_res_2".format(idx))
+                                           name="encoder_level_1_res_2")
 
         # Second Level
 
@@ -223,7 +223,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
             
             # Residual connections along the channels
             activations = tf.concat([activations, res1, res2], axis=-1)
-
 
         # Get first level statistics
         first_level_loc = self.first_level_loc(activations)
@@ -303,7 +302,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         second_level_log_scale = self.reverse_level_log_scale
 
         # First level
-        first_level = [self.first_level_loc.transpose()]
+        first_level = [self.first_level_loc.transpose(force_output_channels=self.first_level_channels)]
 
         for layer in self.first_level[::-1]:
             first_level.append(layer.transpose())

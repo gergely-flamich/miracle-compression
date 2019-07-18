@@ -98,6 +98,16 @@ def create_model(model_key, config, train_stage=0):
                     likelihood=config["likelihood"],
                     first_level_latents=config["first_level_latents"],
                     second_level_latents=config["second_level_latents"],
+                    
+                    first_level_residual=config["first_level_residual"],
+                    second_level_residual=config["second_level_residual"],
+                    
+                    first_level_channels=config["first_level_channels"],
+                    second_level_channels=config["second_level_channels"],
+                    
+                    kernel_shape=tuple(config["kernel_shape"]),
+                    padding=config["padding"],
+                    
                     learn_log_gamma=config["learn_log_gamma"])
         
         # Connect the model computational graph by executing a forward-pass
