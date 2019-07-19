@@ -2,6 +2,7 @@
 coding.c
 coding.html
 .nfs*
+*.npy
 
 # General
 *.tar.gz
