@@ -189,7 +189,6 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
     
     num_draws = 2**miracle_bits
     
-    
     result = rejection_sample(p=proposal,
                               q=target,
                               n_points=30,
@@ -213,6 +212,9 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
         # Flatten sample
         outlier_samples = tf.reshape(target.sample(), [-1])
         
+        # Update the samples
+        samples = tf.where(accepted, samples, outlier_samples)
+        
         # Halve precision
         outlier_samples = tfq.quantize(outlier_samples, -30, 30, tf.quint16).output
         
@@ -227,8 +229,7 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
     coded_samples = tf.where(accepted, sample_indices, outlier_samples)
     coded_samples = tf.cast(coded_samples, tf.int32)
     
-    return coded_samples
-
+    return coded_samples, samples
 
 
 def decode_sample(coded_sample, proposal, seed, n_points=30, miracle_bits=8, outlier_mode="quantize"):

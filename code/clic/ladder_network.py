@@ -418,20 +418,28 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Step 2: Create a coded sample of the latent space
         # -------------------------------------------------------------------------------------
     
-        # Code first level
-        coded_first_level = coded_sample(proposal=self.latent_priors[0], 
-                                         target=self.latent_posteriors[0], 
-                                         seed=seed, 
-                                         n_points=n_points, 
-                                         miracle_bits=miracle_bits,
-                                         outlier_mode=outlier_mode)
         # Code second level
-        coded_second_level = coded_sample(proposal=self.latent_priors[1], 
-                                          target=self.latent_posteriors[1], 
-                                          seed=seed, 
-                                          n_points=n_points, 
-                                          miracle_bits=miracle_bits,
-                                          outlier_mode=outlier_mode)
+        coded_second_level, second_level_samp = coded_sample(proposal=self.latent_priors[1], 
+                                                              target=self.latent_posteriors[1], 
+                                                              seed=seed, 
+                                                              n_points=n_points, 
+                                                              miracle_bits=miracle_bits,
+                                                              outlier_mode=outlier_mode)
+        
+        second_level_samp = tf.reshape(second_level_samp, self.latent_priors[1].loc.shape.as_list())
+        
+        # Set first level prior correctly
+        latents = (second_level_samp, latents[1])
+        self.decode(latents)
+        
+        # Code first level
+        coded_first_level, _ = coded_sample(proposal=self.latent_priors[0], 
+                                             target=self.latent_posteriors[0], 
+                                             seed=seed, 
+                                             n_points=n_points, 
+                                             miracle_bits=miracle_bits,
+                                             outlier_mode=outlier_mode)
+
         
         first_level_shape = self.latent_priors[0].loc.shape.as_list()
         second_level_shape = self.latent_priors[1].loc.shape.as_list()
@@ -500,7 +508,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # -------------------------------------------------------------------------------------
         
         # the extras are: seed, gamma and W x H of the two latent levels
-        code, extras = read_bin_code(comp_file_path, num_extras=6)
+        code, extras, _ = read_bin_code(comp_file_path, num_extras=6)
         
         print(extras)
         
@@ -582,7 +590,10 @@ class ClicNewLadderCNN(snt.AbstractModule):
     def code_image_greedy(self, 
                           image, 
                           seed, 
+                          n_steps,
+                          n_bits_per_step,
                           comp_file_path,
+                          rho=1.5,
                           verbose=False):
         
         # -------------------------------------------------------------------------------------
@@ -595,41 +606,135 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Calculate the priors
         self.decode(latents)
         
+        first_level_shape = self.latent_priors[0].loc.shape.as_list()
+        second_level_shape = self.latent_priors[1].loc.shape.as_list()
+        
         # -------------------------------------------------------------------------------------
         # Step 2: Create a coded sample of the latent space
         # -------------------------------------------------------------------------------------
         
-        s, c, gi = code_grouped_greedy_sample(target, 
-                                       proposal, 
-                                       n_bits_per_step, 
-                                       n_steps, 
-                                       seed, 
-                                       max_group_size_bits=12, # group size limited to 2^max_group_size_bits
-                                       adaptive=True)
-
-
+        print("Coding second level")
+        sample2, code2, group_indices2 = code_grouped_greedy_sample(target=self.latent_posteriors[1], 
+                                                                      proposal=self.latent_priors[1], 
+                                                                      n_bits_per_step=n_bits_per_step, 
+                                                                      n_steps=n_steps, 
+                                                                      seed=seed, 
+                                                                      max_group_size_bits=12,
+                                                                      adaptive=True,
+                                                                      rho=rho)
         
+        # We need to adjust the priors to the second stage sample
+        latents = (tf.reshape(sample2, second_level_shape), latents[1])
+        
+        # Calculate the priors
+        self.decode(latents)
+        
+        print("Coding first level")
+        sample1, code1, group_indices1 = code_grouped_greedy_sample(target=self.latent_posteriors[0], 
+                                                                      proposal=self.latent_priors[0], 
+                                                                      n_bits_per_step=n_bits_per_step, 
+                                                                      n_steps=n_steps, 
+                                                                      seed=seed, 
+                                                                      max_group_size_bits=12,
+                                                                      adaptive=True,
+                                                                      rho=rho)
+        
+        
+        bitcode = code1 + code2
         # -------------------------------------------------------------------------------------
-        # Step 4: Write the compressed file
+        # Step 3: Write the compressed file
         # -------------------------------------------------------------------------------------
         
-        extras = [seed, gamma] + first_level_shape[1:3] + second_level_shape[1:3]
+        extras = [seed, n_steps, n_bits_per_step] + first_level_shape[1:3] + second_level_shape[1:3]
+        
+        var_length_extras = [group_indices1, group_indices2]
     
-        write_bin_code(''.join(bitcode), 
+        write_bin_code(bitcode, 
                        comp_file_path, 
-                       extras=extras)
+                       extras=extras,
+                       var_length_extras=var_length_extras)
+        
+        return sample1, sample2, code1, code2, group_indices1, group_indices2
         
     
     def decode_image_greedy(self,
                             comp_file_path,
+                            rho=1.5,
                             verbose=False):
         
-        s_ = decode_grouped_greedy_sample(c,
-                                  gi,
-                                   proposal, 
-                                   n_bits_per_step, 
-                                   n_steps, 
-                                   seed, 
-                                   max_group_size_bits=12, # group size limited to 2^max_group_size_bits
-                                   adaptive=True)
-                            
+        # -------------------------------------------------------------------------------------
+        # Step 1: Read the compressed file
+        # -------------------------------------------------------------------------------------
+        
+        # the extras are: seed, n_steps, n_bits_per_step and W x H of the two latent levels
+        # var length extras are the two lists of group indices
+        code, extras, var_length_extras = read_bin_code(comp_file_path, num_extras=7, num_var_length_extras=2)
+        
+        seed = extras[0]
+        
+        n_steps = extras[1]
+        n_bits_per_step = extras[2]
+        
+        # Get shape information back
+        first_level_shape = [1] + extras[3:5] + [self.first_level_latents]
+        second_level_shape = [1] + extras[5:] + [self.second_level_latents]
+        
+        # Total number of latents on levels
+        num_first_level = np.prod(first_level_shape)
+        num_second_level = np.prod(second_level_shape)
+        
+        first_code_length = n_steps * n_bits_per_step * (len(var_length_extras[0]) - 1)
+        second_code_length = n_steps * n_bits_per_step * (len(var_length_extras[1]) - 1)
+        
+        code1 = code[:first_code_length]
+        code2 = code[first_code_length:first_code_length + second_code_length]
+        
+        # -------------------------------------------------------------------------------------
+        # Step 2: Decode the samples
+        # -------------------------------------------------------------------------------------
+        
+        # Decode second level
+        proposal = tfd.Normal(loc=tf.zeros(second_level_shape),
+                              scale=tf.ones(second_level_shape))
+        
+        print("Decoding second level")
+        decoded_second_level = decode_grouped_greedy_sample(bitcode=code2, 
+                                                            group_start_indices=var_length_extras[1],
+                                                            proposal=proposal, 
+                                                            n_bits_per_step=n_bits_per_step, 
+                                                            n_steps=n_steps, 
+                                                            seed=seed,
+                                                            rho=rho, 
+                                                            max_group_size_bits=12,
+                                                            adaptive=True)
+        
+        decoded_second_level = tf.reshape(decoded_second_level, second_level_shape)
+        
+        # Now we can calculate the the first level priors
+        self.decode((decoded_second_level,
+                     tf.zeros(first_level_shape)))
+        
+        # Decode first level
+        print("Decoding first level")
+        decoded_first_level = decode_grouped_greedy_sample(bitcode=code1, 
+                                                            group_start_indices=var_length_extras[0],
+                                                            proposal=self.latent_priors[0], 
+                                                            n_bits_per_step=n_bits_per_step, 
+                                                            n_steps=n_steps, 
+                                                            seed=seed,
+                                                            rho=rho, 
+                                                            max_group_size_bits=12,
+                                                            adaptive=True)
+        
+        decoded_first_level = tf.reshape(decoded_first_level, first_level_shape)
+        
+        
+        # -------------------------------------------------------------------------------------
+        # Step 4: Reconstruct the image with the VAE
+        # -------------------------------------------------------------------------------------
+        
+        reconstruction = self.decode((decoded_second_level,
+                                      decoded_first_level))
+        
+        return tf.squeeze(reconstruction), code1, code2, decoded_second_level, decoded_first_level, var_length_extras[0], var_length_extras[1]
+        
