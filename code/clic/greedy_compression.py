@@ -24,7 +24,7 @@ tfd = tfp.distributions
 
 from binary_io import to_bit_string, from_bit_string
 
-def code_greedy_sample(target, proposal, n_bits_per_step, n_steps, seed, rho=1.):
+def code_greedy_sample(target, proposal, n_bits_per_step, n_steps, seed, rho=1., backfitting_steps=0):
     
     # Make sure the distributions have the correct type
     if target.dtype is not tf.float32:
@@ -53,17 +53,50 @@ def code_greedy_sample(target, proposal, n_bits_per_step, n_steps, seed, rho=1.)
 
         # Set new seed
         tf.random.set_random_seed(1000 * seed + i)
-        
-        samples = tf.tile(best_sample, [n_samples, 1]) + proposal_shard.sample(n_samples)
+        samples = proposal_shard.sample(n_samples)
 
-        log_probs = tf.reduce_sum(target.log_prob(samples), axis=1)
+        test_samples = tf.tile(best_sample, [n_samples, 1]) + samples
+
+        log_probs = tf.reduce_sum(target.log_prob(test_samples), axis=1)
 
         index = tf.argmax(log_probs)
 
-        best_sample = samples[index:index + 1, :]
+        best_sample = test_samples[index:index + 1, :]
 
-        sample_index.append(to_bit_string(index.numpy(), n_bits_per_step))
+        sample_index.append(index.numpy())
+    
+    # ----------------------------------------------------------------------
+    # Perform backfitting
+    # ----------------------------------------------------------------------
+    
+    for b in range(backfitting_steps):
+        
+        # Single backfitting step
+        for i in range(n_steps):
 
+            # Set seed to regenerate the previously generated samples here
+            tf.random.set_random_seed(1000 * seed + i)
+            samples = proposal_shard.sample(n_samples)
+            
+            idx = sample_index[i]
+            # Undo the addition of the current sample
+            best_sample = best_sample - samples[idx : idx + 1, :]
+            
+            # Generate candidate samples
+            test_samples = tf.tile(best_sample, [n_samples, 1]) + samples
+
+#             test_scores = tf.reduce_sum(-((test_samples - target.loc)**2 / target.scale**2)**4,
+#                                        axis=1)
+
+            test_scores = tf.reduce_sum(target.log_prob(test_samples), axis=1)
+            index = tf.argmax(test_scores)
+
+            best_sample = test_samples[index:index + 1, :]
+
+            sample_index[i] = index.numpy()
+    
+    
+    sample_index = list(map(lambda x: to_bit_string(x, n_bits_per_step), sample_index))
     sample_index = ''.join(sample_index)
     
     return best_sample, sample_index
@@ -112,6 +145,7 @@ def code_grouped_greedy_sample(target,
                                seed, 
                                max_group_size_bits=12, # group size limited to 2^max_group_size_bits
                                adaptive=True,
+                               backfitting_steps=0,
                                rho=1.):
     
     # Make sure the distributions have the correct type
@@ -148,17 +182,27 @@ def code_grouped_greedy_sample(target,
         current_group_size = 0
         current_group_kl = 0
         idx = -1
+        prev_idx = -2
+        twice_same = False
         
         while idx < num_dimensions - 1:
             
+            if twice_same and idx == prev_idx:
+                
+                print("oh no: {}".format(idx))
+                return
+            
+            twice_same = idx == prev_idx
+            prev_idx = idx
+
             idx = idx + 1
             current_group_size = current_group_size + 1
             current_group_kl = current_group_kl + kl_divs[idx]
             
-            num_group_samps = np.ceil(np.exp(current_group_kl))
+            #num_group_samps = np.ceil(np.exp(current_group_kl))
             
-            if not ( current_group_size < 2**max_group_size_bits and 
-                     num_group_samps < 2**n_bits_per_group ):
+            if not ( np.log(current_group_size) / np.log(2) < max_group_size_bits and 
+                     current_group_kl < n_bits_per_group * np.log(2) - 1):
                 
                 group_start_indices.append(idx)
                 group_kls.append((current_group_kl - kl_divs[idx]) / np.log(2))
@@ -190,8 +234,8 @@ def code_grouped_greedy_sample(target,
     p_scale = tf.reshape(tf.ones_like(proposal.scale), [-1])
     
     # rescale target by the proposal
-    t_loc = (tf.reshape(target.loc, [-1]) - p_loc) / p_scale
-    t_scale = tf.reshape(target.scale, [-1]) / p_scale
+    t_loc = tf.reshape((target.loc - proposal.loc) / proposal.scale, [-1])
+    t_scale = tf.reshape(target.scale / proposal.scale, [-1]) 
     
     for i in tqdm(range(len(group_start_indices) - 1)):
         
@@ -207,13 +251,17 @@ def code_grouped_greedy_sample(target,
             
             n_bits_per_step=n_bits_per_step, 
             n_steps=n_steps, 
-            seed=seed,
+            seed=i + seed,
+            backfitting_steps=backfitting_steps,
             rho=rho))
         
     samples, codes = zip(*results)
     
     bitcode = ''.join(codes)
     sample = tf.concat(samples, axis=1)
+    
+    # Rescale the sample
+    sample = tf.reshape(proposal.scale, [-1]) * sample + tf.reshape(proposal.loc, [-1])
     
     return sample, bitcode, group_start_indices
         
@@ -223,8 +271,7 @@ def decode_grouped_greedy_sample(bitcode,
                                  proposal, 
                                  n_bits_per_step, 
                                  n_steps, 
-                                 seed, 
-                                 max_group_size_bits=12, # group size limited to 2^max_group_size_bits
+                                 seed,
                                  adaptive=True,
                                  rho=1.):
     
@@ -257,7 +304,7 @@ def decode_grouped_greedy_sample(bitcode,
             
             n_bits_per_step=n_bits_per_step, 
             n_steps=n_steps, 
-            seed=seed,
+            seed=i + seed,
             rho=rho))
         
     sample = tf.concat(samples, axis=1)

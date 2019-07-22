@@ -614,14 +614,15 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # -------------------------------------------------------------------------------------
         
         print("Coding second level")
-        sample2, code2, group_indices2 = code_grouped_greedy_sample(target=self.latent_posteriors[1], 
-                                                                      proposal=self.latent_priors[1], 
-                                                                      n_bits_per_step=n_bits_per_step, 
-                                                                      n_steps=n_steps, 
-                                                                      seed=seed, 
-                                                                      max_group_size_bits=12,
-                                                                      adaptive=True,
-                                                                      rho=rho)
+        sample2, code2, group_indices2 = code_grouped_greedy_sample(self.latent_posteriors[1], 
+                                                                     self.latent_priors[1], 
+                                                                     n_bits_per_step, 
+                                                                     n_steps, 
+                                                                     seed, 
+                                                                     max_group_size_bits=6,
+                                                                     adaptive=True,
+                                                                     backfitting_steps=0,
+                                                                     rho=rho)
         
         # We need to adjust the priors to the second stage sample
         latents = (tf.reshape(sample2, second_level_shape), latents[1])
@@ -630,14 +631,14 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.decode(latents)
         
         print("Coding first level")
-        sample1, code1, group_indices1 = code_grouped_greedy_sample(target=self.latent_posteriors[0], 
-                                                                      proposal=self.latent_priors[0], 
-                                                                      n_bits_per_step=n_bits_per_step, 
-                                                                      n_steps=n_steps, 
-                                                                      seed=seed, 
-                                                                      max_group_size_bits=12,
-                                                                      adaptive=True,
-                                                                      rho=rho)
+        sample1, code1, group_indices1 = code_grouped_greedy_sample(self.latent_posteriors[0], 
+                                                                     self.latent_priors[0], 
+                                                                     n_bits_per_step, 
+                                                                     n_steps, 
+                                                                     seed, 
+                                                                     max_group_size_bits=12,
+                                                                     backfitting_steps=0,
+                                                                     adaptive=True)
         
         
         bitcode = code1 + code2
@@ -654,7 +655,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                        extras=extras,
                        var_length_extras=var_length_extras)
         
-        return sample1, sample2, code1, code2, group_indices1, group_indices2
+        return bitcode
         
     
     def decode_image_greedy(self,
@@ -704,8 +705,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                             n_bits_per_step=n_bits_per_step, 
                                                             n_steps=n_steps, 
                                                             seed=seed,
-                                                            rho=rho, 
-                                                            max_group_size_bits=12,
+                                                            rho=rho,
                                                             adaptive=True)
         
         decoded_second_level = tf.reshape(decoded_second_level, second_level_shape)
@@ -722,8 +722,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                             n_bits_per_step=n_bits_per_step, 
                                                             n_steps=n_steps, 
                                                             seed=seed,
-                                                            rho=rho, 
-                                                            max_group_size_bits=12,
+                                                            rho=rho,
                                                             adaptive=True)
         
         decoded_first_level = tf.reshape(decoded_first_level, first_level_shape)
@@ -736,5 +735,5 @@ class ClicNewLadderCNN(snt.AbstractModule):
         reconstruction = self.decode((decoded_second_level,
                                       decoded_first_level))
         
-        return tf.squeeze(reconstruction), code1, code2, decoded_second_level, decoded_first_level, var_length_extras[0], var_length_extras[1]
+        return tf.squeeze(reconstruction)
         

@@ -3,6 +3,7 @@ coding.c
 coding.html
 .nfs*
 *.npy
+papers/
 
 # General
 *.tar.gz
