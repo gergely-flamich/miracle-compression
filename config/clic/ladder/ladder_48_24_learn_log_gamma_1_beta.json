@@ -19,7 +19,8 @@
     "warmup": 4.0,
     "learn_log_gamma": true,
     
-    "latent_dist": "gaussian", 
+    "first_level_latent_dist": "gaussian", 
+    "second_level_latent_dist": "gaussian",
     "likelihood": "laplace", 
     
     "first_level_channels": 192,

@@ -221,7 +221,7 @@ def coded_sample(proposal, target, seed, n_points=30, miracle_bits=8, outlier_mo
         # Cast to float so we can combine with sample index matrix
         outlier_samples = tf.cast(outlier_samples, tf.float32)
 
-    # TODO: Do Miracle-style importance sampling
+    # Miracle-style importance sampling
     elif outlier_mode == "importance_sample":
         outlier_samples = max_importance_indices
     

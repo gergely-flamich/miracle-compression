@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 import tensorflow as tf
@@ -13,6 +15,7 @@ from compression import coded_sample, decode_sample
 from coding import ArithmeticCoder
 from binary_io import write_bin_code, read_bin_code
 from greedy_compression import code_grouped_greedy_sample, decode_grouped_greedy_sample
+from greedy_compression import code_grouped_importance_sample, decode_grouped_importance_sample
 
 from utils import InvalidArgumentError
 
@@ -35,7 +38,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
     }
 
     def __init__(self,
-                 latent_dist="gaussian",
+                 first_level_latent_dist="gaussian",
+                 second_level_latent_dist="gaussian",
                  likelihood="gaussian",
                  first_level_latents=192,
                  second_level_latents=192,
@@ -53,7 +57,10 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
 
         # Error checking
-        if latent_dist not in self._allowed_latent_dists:
+        if first_level_latent_dist not in self._allowed_latent_dists:
+            raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
+                                                 .format(self._allowed_latent_dists))
+        if second_level_latent_dist not in self._allowed_latent_dists:
             raise tf.errors.InvalidArgumentError("latent_dist must be one of {}"
                                                  .format(self._allowed_latent_dists))
         if likelihood not in self._allowed_likelihoods:
@@ -62,7 +69,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
 
         # Set variables
-        self.latent_dist = self._allowed_latent_dists[latent_dist]
+        self.first_level_latent_dist = self._allowed_latent_dists[first_level_latent_dist]
+        self.second_level_latent_dist = self._allowed_latent_dists[second_level_latent_dist]
         self.likelihood_dist = self._allowed_likelihoods[likelihood]
 
         self.first_level_latents = first_level_latents
@@ -593,7 +601,17 @@ class ClicNewLadderCNN(snt.AbstractModule):
                           n_steps,
                           n_bits_per_step,
                           comp_file_path,
-                          rho=1.5,
+                          backfitting_steps_level_1=0,
+                          backfitting_steps_level_2=0,
+                          use_log_prob=False,
+                          rho=1.,
+                          use_importance_sampling=True,
+                          first_level_max_group_size_bits=12,
+                          second_level_n_bits_per_group=20,
+                          second_level_max_group_size_bits=4,
+                          second_level_dim_kl_bit_limit=12,
+                          outlier_index_bytes=3,
+                          outlier_sample_bytes=2,
                           verbose=False):
         
         # -------------------------------------------------------------------------------------
@@ -606,6 +624,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Calculate the priors
         self.decode(latents)
         
+        image_shape = image.shape.as_list()
         first_level_shape = self.latent_priors[0].loc.shape.as_list()
         second_level_shape = self.latent_priors[1].loc.shape.as_list()
         
@@ -613,16 +632,37 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Step 2: Create a coded sample of the latent space
         # -------------------------------------------------------------------------------------
         
-        print("Coding second level")
-        sample2, code2, group_indices2 = code_grouped_greedy_sample(self.latent_posteriors[1], 
-                                                                     self.latent_priors[1], 
-                                                                     n_bits_per_step, 
-                                                                     n_steps, 
-                                                                     seed, 
-                                                                     max_group_size_bits=6,
-                                                                     adaptive=True,
-                                                                     backfitting_steps=0,
-                                                                     rho=rho)
+        if verbose: print("Coding second level")
+            
+        if use_importance_sampling:
+            
+
+            sample2, code2, group_indices2, outlier_extras2 = code_grouped_importance_sample(target=self.latent_posteriors[1], 
+                                                                         proposal=self.latent_priors[1], 
+                                                                         n_bits_per_group=second_level_n_bits_per_group, 
+                                                                         seed=seed, 
+                                                                         max_group_size_bits=second_level_max_group_size_bits,
+                                                                         dim_kl_bit_limit=second_level_dim_kl_bit_limit)
+            
+            outlier_extras2 = list(map(lambda x: tf.squeeze(x).numpy(), outlier_extras2))
+            
+        else:
+            sample2, code2, group_indices2 = code_grouped_greedy_sample(target=self.latent_posteriors[1], 
+                                                                        proposal=self.latent_priors[1], 
+                                                                        n_bits_per_step=n_bits_per_step, 
+                                                                        n_steps=n_steps, 
+                                                                        seed=seed, 
+                                                                        max_group_size_bits=second_level_max_group_size_bits,
+                                                                        adaptive=True,
+                                                                        backfitting_steps=backfitting_steps_level_2,
+                                                                        use_log_prob=use_log_prob,
+                                                                        rho=rho)
+            
+        # We will encode the group differences as this will cost us less
+        group_differences2 = [0]
+        
+        for i in range(1, len(group_indices2)):
+            group_differences2.append(group_indices2[i] - group_indices2[i - 1])
         
         # We need to adjust the priors to the second stage sample
         latents = (tf.reshape(sample2, second_level_shape), latents[1])
@@ -630,16 +670,23 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Calculate the priors
         self.decode(latents)
         
-        print("Coding first level")
-        sample1, code1, group_indices1 = code_grouped_greedy_sample(self.latent_posteriors[0], 
-                                                                     self.latent_priors[0], 
-                                                                     n_bits_per_step, 
-                                                                     n_steps, 
-                                                                     seed, 
-                                                                     max_group_size_bits=12,
-                                                                     backfitting_steps=0,
-                                                                     adaptive=True)
+        if verbose: print("Coding first level")
+            
+        sample1, code1, group_indices1 = code_grouped_greedy_sample(target=self.latent_posteriors[0], 
+                                                                    proposal=self.latent_priors[0], 
+                                                                    n_bits_per_step=n_bits_per_step, 
+                                                                    n_steps=n_steps, 
+                                                                    seed=seed, 
+                                                                    max_group_size_bits=first_level_max_group_size_bits,
+                                                                    backfitting_steps=backfitting_steps_level_1,
+                                                                    use_log_prob=use_log_prob,
+                                                                    adaptive=True)
         
+        # We will encode the group differences as this will cost us less
+        group_differences1 = [0]
+        
+        for i in range(1, len(group_indices1)):
+            group_differences1.append(group_indices1[i] - group_indices1[i - 1])
         
         bitcode = code1 + code2
         # -------------------------------------------------------------------------------------
@@ -648,19 +695,98 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         extras = [seed, n_steps, n_bits_per_step] + first_level_shape[1:3] + second_level_shape[1:3]
         
-        var_length_extras = [group_indices1, group_indices2]
+        var_length_extras = [group_differences1, group_differences2]
+        var_length_bytes = [(first_level_max_group_size_bits // 8 + 1),  
+                            (second_level_max_group_size_bits // 8 + 1)]
+        
+        if use_importance_sampling:
+            
+            var_length_extras += outlier_extras2
+            var_length_bytes += [ outlier_index_bytes, outlier_sample_bytes ]
     
         write_bin_code(bitcode, 
                        comp_file_path, 
                        extras=extras,
-                       var_length_extras=var_length_extras)
+                       var_length_extras=var_length_extras,
+                       var_length_bytes=var_length_bytes)
         
-        return bitcode
+        # -------------------------------------------------------------------------------------
+        # Step 4: Some logging information
+        # -------------------------------------------------------------------------------------
+        
+        if verbose:
+            
+            total_kls = [tf.reduce_sum(x) for x in self.kl_divergence]
+            total_kl = sum(total_kls)
+            
+            theoretical_byte_size = (total_kl + 2 * np.log(total_kl + 1)) / np.log(2) / 8
+            extra_byte_size = len(group_indices1) * var_length_bytes[0] + \
+                              len(group_indices2) * var_length_bytes[1] + 7 * 2
+            actual_byte_size = os.path.getsize(comp_file_path)
+            
+            actual_no_extra = actual_byte_size - extra_byte_size
+            
+            print("Image dimensions: {}".format(image_shape))
+            print("Theoretical size: {:.2f} bytes".format(theoretical_byte_size))
+            print("Actual size: {:.2f} bytes".format(actual_byte_size))
+            print("Extra information size: {:.2f} bytes {:.2f}% of actual size".format(extra_byte_size, 
+                                                                                       100 * extra_byte_size / actual_byte_size))
+            print("Actual size without extras: {:.2f} bytes".format(actual_no_extra))
+            print("Efficiency: {:.3f}".format(actual_byte_size / theoretical_byte_size))
+            print("")
+            
+            first_level_theoretical = (total_kls[0] + 2 * np.log(total_kls[0] + 1)) / np.log(2) / 8
+            first_level_actual_no_extra = len(code1) / 8
+            first_level_extra = len(group_indices1) * var_length_bytes[0]
+            
+            sample1_reshaped = tf.reshape(sample1, first_level_shape)
+            first_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[0].log_prob(sample1_reshaped))
+            first_level_sample_avg = tf.reduce_mean(self.latent_posteriors[0].log_prob(self.latent_posteriors[0].sample()))
+            
+            print("First level theoretical size: {:.2f} bytes".format(first_level_theoretical))
+            print("First level actual (no extras) size: {:.2f} bytes".format(first_level_actual_no_extra))
+            print("First level extras size: {:.2f} bytes".format(first_level_extra))
+            print("First level Efficiency: {:.3f}".format(
+                (first_level_actual_no_extra + first_level_extra) / first_level_theoretical))
+            
+            print("First level # of groups: {}".format(len(group_indices1)))
+            print("First level greedy sample average log likelihood: {:.4f}".format(first_level_avg_log_lik))
+            print("First level average sample log likelihood on level 1: {:.4f}".format(first_level_sample_avg))
+            print("")
+            
+            second_level_theoretical = (total_kls[1] + 2 * np.log(total_kls[1] + 1)) / np.log(2) / 8
+            second_level_actual_no_extra = len(code2) / 8
+            second_level_extra = len(group_indices2) * var_length_bytes[1]
+            
+            sample2_reshaped = tf.reshape(sample2, second_level_shape)
+            second_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[1].log_prob(sample2_reshaped))
+            second_level_sample_avg = tf.reduce_mean(self.latent_posteriors[1].log_prob(self.latent_posteriors[1].sample()))
+            
+            print("Second level theoretical size: {:.2f} bytes".format(second_level_theoretical))
+            print("Second level actual (no extras) size: {:.2f} bytes".format(second_level_actual_no_extra))
+            print("Second level extras size: {:.2f} bytes".format(second_level_extra))
+
+            if use_importance_sampling:
+                print("{} outliers were not compressed (higher than {} bits of KL)".format(len(outlier_extras2[0]),
+                                                                                           second_level_dim_kl_bit_limit))
+            print("Second level Efficiency: {:.3f}".format(
+                (second_level_actual_no_extra + second_level_extra) / second_level_theoretical))
+            print("Second level # of groups: {}".format(len(group_indices2)))
+            print("Second level greedy sample average log likelihood: {:.4f}".format(second_level_avg_log_lik))
+            print("Second level average sample log likelihood on level 1: {:.4f}".format(second_level_sample_avg))
+            print("")
+            
+            print("{:.4f} bits / pixel".format( 8 * actual_byte_size / (image_shape[1] * image_shape[2]) ))
+        
+        return sample2, sample1
         
     
     def decode_image_greedy(self,
                             comp_file_path,
-                            rho=1.5,
+                            use_importance_sampling=True,
+                            first_level_max_group_size_bits=12,
+                            second_level_max_group_size_bits=5,
+                            rho=1.,
                             verbose=False):
         
         # -------------------------------------------------------------------------------------
@@ -669,7 +795,11 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         # the extras are: seed, n_steps, n_bits_per_step and W x H of the two latent levels
         # var length extras are the two lists of group indices
-        code, extras, var_length_extras = read_bin_code(comp_file_path, num_extras=7, num_var_length_extras=2)
+        code, extras, var_length_extras = read_bin_code(comp_file_path, 
+                                                        num_extras=7, 
+                                                        var_length_extra_bytes=[(first_level_max_group_size_bits // 8 + 1),  
+                                                                                (second_level_max_group_size_bits // 8 + 1),
+                                                                                3, 2])
         
         seed = extras[0]
         
@@ -698,15 +828,34 @@ class ClicNewLadderCNN(snt.AbstractModule):
         proposal = tfd.Normal(loc=tf.zeros(second_level_shape),
                               scale=tf.ones(second_level_shape))
         
+        
+        # Get group indices back
+        group_differences2 = var_length_extras[1]
+        
+        group_indices2 = [0]
+        
+        for i in range(1, len(group_differences2)):
+            group_indices2.append(group_indices2[i - 1] + group_differences2[i])
+        
         print("Decoding second level")
-        decoded_second_level = decode_grouped_greedy_sample(bitcode=code2, 
-                                                            group_start_indices=var_length_extras[1],
-                                                            proposal=proposal, 
-                                                            n_bits_per_step=n_bits_per_step, 
-                                                            n_steps=n_steps, 
-                                                            seed=seed,
-                                                            rho=rho,
-                                                            adaptive=True)
+        if use_importance_sampling:
+            decoded_second_level = decode_grouped_importance_sample(bitcode=code2, 
+                                                                    group_start_indices=group_indices2[:-1],
+                                                                    proposal=proposal, 
+                                                                    n_bits_per_group=20,
+                                                                    seed=seed,
+                                                                    outlier_indices=var_length_extras[2],
+                                                                    outlier_samples=var_length_extras[3])
+        
+        else:
+            decoded_second_level = decode_grouped_greedy_sample(bitcode=code2, 
+                                                                group_start_indices=var_length_extras[1],
+                                                                proposal=proposal, 
+                                                                n_bits_per_step=n_bits_per_step, 
+                                                                n_steps=n_steps, 
+                                                                seed=seed,
+                                                                rho=rho,
+                                                                adaptive=True)
         
         decoded_second_level = tf.reshape(decoded_second_level, second_level_shape)
         
@@ -714,10 +863,18 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.decode((decoded_second_level,
                      tf.zeros(first_level_shape)))
         
+        # Get group indices back
+        group_differences1 = var_length_extras[0]
+        
+        group_indices1 = [0]
+        
+        for i in range(1, len(group_differences1)):
+            group_indices1.append(group_indices1[i - 1] + group_differences1[i])
+        
         # Decode first level
         print("Decoding first level")
         decoded_first_level = decode_grouped_greedy_sample(bitcode=code1, 
-                                                            group_start_indices=var_length_extras[0],
+                                                            group_start_indices=group_indices1,
                                                             proposal=self.latent_priors[0], 
                                                             n_bits_per_step=n_bits_per_step, 
                                                             n_steps=n_steps, 
