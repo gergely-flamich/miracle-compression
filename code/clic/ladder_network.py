@@ -253,8 +253,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
         second_level_scale = tf.nn.sigmoid(second_level_log_scale)
 
         # Create latent posterior distribution
-        self.second_level_posterior = tfd.Normal(loc=second_level_loc,
-                                                 scale=second_level_scale)
+        self.second_level_posterior = self.second_level_latent_dist(loc=second_level_loc,
+                                                                    scale=second_level_scale)
 
         # Get z_2 ~ N(mu_2, sigma_2)
         second_level_latents = self.second_level_posterior.sample()
@@ -287,8 +287,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
         combined_loc *= combined_var
 
         # Create latent posterior distribution
-        self.first_level_posterior = tfd.Normal(loc=combined_loc,
-                                                scale=combined_scale)
+        self.first_level_posterior = self.first_level_latent_dist(loc=combined_loc,
+                                                                  scale=combined_scale)
 
         # Get z_1 ~ N(mu_1, sigma_1)
         first_level_latents = self.first_level_posterior.sample()
@@ -324,8 +324,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
         second_level_latents, first_level_latents = latents
 
         # Create second level prior
-        self.second_level_prior = tfd.Normal(loc=tf.zeros_like(second_level_latents),
-                                             scale=tf.ones_like(second_level_latents))
+        self.second_level_prior = self.second_level_latent_dist(loc=tf.zeros_like(second_level_latents),
+                                                                scale=tf.ones_like(second_level_latents))
 
         # Apply second level
         activations = second_level_latents
@@ -339,8 +339,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
         first_level_scale = tf.math.exp(first_level_log_scale)
 
         # Create first level prior
-        self.first_level_prior = tfd.Normal(loc=first_level_loc,
-                                            scale=first_level_scale)
+        self.first_level_prior = self.first_level_latent_dist(loc=first_level_loc,
+                                                              scale=first_level_scale)
 
         # Apply first level
         activations = first_level_latents
@@ -696,19 +696,19 @@ class ClicNewLadderCNN(snt.AbstractModule):
         extras = [seed, n_steps, n_bits_per_step] + first_level_shape[1:3] + second_level_shape[1:3]
         
         var_length_extras = [group_differences1, group_differences2]
-        var_length_bytes = [(first_level_max_group_size_bits // 8 + 1),  
-                            (second_level_max_group_size_bits // 8 + 1)]
+        var_length_bits = [first_level_max_group_size_bits,  
+                           second_level_max_group_size_bits]
         
         if use_importance_sampling:
             
             var_length_extras += outlier_extras2
-            var_length_bytes += [ outlier_index_bytes, outlier_sample_bytes ]
+            var_length_bits += [ outlier_index_bytes * 8, outlier_sample_bytes * 8 ]
     
         write_bin_code(bitcode, 
                        comp_file_path, 
                        extras=extras,
                        var_length_extras=var_length_extras,
-                       var_length_bytes=var_length_bytes)
+                       var_length_bits=var_length_bits)
         
         # -------------------------------------------------------------------------------------
         # Step 4: Some logging information
@@ -720,8 +720,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
             total_kl = sum(total_kls)
             
             theoretical_byte_size = (total_kl + 2 * np.log(total_kl + 1)) / np.log(2) / 8
-            extra_byte_size = len(group_indices1) * var_length_bytes[0] + \
-                              len(group_indices2) * var_length_bytes[1] + 7 * 2
+            extra_byte_size = len(group_indices1) * var_length_bits[0] // 8 + \
+                              len(group_indices2) * var_length_bits[1] // 8 + 7 * 2
             actual_byte_size = os.path.getsize(comp_file_path)
             
             actual_no_extra = actual_byte_size - extra_byte_size
@@ -737,7 +737,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
             
             first_level_theoretical = (total_kls[0] + 2 * np.log(total_kls[0] + 1)) / np.log(2) / 8
             first_level_actual_no_extra = len(code1) / 8
-            first_level_extra = len(group_indices1) * var_length_bytes[0]
+            first_level_extra = len(group_indices1) * var_length_bits[0] // 8
             
             sample1_reshaped = tf.reshape(sample1, first_level_shape)
             first_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[0].log_prob(sample1_reshaped))
@@ -756,7 +756,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
             
             second_level_theoretical = (total_kls[1] + 2 * np.log(total_kls[1] + 1)) / np.log(2) / 8
             second_level_actual_no_extra = len(code2) / 8
-            second_level_extra = len(group_indices2) * var_length_bytes[1]
+            second_level_extra = len(group_indices2) * var_length_bits[1] // 8
             
             sample2_reshaped = tf.reshape(sample2, second_level_shape)
             second_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[1].log_prob(sample2_reshaped))
@@ -784,8 +784,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
     def decode_image_greedy(self,
                             comp_file_path,
                             use_importance_sampling=True,
-                            first_level_max_group_size_bits=12,
-                            second_level_max_group_size_bits=5,
                             rho=1.,
                             verbose=False):
         
@@ -795,11 +793,14 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         # the extras are: seed, n_steps, n_bits_per_step and W x H of the two latent levels
         # var length extras are the two lists of group indices
+        num_var_length_extras = 2
+        
+        if use_importance_sampling:
+            num_var_length_extras += 2
+        
         code, extras, var_length_extras = read_bin_code(comp_file_path, 
                                                         num_extras=7, 
-                                                        var_length_extra_bytes=[(first_level_max_group_size_bits // 8 + 1),  
-                                                                                (second_level_max_group_size_bits // 8 + 1),
-                                                                                3, 2])
+                                                        num_var_length_extras=num_var_length_extras)
         
         seed = extras[0]
         

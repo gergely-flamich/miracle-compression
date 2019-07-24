@@ -19,7 +19,7 @@
     "learn_log_gamma": false,
     
     "first_level_latent_dist": "gaussian", 
-    "second_level_latent_dist": "laplace", 
+    "second_level_latent_dist": "gaussian", 
     "likelihood": "laplace", 
     
     "first_level_channels": 192,
@@ -29,7 +29,7 @@
     "second_level_residual": true,
 
     "first_level_latents": 48,
-    "second_level_latents": 24, 
+    "second_level_latents": 48, 
     
     "first_level_channels": 192,
     "second_level_channels": 128,
