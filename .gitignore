@@ -4,6 +4,7 @@ coding.html
 .nfs*
 *.npy
 papers/
+data/
 
 # General
 *.tar.gz
