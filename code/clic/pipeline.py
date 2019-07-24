@@ -94,7 +94,8 @@ def create_model(model_key, config, train_stage=0):
         vae = (vae_man, vae_mes)
 
     elif model_key == "ladder":
-        vae = model(latent_dist=config["latent_dist"],
+        vae = model(first_level_latent_dist=config["first_level_latent_dist"],
+                    second_level_latent_dist=config["second_level_latent_dist"],
                     likelihood=config["likelihood"],
                     first_level_latents=config["first_level_latents"],
                     second_level_latents=config["second_level_latents"],
