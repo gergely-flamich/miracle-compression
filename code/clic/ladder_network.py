@@ -644,7 +644,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                                          max_group_size_bits=second_level_max_group_size_bits,
                                                                          dim_kl_bit_limit=second_level_dim_kl_bit_limit)
             
-            outlier_extras2 = list(map(lambda x: tf.squeeze(x).numpy(), outlier_extras2))
+            outlier_extras2 = list(map(lambda x: tf.reshape(x, [-1]).numpy(), outlier_extras2))
             
         else:
             sample2, code2, group_indices2 = code_grouped_greedy_sample(target=self.latent_posteriors[1], 
@@ -702,7 +702,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
         if use_importance_sampling:
             
             var_length_extras += outlier_extras2
-            print(var_length_extras)
             var_length_bits += [ outlier_index_bytes * 8, outlier_sample_bytes * 8 ]
     
         write_bin_code(bitcode, 

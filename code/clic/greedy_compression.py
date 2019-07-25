@@ -435,8 +435,8 @@ def code_grouped_importance_sample(target,
     # Halve precision
     outlier_samples = tfq.quantize(outlier_samples, -30, 30, tf.quint16).output
 
-    outlier_extras = (tf.reshape(outlier_indices, [-1]), tf.reshape(outlier_samples, [-1]))
-
+    outlier_extras = (outlier_indices, outlier_samples)
+    
     kl_divs = tf.reshape(
         tfd.kl_divergence(tfd.Normal(loc=t_loc, scale=t_scale), 
                           tfd.Normal(loc=p_loc, scale=p_scale)), [-1]).numpy()
@@ -492,7 +492,7 @@ def code_grouped_importance_sample(target,
         if idx == len(kl_divs) - 1:
             group_kls.append(current_group_kl / np.log(2))
         
-    print(np.max(group_kls))
+    print("Maximum group KL: {:.3f}".format(np.max(group_kls)))
     
     # ====================================================================== 
     # Sample each group
