@@ -435,7 +435,7 @@ def code_grouped_importance_sample(target,
     # Halve precision
     outlier_samples = tfq.quantize(outlier_samples, -30, 30, tf.quint16).output
 
-    outlier_extras = (outlier_indices, outlier_samples)
+    outlier_extras = (tf.reshape(outlier_indices, [-1]), tf.reshape(outlier_samples, [-1]))
 
     kl_divs = tf.reshape(
         tfd.kl_divergence(tfd.Normal(loc=t_loc, scale=t_scale), 

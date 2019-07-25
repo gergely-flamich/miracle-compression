@@ -702,6 +702,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         if use_importance_sampling:
             
             var_length_extras += outlier_extras2
+            print(var_length_extras)
             var_length_bits += [ outlier_index_bytes * 8, outlier_sample_bytes * 8 ]
     
         write_bin_code(bitcode, 
@@ -714,18 +715,45 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Step 4: Some logging information
         # -------------------------------------------------------------------------------------
         
+        total_kls = [tf.reduce_sum(x) for x in self.kl_divergence]
+        total_kl = sum(total_kls)
+
+        theoretical_byte_size = (total_kl + 2 * np.log(total_kl + 1)) / np.log(2) / 8
+        extra_byte_size = len(group_indices1) * var_length_bits[0] // 8 + \
+                          len(group_indices2) * var_length_bits[1] // 8 + 7 * 2
+        actual_byte_size = os.path.getsize(comp_file_path)
+
+        actual_no_extra = actual_byte_size - extra_byte_size
+        
+        first_level_theoretical = (total_kls[0] + 2 * np.log(total_kls[0] + 1)) / np.log(2) / 8
+        first_level_actual_no_extra = len(code1) / 8
+        first_level_extra = len(group_indices1) * var_length_bits[0] // 8
+
+        sample1_reshaped = tf.reshape(sample1, first_level_shape)
+        first_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[0].log_prob(sample1_reshaped))
+        first_level_sample_avg = tf.reduce_mean(self.latent_posteriors[0].log_prob(self.latent_posteriors[0].sample()))
+        
+        second_level_theoretical = (total_kls[1] + 2 * np.log(total_kls[1] + 1)) / np.log(2) / 8
+        second_level_actual_no_extra = len(code2) / 8
+        second_level_extra = len(group_indices2) * var_length_bits[1] // 8
+
+        sample2_reshaped = tf.reshape(sample2, second_level_shape)
+        second_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[1].log_prob(sample2_reshaped))
+        second_level_sample_avg = tf.reduce_mean(self.latent_posteriors[1].log_prob(self.latent_posteriors[1].sample()))
+        
+        bpp = 8 * actual_byte_size / (image_shape[1] * image_shape[2]) 
+        
+        summaries = {
+            "image_shape": image_shape,
+            "theoretical_byte_size": theoretical_byte_size,
+            "actual_byte_size": actual_byte_size,
+            "extra_byte_size": extra_byte_size,
+            "actual_no_extra": actual_no_extra,
+            "bpp": bpp
+        }
+        
         if verbose:
-            
-            total_kls = [tf.reduce_sum(x) for x in self.kl_divergence]
-            total_kl = sum(total_kls)
-            
-            theoretical_byte_size = (total_kl + 2 * np.log(total_kl + 1)) / np.log(2) / 8
-            extra_byte_size = len(group_indices1) * var_length_bits[0] // 8 + \
-                              len(group_indices2) * var_length_bits[1] // 8 + 7 * 2
-            actual_byte_size = os.path.getsize(comp_file_path)
-            
-            actual_no_extra = actual_byte_size - extra_byte_size
-            
+
             print("Image dimensions: {}".format(image_shape))
             print("Theoretical size: {:.2f} bytes".format(theoretical_byte_size))
             print("Actual size: {:.2f} bytes".format(actual_byte_size))
@@ -734,14 +762,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
             print("Actual size without extras: {:.2f} bytes".format(actual_no_extra))
             print("Efficiency: {:.3f}".format(actual_byte_size / theoretical_byte_size))
             print("")
-            
-            first_level_theoretical = (total_kls[0] + 2 * np.log(total_kls[0] + 1)) / np.log(2) / 8
-            first_level_actual_no_extra = len(code1) / 8
-            first_level_extra = len(group_indices1) * var_length_bits[0] // 8
-            
-            sample1_reshaped = tf.reshape(sample1, first_level_shape)
-            first_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[0].log_prob(sample1_reshaped))
-            first_level_sample_avg = tf.reduce_mean(self.latent_posteriors[0].log_prob(self.latent_posteriors[0].sample()))
             
             print("First level theoretical size: {:.2f} bytes".format(first_level_theoretical))
             print("First level actual (no extras) size: {:.2f} bytes".format(first_level_actual_no_extra))
@@ -753,15 +773,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
             print("First level greedy sample average log likelihood: {:.4f}".format(first_level_avg_log_lik))
             print("First level average sample log likelihood on level 1: {:.4f}".format(first_level_sample_avg))
             print("")
-            
-            second_level_theoretical = (total_kls[1] + 2 * np.log(total_kls[1] + 1)) / np.log(2) / 8
-            second_level_actual_no_extra = len(code2) / 8
-            second_level_extra = len(group_indices2) * var_length_bits[1] // 8
-            
-            sample2_reshaped = tf.reshape(sample2, second_level_shape)
-            second_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[1].log_prob(sample2_reshaped))
-            second_level_sample_avg = tf.reduce_mean(self.latent_posteriors[1].log_prob(self.latent_posteriors[1].sample()))
-            
+           
             print("Second level theoretical size: {:.2f} bytes".format(second_level_theoretical))
             print("Second level actual (no extras) size: {:.2f} bytes".format(second_level_actual_no_extra))
             print("Second level extras size: {:.2f} bytes".format(second_level_extra))
@@ -776,9 +788,9 @@ class ClicNewLadderCNN(snt.AbstractModule):
             print("Second level average sample log likelihood on level 1: {:.4f}".format(second_level_sample_avg))
             print("")
             
-            print("{:.4f} bits / pixel".format( 8 * actual_byte_size / (image_shape[1] * image_shape[2]) ))
+            print("{:.4f} bits / pixel".format( bpp ))
         
-        return sample2, sample1
+        return (sample2, sample1), summaries
         
     
     def decode_image_greedy(self,
