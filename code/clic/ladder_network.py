@@ -636,7 +636,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
             
         if use_importance_sampling:
             
-
             sample2, code2, group_indices2, outlier_extras2 = code_grouped_importance_sample(target=self.latent_posteriors[1], 
                                                                          proposal=self.latent_priors[1], 
                                                                          n_bits_per_group=second_level_n_bits_per_group, 
@@ -734,7 +733,9 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         second_level_theoretical = (total_kls[1] + 2 * np.log(total_kls[1] + 1)) / np.log(2) / 8
         second_level_actual_no_extra = len(code2) / 8
-        second_level_extra = len(group_indices2) * var_length_bits[1] // 8
+        second_level_extra = len(group_indices2) * var_length_bits[1] // 8 + 1
+        
+        second_bpp = (second_level_actual_no_extra + second_level_extra) * 8 / (image_shape[1] * image_shape[2]) 
 
         sample2_reshaped = tf.reshape(sample2, second_level_shape)
         second_level_avg_log_lik = tf.reduce_mean(self.latent_posteriors[1].log_prob(sample2_reshaped))
@@ -748,6 +749,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
             "actual_byte_size": actual_byte_size,
             "extra_byte_size": extra_byte_size,
             "actual_no_extra": actual_no_extra,
+            "second_bpp": second_bpp,
             "bpp": bpp
         }
         
@@ -782,6 +784,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
                                                                                            second_level_dim_kl_bit_limit))
             print("Second level Efficiency: {:.3f}".format(
                 (second_level_actual_no_extra + second_level_extra) / second_level_theoretical))
+            print("Second level's contribution to bpp: {:.4f}".format(second_bpp))
             print("Second level # of groups: {}".format(len(group_indices2)))
             print("Second level greedy sample average log likelihood: {:.4f}".format(second_level_avg_log_lik))
             print("Second level average sample log likelihood on level 1: {:.4f}".format(second_level_sample_avg))

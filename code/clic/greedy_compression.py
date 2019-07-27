@@ -95,7 +95,7 @@ def code_greedy_sample(target,
             if use_log_prob:
                 test_scores = tf.reduce_sum(target.log_prob(test_samples), axis=1)
             else:
-                test_scores = tf.reduce_sum(-((test_samples - target.loc)**2 / target.scale**2)**4,
+                test_scores = tf.reduce_sum(-((test_samples - target.loc) / target.scale)**8,
                                            axis=1)
 
             index = tf.argmax(test_scores)

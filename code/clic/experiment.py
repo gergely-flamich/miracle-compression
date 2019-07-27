@@ -70,14 +70,20 @@ def run(config_path,
     
     # Create actual model here
     vae = create_model(model_key, config)
+    
+    global_step = tf.train.get_or_create_global_step()
+    
+    learning_rate = tf.compat.v1.train.exponential_decay(config["learning_rate"],
+                                                         global_step,
+                                                         config["learning_rate_decay_step"], 
+                                                         0.96, 
+                                                         staircase=False)
 
-    optimizer = optimizers[config["optimizer"]](config["learning_rate"])
+    optimizer = optimizers[config["optimizer"]](learning_rate)
 
     # ==========================================================================
     # Define Checkpoints
     # ==========================================================================
-
-    global_step = tf.train.get_or_create_global_step()
 
     if isinstance(vae, tuple):
         trainable_vars = vae[0].get_all_variables() + vae[1].get_all_variables() + (global_step,)
