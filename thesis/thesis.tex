@@ -17,7 +17,8 @@
 \usepackage[
 backend=biber,
 style=alphabetic,
-citestyle=authoryear]{biblatex}
+%citestyle=authoryear
+]{biblatex}
 
 \usepackage{amssymb}
 \usepackage{amsmath}
@@ -52,6 +53,12 @@ citestyle=authoryear]{biblatex}
 \newcommand{\KL}{\mathrm{KL}}
 \newcommand{\Exp}{\mathbb{E}}
 \newcommand{\I}{\mathbb{I}}
+
+\newcommand{\ImSpace}{\mathcal{X}}
+
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\Ints}{\mathbb{Z}}
+\newcommand{\Nats}{\mathbb{N}}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -214,7 +221,16 @@ lead to dramatic reduction in bit-rate
 
 rate-distorsion
 pnsr
-
+\paragraph{}
+The general setup for lossy image compression has two key, competing components:
+the \textbf{distorsion} and the \textbf{rate} of the compressor. Given a space
+of images $\ImSpace$, we select a distance metric $d(\cdot, \cdot): \ImSpace
+\times \ImSpace \rightarrow \Reals^+$. Then, the distorsion of an image $\vec{x}
+\in \ImSpace$ is defined as $d(\vec{x}, \hat{\vec{x}})$, where $\hat{\vec{x}}$
+is the reconstruction of the image by the compression algorithm. The rate $R$
+is the number of bits required to code $\vec{x}$.
+\paragraph{}
+It should 
 
 \cite{psnr}
 \cite{msssim}
@@ -243,7 +259,8 @@ solution:
 \paragraph{}
 There have been several recent advances in neural network-based compression
 techniques, most notably \cite{balle2016end}, \cite{theis2017lossy},
-\cite{rippel2017real}, \cite{balle2018variational}. 
+\cite{rippel2017real}, \cite{balle2018variational}, \cite{johnston2018cvpr},
+\cite{mentzer2018cvpr} 
 \paragraph{}
 Notably, all previous VAE-based approaches have addressed the
 non-differentiablility of quantization indirectly.
