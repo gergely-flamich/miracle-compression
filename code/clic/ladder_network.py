@@ -41,6 +41,8 @@ class ClicNewLadderCNN(snt.AbstractModule):
                  first_level_latent_dist="gaussian",
                  second_level_latent_dist="gaussian",
                  likelihood="gaussian",
+                 heteroscedastic=False,
+                 average_gamma=False,
                  first_level_latents=192,
                  second_level_latents=192,
                  first_level_residual=False,
@@ -72,7 +74,11 @@ class ClicNewLadderCNN(snt.AbstractModule):
         self.first_level_latent_dist = self._allowed_latent_dists[first_level_latent_dist]
         self.second_level_latent_dist = self._allowed_latent_dists[second_level_latent_dist]
         self.likelihood_dist = self._allowed_likelihoods[likelihood]
-
+        
+        # Should we predict the variance too?
+        self.heteroscedastic = heteroscedastic
+        self.average_gamma = average_gamma
+        
         self.first_level_latents = first_level_latents
         self.second_level_latents = second_level_latents
         
@@ -316,6 +322,9 @@ class ClicNewLadderCNN(snt.AbstractModule):
 
         for layer in self.first_level[::-1]:
             first_level.append(layer.transpose())
+            
+        if self.heteroscedastic:
+            likelihood_log_scale_head = self.first_level[0].transpose()
 
         # ----------------------------------------------------------------------
         # Apply layers
@@ -345,12 +354,29 @@ class ClicNewLadderCNN(snt.AbstractModule):
         # Apply first level
         activations = first_level_latents
 
-        for layer in first_level:
+        for layer in first_level[:-1]:
             activations = layer(activations)
 
         self.latent_priors = (self.first_level_prior, self.second_level_prior)
 
-        return tf.nn.sigmoid(activations)
+        reconstruction = first_level[-1](activations)
+        reconstruction = tf.nn.sigmoid(reconstruction)
+        
+        if self.learn_log_gamma:
+            self.log_gamma = tf.get_variable("gamma", dtype=tf.float32, initializer=0.)
+        elif self.heteroscedastic:
+            self.log_gamma = likelihood_log_scale_head(activations)
+        else:
+            self.log_gamma = 0.
+        
+        gamma = tf.exp(self.log_gamma)
+        
+        if self.average_gamma:
+            gamma = tf.reduce_mean(gamma)
+
+        self.likelihood = self.likelihood_dist(loc=reconstruction,
+                                               scale=gamma)
+        return reconstruction
 
 
     def _build(self, inputs):
@@ -358,12 +384,6 @@ class ClicNewLadderCNN(snt.AbstractModule):
         latents = self.encode(inputs)
         reconstruction = self.decode(latents)
         
-        self.log_gamma = tf.get_variable("gamma", dtype=tf.float32, initializer=0.) if self.learn_log_gamma else 0.
-        gamma = tf.exp(self.log_gamma)
-
-        self.likelihood = self.likelihood_dist(loc=reconstruction,
-                                               scale=gamma)
-
         self._log_prob = self.likelihood.log_prob(inputs)
 
         return reconstruction

@@ -148,6 +148,7 @@ def run(config_path,
             loss = ((1 - gamma) * -log_prob + gamma * ms_ssim_loss + warmup_coef * beta * total_kl) / B
 
             # Add tensorboard summaries
+            tfs.scalar("Learning-Rate", learning_rate())
             tfs.scalar("Loss", loss)
             tfs.scalar("Log-Probability", log_prob / B)
             tfs.scalar("KL", total_kl / B)
