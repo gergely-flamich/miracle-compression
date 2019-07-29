@@ -42,17 +42,21 @@ style=alphabetic,
 
 
 \renewcommand{\vec}[1]{\mathbf{#1}}
-\renewcommand{\d}{\text{d}}
+\renewcommand{\d}{\,\text{d}}
 
 \renewcommand{\L}{\mathcal{L}}
 
 \newcommand{\A}{\mathcal{A}}
 \newcommand{\E}{\mathcal{E}}
+\newcommand{\F}{\mathcal{F}}
 
 \newcommand{\Oh}{\mathcal{O}}
-\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\KL}[2]{\mathrm{KL}[\,#1\,\,||\,\,#2\,]}
 \newcommand{\Exp}{\mathbb{E}}
 \newcommand{\I}{\mathbb{I}}
+
+\newcommand{\Hypos}{\mathcal{H}}
+\newcommand{\Data}{\mathcal{D}}
 
 \newcommand{\ImSpace}{\mathcal{X}}
 
@@ -209,12 +213,46 @@ We present:
 \paragraph{}
 
 \section{Background}
+\subsection{Notation and Basic Concepts}
+\paragraph{}
+It will be useful to clarify some of the notation throughout this work.
+\begin{itemize}
+\item Vectors will be denoted by boldface lowercase letters: $\vec{u}, \vec{x}, ...$
+\item Matrices will be denoted by uppercase letters: $A, M, ...$
+\item Probability mass functions will be denoted by uppercase letters: $P(x),
+  Q(z), ...$
+\item Probability density functions will be denoted by lowercase letters: $p(y),
+  q(u), ...$
+\item $\Exp_{p(x)}[f(x)]$ denotes the expected value of $f(x)$ with respect to
+  the mass / density $p(x)$, i.e.:
+  \[
+    \Exp_{p(x)}[f(x)] = \int_\Omega f(x) \d p(x),
+  \]
+  where $\Omega$ is the sample space. As $\Omega$ will usually denote $\Reals^n$
+  or will be understood from context, it will be omitted, and the integral will
+  be rewritten as
+  \[
+    \Exp_{p(x)}[f(x)] = \int f(x)p(x) \d x.
+  \]
+\item $\KL{q(x)}{p(x)}$ denotes the Kullback-Leibler divergence between two
+  distributions and is defined as
+  \[
+    \KL{q(x)}{p(x)} = \Exp_{q(x)}\left[\log\frac{q(x)}{p(x)}\right].
+  \]
+\item $I[X : Y]$ denotes the mutual information between random variables $X$ and
+  $Y$ and is defined as
+  \[
+    I[X : Y] = \KL{p(x, y)}{p(x)p(y)},
+  \]
+  where $(X, Y) \sim p(x, y)$ and $p(x)$ and $p(y)$ denote the marginals.
+\end{itemize}
 \subsection{Image Compression}
 Main goal: use the statistical / topological properties of images and properties
 of the human visual system (HVS) to achieve
 better compression rates than generic data compression algorithms
 
 Types of image compression: lossless and lossy
+\cite{townsend2019practical}
 
 lossy is suited for \textbf{natural images} -> imperceptible loss of quality can
 lead to dramatic reduction in bit-rate
@@ -230,20 +268,172 @@ of images $\ImSpace$, we select a distance metric $d(\cdot, \cdot): \ImSpace
 is the reconstruction of the image by the compression algorithm. The rate $R$
 is the number of bits required to code $\vec{x}$.
 \paragraph{}
-It should 
-
-\cite{psnr}
-\cite{msssim}
+the main goal of lossy image compression is to minimize distorsion while
+maintaining a low rate. 
 \subsection{Metrics}
 \paragraph{}
 \subsubsection{PSNR}
+\cite{psnr}
 \subsubsection{MS-SSIM}
-\subsection{The Bits-Back Argument}
-\paragraph{}
-The bits-back argument was first introduced in \cite{hinton1993keeping}, and states
-the following. Imagine the following communication problem: Given two parties,
-Alice and Bob, Alice wants to send a sample $\vec{x}$ according to some
-distribution 
+\cite{msssim}
+\subsection{The MDL principle and the Bits-Back Argument}
+\paragraph{MDL Principle} 
+Our approach is based on the Minimum Description Length (MDL) Principle
+\cite{rissanen1986stochastic}. In essence, it is a formalization of Occam's
+Razor, i.e. the simplest model that describes the data well is the best model of
+the data \cite{grünwald2007minimum}. Here, ``simple'' and ``well'' need to be
+defined, and these definitions are precisely what the MDL principle gives us.
+Informally, it asserts that given a class of hypotheses $\Hypos$ (e.g. a certain
+statistical model and its parameters) and some data $\Data$, if a particular
+hypothesis $H \in \Hypos$ can be described with at most $L(H)$ bits and the using the
+hypothesis the data can be described with at most $L(\Data \mid H)$ bits, then the
+minimum description length of the data is
+\begin{equation}
+\label{eq:min_desc_princ}
+  L = \min_{H \in \Hypos}\{ L(H) + L(\Data \mid H) \},
+\end{equation}
+and the best hypothesis is the $H$ that minimizes the above quantity.
+\par
+Crucially, the MDL principle can thus be interpreted as telling us that
+\textbf{the best model of the data is the one that compresses it the most}.
+This makes Eq \ref{eq:min_desc_princ} a very appealing learning objective for
+optimization-based compression methods, ours included.
+Below, we briefly review how this has been applied so far and how it translates
+to our case.
+\paragraph{Bits-Back Argument}
+First, we begin with the bits-back argument, introduced in
+\cite{hinton1993keeping}, which is a direct application of the above. The main
+goal of this work was to develop a regularisation technique for neural networks
+by framing the training of a neural network as a communication problem, where
+the training input and the fixed network architecture is public, but the weights,
+the network's output given a particular input, and the training targets are
+only available to the sender, and the task is to communicate the
+\textit{training targets} with minimal bits.
+\par
+Concretely, they train a Bayesian Neural Network, by equipping the weights
+$\vec{w}$ with a prior $p_\theta(\vec{w})$ and a posterior $q_\phi(\vec{w})$
+(parameterized by $\theta$ and $\phi$, respectively) and maximize
+the \textit{evidence lower bound} (ELBO) given a likelihood $p(\Data \mid \vec{w})$:
+\begin{equation}
+  \label{eq:elbo_target}
+  \Exp_{q_\phi}[\log p(\Data \mid \vec{w})] - \KL{q_{\phi}}{p_{\theta}}.
+\end{equation}
+Given a sufficiently finely quantized likelihood, the minimum description length
+of the data given this model is $\Exp_{q_\phi}[-\log p(\Data \mid \vec{w})]$
+\cite{shannon1998mathematical}, and hence the first term in Eq
+\ref{eq:elbo_target} corresponds to $-L(\Data \mid H)$. In their work then,
+\cite{hinton1993keeping} show that the second term in Eq \ref{eq:elbo_target}
+is equal to $-L(H)$, which establishes a link between the variational training
+objective of the BNN and the MDL principle.
+\par
+To do this, the encoder
+\begin{enumerate}
+\item trains the neural network, optimising Eq \ref{eq:elbo_target}.
+\item draws a random sample $\vec{\hat{w}} \sim q_{\phi}(\vec{w})$. This
+  represents a message of $\Exp_{q_\theta}[- \log q_\phi]$ nats.
+\item $\vec{\hat{w}}$ is then used to calculate the residuals $\vec{r}$ between
+  the network's output and the targets.
+\item $\vec{r}$ is coded with $\vec{\hat{w}}$ and then $\vec{\hat{w}}$ is coded
+  using its prior $p_\theta$. The total length of the message is hence $\Exp_{q_\phi}[-\log
+  p(\Data \mid \vec{\hat{w}})] + \Exp_{q_\phi}[-\log p_{\theta}]$.
+\end{enumerate}
+Once everything has been communicated, the decoder can recover the true training
+targets, but then they can also run the same training algorithm that the encoder
+used to then recover the posterior $q_\phi$. This means that the code of
+$\vec{\hat{w}}$ is ``free bits'' in the sense that the decoder can recover them
+exactly given what they already have. 
+Hence, the whole cost of drawing $\vec{\hat{w}}$ should be
+subtracted from the original cost, yielding
+$\Exp_{q_\phi}[-\log p_{\theta}] - \Exp_{q_\phi}[-\log q_{\phi}] =
+\KL{q_{\phi}}{p_\theta}$ nats. This ``recovery'' is the namesake for the
+bits-back argument.
+\paragraph{MIRACLE}
+Inspired by the above idea, \cite{havasi2018minimal} asked a natural question:
+\textit{is it possible to communicate only the weights of a network at
+  bits-back efficiency?}
+\par
+If the above were true, it would give a method for compressing neural networks
+rather efficiently. It is clear that the coding must be different than it was in
+\cite{hinton1993keeping}, as their method focused on the regularisation aspect
+of the KL-divergence and is very inefficient for actual communication of the
+model parameters.
+\par
+A second, important question that arises in conjunction with the first, natural
+for compression algorithms:
+\textit{is it possible trade off accuracy of a fixed neural network architecture
+  for better compression rates, and vice versa?}
+\par
+Luckily, the answer to both of the above questions is yes, and we shall begin by
+addressing the latter first. Fix a network architecture, and some data
+likelihood given a weight set $p(\Data \mid \vec{\hat{w}})$. Akin to
+\cite{hinton1993keeping}, we will actually train a BNN with weight prior
+$p(\vec{w})$ and posterior $q(\vec{w})$. Then, given a budget of $C$ nats, we
+hope to maximize the following constrained objective:
+\begin{equation}
+\label{eq:miracle_hard_train_target}
+\Exp_{q_\phi}[\log p(\Data \mid \vec{w})] \quad \text{subject to }
+\KL{q_{\phi}}{p_{\theta}} < C.
+\end{equation}
+We can rewrite Eq \ref{eq:miracle_hard_train_target} as its Lagranagian
+relaxation under the KKT conditions \cite{karush2014minima},
+\cite{kuhn2014nonlinear}, \cite{higgins2017beta} and get:
+\[
+  \F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) = 
+  \Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta (\KL{q_{\phi}}{p_{\theta}} - C).
+\]
+By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
+term in the above equation will provide a lower bound for it:
+\begin{equation}
+\label{eq:miracle_train_target}
+\F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) \geq
+\L(\theta, \phi, \beta \Data, \vec{\hat{w}}) =
+\Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta \KL{q_{\phi}}{p_{\theta}}.
+\end{equation}
+Notice, that this is the same as Eq \ref{eq:elbo_target}, but with the addition of
+the parameter $\beta$ that will control the regularisation term and eventually
+the compression cost of the weights. It is also intimately related to the
+training target of $\beta$-VAEs \cite{higgins2017beta}, except for where they
+regularise the distributions of activations on a stochastic layer, here the
+regularisation is for the distributions of weights.
+\par
+Now, to answer the first question, we first need to establish the right setting
+for the task, which will be another communications problem.
+Concretely, given a dataset $\Data$ sampled from a distribution $p(D)$, and
+$q_\phi(\vec{w})$, our trained weight posterior for a given $\beta$, what are
+the bounds on the minimum description length for the posterior $L(q_{\phi})$?
+\par
+Under some mild assumptions, it can be shown \cite{harsha2007communication} that
+in fact
+\[
+  \Exp_{p(D)}[L(q_{\phi})] \geq \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}],
+\]
+i.e. in this probabilistic setting bits-back efficiency is the best we can hope
+for. Now, if we make the further assumption that the sender and the receiver are
+allowed to \textit{share a source of randomness} (e.g. a random number generator
+and a seed for it), then a rather tight upper bound can also be derived, also
+due to \cite{harsha2007communication}:
+\begin{equation}
+\label{eq:miracle_ub}
+  \Exp_{p(D)}[L(q_{\phi})] \leq I[\Data : \vec{w}] + 2 \log \left( I[\Data :
+    \vec{w}] + 1 \right) + \Oh(1)
+\end{equation}
+where $I[D : \vec{w}] = \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}]$ is the
+mutual information between the distribution of datasets and the weights.
+\par
+Eq \ref{eq:miracle_ub} is proven by exposing an algorithm that achieves the
+postualted coding efficiency, an adaptive rejection sampling algorithm, which we
+detail in the Appendix A. This turns out to be infeasible in the case of
+MIRACLE, and instead the authors propose an importance sampling-based
+approximate sampling algorithm, which is also discussed in further detail in
+Appendix A. They are important, as we have used both in our project.
+
+\paragraph{Our method} Our project is based upon the simple observation, that
+the MIRACLE framework may be utilised for compression of any data where in our
+model a public prior distribution $p_{\theta}$ and a learned $q_{\phi}$ is
+available and we are allowed to share a source of randomness. We have already
+noted the extreme similarity of the original BNN training objective to that of
+the $\beta$-VAE \cite{higgins2017beta}, and indeed they are precisely the model
+that we shall use for the compression of images in our case.
 
 \subsection{Neural Networks for Image Compression}
 \paragraph{}
@@ -309,4 +499,6 @@ ac reference \cite{rissanen1981universal}
 \section{Conclusion}
 
 \printbibliography
+\section*{Appendix A: Sampling algorithms}
+\section*{Appendix B: Images}
 \end{document}
