@@ -97,6 +97,9 @@ def create_model(model_key, config, train_stage=0):
         vae = model(first_level_latent_dist=config["first_level_latent_dist"],
                     second_level_latent_dist=config["second_level_latent_dist"],
                     likelihood=config["likelihood"],
+                    heteroscedastic=config["heteroscedastic"],
+                    average_gamma=config["average_gamma"],
+                    
                     first_level_latents=config["first_level_latents"],
                     second_level_latents=config["second_level_latents"],
                     
