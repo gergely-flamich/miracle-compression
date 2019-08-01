@@ -223,6 +223,8 @@ We present:
 \subsection{Thesis Outline}
 \paragraph{}
 
+
+
 \section{Background}
 \par
 As compression is not a standard topic in machine learning, it will be useful to
@@ -244,6 +246,10 @@ It will be useful to clarify some of the notation throughout this work.
   Q(z), ...$
 \item Probability density functions will be denoted by lowercase letters: $p(y),
   q(u), ...$
+\item In general, exact/continuous values will be denoted by unannotated letters
+  (e.g. $z_i, \vec{w}$), their quantized counterparts denoted by a hat
+  ($\hat{z}_i, \vec{\hat{w}}$) and their approximate counterparts by a tilde
+  ($\tilde{z}_i, \vec{\tilde{w}}$).
 \item $\Exp_{p(x)}[f(x)]$ denotes the expected value of $f(x)$ with respect to
   the mass / density $p(x)$, i.e.:
   \[
@@ -282,6 +288,9 @@ It will be useful to clarify some of the notation throughout this work.
   where $(X, Y) \sim p(x, y)$ and $p(x)$ and $p(y)$ denote the marginals.
 \end{itemize}
 \subsection{Image Compression}
+\par
+The most popular lossy image codec today is JPEG \cite{bull2014communicating},
+with 
 \paragraph{Source Coding}
 From a theoretical point of view, given some source $S$, a sender and a
 receiver, compression may be described as the aim of the sender communicating an
@@ -516,7 +525,7 @@ the parameter $\beta$ that will control the regularisation term and eventually
 the compression cost of the weights. It is also intimately related to the
 training target of $\beta$-VAEs \cite{higgins2017beta}, except for where they
 regularise the distributions of activations on a stochastic layer, here the
-regularisation is for the distributions of weights.
+regularisation is for the distributions of weights. 
 \par
 Now, to answer the first question, we first need to establish the right setting
 for the task, which will be another communications problem.
@@ -541,6 +550,8 @@ due to \cite{harsha2007communication}:
 \end{equation}
 where $I[D : \vec{w}] = \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}]$ is the
 mutual information between the distribution of datasets and the weights.
+\paragraph{Note:} Hence, tuning $\beta$ in \ref{eq:miracle_train_target}
+\textit{directly} controls the rate of the compression algorithm.
 \par
 Eq \ref{eq:miracle_ub} is proven by exposing an algorithm that achieves the
 postualted coding efficiency, an adaptive rejection sampling algorithm, which we
@@ -557,6 +568,14 @@ noted the extreme similarity of the original BNN training objective to that of
 the $\beta$-VAE \cite{higgins2017beta}, and indeed they are precisely the model
 that we shall use for the compression of images in our case.
 
+% ==============================================================================
+% ==============================================================================
+%
+% Related work
+%
+% ==============================================================================
+% ==============================================================================
+
 \section{Related Work}
 \par
 Here we give a brief overview of the history of using machine learning for image
@@ -565,7 +584,15 @@ describe and compare their methods to each other as well as ours.
 \subsection{Machine Learning-based Image Compression}
 \par
 
-First attempt by \cite{bottou1998high}
+First attempt by \cite{bottou1998high} DjVu focused on segmenting foreground and
+background in magazines and using K-means clustering to analize and code the
+background.
+
+Neural network based image compression has been theorized about for a long time
+now \cite{mougeot1991image} \cite{jiang1999image} 
+\cite{toderici2015variable} focused only 32x32 thumbnails
+Image reconstruction through compressive representations \cite{denton2015deep},
+\cite{gregor2015draw}
 
 \subsection{Comparison of Recent Works}
 \label{sec:lit_comparison}
@@ -594,10 +621,6 @@ useful, we must account for this.
 On the other hand most authors have used the Kodak dataset \cite{kodakdataset}
 for testing / reporting results.
 \begin{itemize}
-\item \cite{toderici2015variable} trained on 216 million $32 \times 32$ pixel
-  colour images, however, they offer little detail about how this dataset was
-  obtained. Since their architecture was created with compressing only
-  $32 \times 32$ in mind, there is no further preprocessing.
 \item \cite{balle2016end} trained on 6507 images, selected from ImageNet
   \cite{deng2009imagenet}. They removed images with excessive saturation and
   since their method is based on dithering, they added unifrom noise to the
@@ -628,12 +651,12 @@ for testing / reporting results.
   downsampled images by random factors such that the image's height and width
   stayed above 640 and 1200 pixels, respectively. Finally, they use several
   randomly cropped $256 \times 256$ pixel patches extracted from each image.
-\item \cite{johnston2018cvpr} similarly to the ``High Entropy'' dataset in
-  \cite{toderici2017full}, they scrape 6 million JPEG images from the web and
-  extract $128 \times 128$ patches from them to train on.
-\item \cite{mentzer2018cvpr} train on the ILSVRC2012 ImageNet dataset 
-  \cite{russakovsky2015imagenet}. They take extract $160 \times 160$ pixel image
-  patches and randomly flipped them.
+% \item \cite{johnston2018cvpr} similarly to the ``High Entropy'' dataset in
+%   \cite{toderici2017full}, they scrape 6 million JPEG images from the web and
+%   extract $128 \times 128$ patches from them to train on.
+% \item \cite{mentzer2018cvpr} train on the ILSVRC2012 ImageNet dataset 
+%   \cite{russakovsky2015imagenet}. They take extract $160 \times 160$ pixel image
+%   patches and randomly flipped them.
 \end{itemize}
 
 \subsubsection{Architectures}
@@ -642,37 +665,149 @@ This is the most diverse aspect of recent approaches, and so we will only
 discuss them on a very high level. We took inspiration from most of these papers
 as well as others, these will be emphasized in Section \ref{sec:our_method}.
 
+\begin{itemize}
+\item \cite{balle2016end} Build a relatively shallow autoencoder (5 layers).
+  There are several non-standard techniques they use, however. Firstly, their
+  architecture is fully convolutional, i.e. all linear transformations in their
+  network are convolutions in the encoder and deconvolutions in the decoder.
+  They also downsample after the linear transformations, however, this is not
+  elaborated upon in the work, neither is whether they padded the convolutions
+  and if so how.
+  This leads to the very natural consequence that their latent space and hence
+  the code of an image grows with its size. Secondly they do not use any
+  standard non-linearity or batch normalization. Instead, they propose their own
+  activation function, custom tailored for image compression. These
+  non-linearities are a form of adaptive local gain control for the images,
+  called Generalized Divisive Normalization (GDN). At the $k$th layer for
+  channel $i$ at position $(m, n)$, for input $w_i^{(k)}(m, n)$, the GDN
+  transform is defined as
+  \begin{equation}
+    \label{eq:gdn_def}
+    u_i^{(k + 1)}(m, n) = \frac{w_i^{(k)}(m, n)}{
+      \left( \beta_{k, i} + \sum_j \gamma_{k, i, j}
+        \left( w_{j}^{(k)}(m, n)\right)^2 \right)}.
+  \end{equation}
+  Its approximate inverse, IGDN for input $\hat{u}_i^{(k)}(m, n)$ is defined as
+  \begin{equation}
+    \label{eq:igdn_def}
+    \hat{w}_i^{(k)}(m, n) = \hat{u}_i^{(k)}(m, n) \cdot \left(
+      \hat{\beta}_{k, i} + \sum_{j} \hat{\gamma}_{k, i, j} \left(
+      \hat{u}_j^{(k)}(m, n)\right)^2 \right)^{\frac{1}{2}}.
+  \end{equation}
+  Here, the set $\beta_{k, i}, \gamma_{i, j, k}, \hat{\beta_{k, i}},
+  \hat{\gamma_{i, j, k}}$ are learned during training and fixed at test time.
+  
+\item \cite{toderici2017full}
+\item \cite{theis2017lossy} define a Compressive Autoencoder (CAE) as a regular
+  autoencoder with the quantization step between the encoding and decoding step.
+  (In this sense, the architectures of \cite{balle2016end} and
+  \cite{balle2018variational} are also CAEs.) They mirror pad the input first
+  and then they follow it up by a deep, fully convolutional, residual
+  architecture \cite{he2016deep}. They use valid convolutions and downsample by
+  using a stride of 2. Between convolutions they use leaky ReLUs as
+  nonlinearities, which are defined as 
+  \[
+    f_\alpha(x) = \max\{x, \alpha x\}, \quad \alpha \in [0, 1].
+  \]
+  The decoder mirrors the encoder. When upsampling is required, they use what
+  they term \textit{subpixel} convolutions, where they perform a regular
+  convolution operation with an increased number of filters, and then reshape
+  the resulting tensor into one with larger spatial extent but fewer channels.
+\item \cite{rippel2017real}
+\item \cite{balle2018variational} base their architecture heavily on the one
+  presented in \cite{balle2016end} in particular,
+\end{itemize}
+
 \subsubsection{Quantization}
+\label{sec:comp_quant}
 \par
+As all methods surveyed here are trained using gradient-based methods, a crucial
+question that needs to be answered is how they dealt with the issue of
+quantization. This is because encoding an image, quantizing the result and then
+decoding the dequantized representation is problematic as the quantization step
+yields 0 derivatives almost everywhere. There are two particular items that need
+to be circumvented: first, the quantization operation itself, and second, the
+rate estimator $H[P(\vec{z})]$. In the next section, we will see how our method
+suffers from neither of these issues, as we forego the quantization step altogether.
+\begin{itemize}
+\item
+  \textbf{Quantization }
+  \cite{balle2016end} Quantize the output of their encoder $\vec{z}$ as
+  \[
+    \hat{z}_i = [z_i], 
+  \]
+  where $[\cdot]$ denotes the rounding operation. They model this 
+  quantization error as dither, i.e. they replace their quantized latents
+  $\hat{z}_i$ by
+  \[
+    \tilde{z}_i = z_i + \delta z_i, \quad z_i \sim \Unif(0, 1). 
+  \]
+  \par \textbf{Rate }
+  To model the rate, they also require to learn a distribution over the
+  $\tilde{z}_i$s. They assume that the latents are independent, and hence they
+  can model the the joint as a fully factorized distribution. They use linear
+  splines to do this, whose parameters $\psi^{(i)}$ they update separately every
+  $10^6$ iterations using SGD to maximize its log likelihood on the latents.
 
-\subsubsection{Coding}
-\par
+\item \cite{toderici2017full}
+\item
+  \textbf{Quantization }
+  \cite{theis2017lossy} also use rounding as their quantization step.
+  However, instead of using uniform noise to model the quantization error, they
+  simply replace the derivative of the rounding operation in the backpropagation
+  chain by the constant function 1:
+  \[
+    \frac{d}{d y} [y] = 1.
+  \]
+  This is a smooth approximation of rounding and they report that empirically it
+  gave good results. However, as quantization itself creates an important
+  bottleneck in the flow of information, it is key that only the derivative is
+  replaced and not the operation itself.
+  \par \textbf{Rate }
+  They note that
+  \[
+    P(\vec{z}) = \int_{[-\frac{1}{2}, \frac{1}{2})^M} q(\vec{z} + \vec{u}) \d \vec{u}
+  \]
+  for some appropriate density $q$,
+  where the integral is taken over the centered $M$ dimensional hypercube.
+  Then, they replace the the rate estimator with an upper bound using Jensen's
+  inequality:
+  \[
+    -\log_2P(\vec{z}) = -\log_2\int_{[-\frac{1}{2}, \frac{1}{2})^M} q(\vec{z} +
+    \vec{u}) \d \vec{u} \leq -\int_{[-\frac{1}{2}, \frac{1}{2})^M} \log_2q(\vec{z} +
+    \vec{u}) \d \vec{u}.
+  \]
+  This upper bound is now differentiable. They pick a Gaussian Scale Mixtures for
+  $q$, with $s = 6$ components, with the mixing proportions fixed across spatial
+  dimensions, which gives the negative log likelihood
+  \[
+    -\log_2 q(\vec{z} + \vec{u}) =
+    \sum_{i, j, k} \log_2 \sum_s \pi_{k, s} \Norm(z_{k,i,j} + u_{k, i, j} \mid
+    0, \sigma_{k, s}^2),
+  \]
+  where $i,j$ iterate through the spatial dimensions and $k$ indexes the filters.
+  
+\item
+  \textbf{Quantiazation }
+  \cite{rippel2017real} use the following formula:
+  \[
+    \hat{z}_i = \frac{1}{2^B}\left\lceil 2^Bz_i \right\rceil
+  \]
+  with $B = 6$. For $B = 1$ this gives a similar error as rounding, and as $B$
+  is increased, the quantization gets finer. They do not report how they
+  circumvented the non-differentiability of the quantization step, however, they
+  do cite both \cite{balle2016end} and \cite{theis2017lossy}, so our guess is
+  that they used a method from one of these papers.
 
-\subsubsection{Training}
-\par
-
-\subsubsection{Evaluation}
-\par
-
-Notably, all previous VAE-based approaches have addressed the
-non-differentiablility of quantization indirectly.
-\paragraph{}
-\cite{theis2017lossy} use an approximation for the derivative of the rounding
-operator and optimize an upper bound on the error term introduced by the
-quantiztion.
-\paragraph{}
-In \cite{balle2016end},\cite{balle2018variational} they model the quantizer by
-adding uniform noise to the samples 
-\subsection{VAE-based image compression}
-
-\cite{rippel2017real} use GANs \cite{goodfellow2014generative}
-GDN \cite{balle2015density} \cite{ioffe2015batch}
-\section{Method}
-\label{sec:our_method}
-\par
-In this section we describe the models we have tried. We present it in a similar
-way as the layout of Section \ref{sec:lit_comparison}. Within a section we
-persent ideas we tried in chronological order
+  \textbf{Rate } they do not train for the rate-distrotion trade-off directly
+  and in particular omit the rate estimator from the loss. Hence there was no
+  need for them to approximate it to make it differentiable.
+\item
+  \textbf{Quantization }
+  
+  \cite{balle2018variational}
+  \textbf{Rate }
+\end{itemize}
 
 Crucially, the rate term in our optimization objective is different from
 previous approaches, in that in previous approaches the distribution of the
@@ -684,14 +819,154 @@ step that introduces the noisy artifacts into the image, and not the
 reconstruction procedure. This is fundamentally different from our case, where
 the majority of the quality degradation comes from the fact that VAEs generally
 produce blurry reconstructions.
-\subsection{Architecture}
-\subsubsection{VAEs}
-\paragraph{}
-Unlike earlier work, since we do not require the quantization step at all, we
-can train a classical VAE. On the data
 
-\subsubsection{Hierarchical VAE}
+\subsubsection{Coding}
+\par
+Another important part of the examined methods is the coding. In particular, an
+interesting caveat of entropy codes is that they tend to perform slightly worse
+than the predicted rate, due to neglected constant factors in the algorithm
+\cite{rissanen1981universal}. Hence, it is always more informative to present
+results where the actual coding has been performed and not just the theoretical
+rate reported. All examined works have implemented their own coding algorithms,
+and we briefly review them here.
+\begin{itemize}
+\item \cite{balle2016end} Context adaptive binary arithmetic coding (CABAC),
+  they supply new information in raster-scan order, which means it does not
+  improve much over non-adaptive coding, but there might be potential
+\item \cite{toderici2017full}
+\item \cite{theis2017lossy} used their estimated probabilities $q(\vec{z})$ and
+  used an off-the-shelf publicly available range coder to compress their latents.
+\item \cite{rippel2017real} bitplane decomposition 
+\item \cite{balle2018variational}
+\end{itemize}
+
+\subsubsection{Training}
+\par
+\begin{itemize}
+\item \cite{balle2016end} Set out to train for the rate-distrotion trade-off
+  directly, i.e.
+  \[
+    L = H[\vec{\hat{z}}] + \beta \Exp[d(\vec{x}, \vec{\hat{x}})],
+  \]
+  where the expectation is taken over training batches.
+  As this is a non-differentiable loss function due to the quantization, they
+  replace the discrete entropy term with a differential entropy term:
+  \[
+   L = \Exp\left[ -sum_i \log_2 p(z_i + \delta z_i \mid \psi^{(i)}) +
+                     \beta d(\vec{x}, \vec{\hat{x}})\right].
+  \]
+  \par Since they use MSE as the distance metric, they note that their
+  architecture could be considered as an, albeit somewhat
+  strange, VAE with Gaussian likelihood
+  \[
+    p(\vec{x} \mid \vec{\tilde{z}}, \beta) =
+    \Norm(\vec{x} \mid \vec{\hat{x}}, (2\beta)^{-1}\vec{1}),
+  \]
+  mean-field prior
+  \[
+    p(\vec{\tilde{z}} \mid \psi^{1}, \hdots, \psi^{N}) =
+    \prod_i p(\tilde{z}_i \mid \psi^{(i)})
+  \]
+  and mean-field posterior
+  \[
+    q(\vec{\tilde{z}} \mid \vec{x}) =
+    \prod_i \Unif(\tilde{z}_i \mid z_i, 1),
+  \]
+  where $\Unif(\tilde{z}_i \mid z_i, 1),$ is the uniform distribution centered
+  on $z_i$ of width 1. They train their model using Adam \cite{kingma2014adam},
+  with learning rate decay. They do not state how long they trained their
+  architecture.
+  
+\item \cite{toderici2017full}
+\item \cite{theis2017lossy}
+  also optimize an approximation of the rate-distrotion trade-off, replacing the
+  rate estimator with its upper bound:
+  \[
+    L = -\Exp[\log_2 q(\vec{z} + \vec{u})] + \beta \Exp[d(\vec{x}, \vec{\hat{x}})].
+  \]
+  They performed the training incrementally, in the sense that they masked most
+  latents at the start, such that their contribution to the loss was 0. Then, as
+  the training performance saturated, they unmasked them incrementally.
+  They trained the model with Adam, with a small learning rate decay.
+\item \cite{rippel2017real} use the MS-SSIM metric as the training objective and
+  they use an adversarial loss 
+  \cite{rippel2017real} use GANs \cite{goodfellow2014generative}
+\item \cite{balle2018variational} train 32 models, half optimized for MSE and
+  half optimized for MS-SSIM
+\end{itemize}
+
+\subsubsection{Evaluation}
+\par
+\begin{itemize}
+\item \cite{balle2016end} 
+\item \cite{toderici2017full}
+\item \cite{theis2017lossy}
+\item \cite{rippel2017real}
+\item \cite{balle2018variational}
+\end{itemize}
+
+
+Notably, all previous VAE-based approaches have addressed the
+non-differentiablility of quantization indirectly.
 \paragraph{}
+\cite{theis2017lossy} use an approximation for the derivative of the rounding
+operator and optimize an upper bound on the error term introduced by the
+quantiztion.
+\paragraph{}
+In \cite{balle2016end},\cite{balle2018variational} they model the quantizer by
+adding uniform noise to the samples 
+
+\subsection{Conclusion}
+
+GDN \cite{balle2015density} \cite{ioffe2015batch}
+
+% ==============================================================================
+% ==============================================================================
+%
+% Method
+%
+% ==============================================================================
+% ==============================================================================
+
+\section{Method}
+\label{sec:our_method}
+\par
+In this section we describe the models we have tried. We present it in a similar
+way as the layout of Section \ref{sec:lit_comparison}. Within a section we
+persent ideas we tried in chronological order
+
+\subsection{Dataset and Preprocessing}
+\par
+We trained our image on the CLIC 2018 dataset \cite{clic2018}, as it seemed
+sufficiently extensive for our project, as well as ``bad'' images have been
+filtered out, which reduced the amount of preprocessing required on our side.
+A further advantage is that we can compare our results against the constestants,
+although it is not obvious how representative this comparison is, compared to
+the results reported in papers.
+\par
+The dataset contains high-resolution PNG encoded photographs, namely 585 in the
+training set and 41 photos in the validation set. The test set is not
+publicly available, as it was reserved for the competition. 
+To make training tractable, similarly to previous works, we randomly extracted
+$256 \times 256$ pixel patches from each image. The number of patches $P$ was
+based on their size of the image, according to the formula
+\[
+  P(W, H) = C \times \left \lfloor \frac{W}{256} \right \rfloor \times
+  \left \lfloor \frac{H}{256} \right \rfloor,
+\]
+where $W, H$ are the width and height of the current image, respectively and $C$
+is an integer constant we set. We used $C = 15$, which yielded us a training set
+of 93085 patches.
+\subsection{Architecture}
+\par
+In this section we describe the various architectures that we experimented with.
+The basis of all our architectures were inspired by the ones used in
+\cite{balle2016end} and \cite{balle2018variational}. In particular, we use the
+General Divisive Normalization (GDN) layer for encoding and its approximate
+inverse, the IGDN layer for decoding \cite{balle2015density} \cite{balle2016end}.
+
+\subsubsection{VAEs}
+\par
 
 \subsubsection{Probabilistic Ladder Network}
 \paragraph{}
@@ -708,6 +983,37 @@ can train a classical VAE. On the data
 \subsubsection{Rejection sampling}
 \paragraph{}
 \cite{harsha2007communication}
+
+
+\begin{algorithm}
+  \caption{Parallelized, bit-budgeted rejection sampling}
+  \label{alg:multivariate_rej_samp}
+  \begin{algorithmic}
+    \Procedure{Rej-Sampler}{q}
+    \State
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Greedy sampler}
+  \label{alg:greedy_sampler}
+  \begin{algorithmic}
+    \Procedure{Greedy-Sampler}{}
+    \State
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Adaptive Importance Sampler}
+  \label{alg:adaptive_importance_sampler}
+  \begin{algorithmic}
+    \Procedure{Greedy-Sampler}{}
+    \State
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
 
 \subsection{Arithmetic Coding}
 \paragraph{}
@@ -768,6 +1074,29 @@ The rejection sampling algorithm presented here is due to
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
-\subsection*{Importance Sampling}
+
+\begin{algorithm}
+  \caption{Importance sampling algorithm proposed by \cite{havasi2018minimal}}
+  \label{alg:imp_samp}
+  \begin{algorithmic}
+    \Procedure{Importance-Sampler}{$P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \Comment $P$ is the prior
+    \Statex
+    \Comment $Q$ is the posterior
+    \Statex
+    \Comment $x_i$ are i.i.d. samples from $Q$
+
+    \State $K \gets \exp\{\KL{Q}{P}\}$
+
+    \State $\tilde{w}_i \gets \frac{Q(x_i)}{P(x_i)} \quad \forall i =
+    1,\hdots K$
+
+    \State Sample $j \sim p(\tilde{w})$
+
+    \Return $j, x_j$
+    \Statex
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
 \section*{Appendix B: Images}
 \end{document}
