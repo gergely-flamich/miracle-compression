@@ -22,6 +22,7 @@ backend=biber,
 
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{bm} % bold maths symbols
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{hyperref}
@@ -71,6 +72,13 @@ backend=biber,
 
 \newcommand{\Norm}{\mathcal{N}}
 \newcommand{\Unif}{\mathcal{U}}
+
+% Bold maths symbols
+\newcommand{\MU}{\boldsymbol\mu}
+\newcommand{\SIGMA}{\boldsymbol\sigma}
+\newcommand{\PSI}{\boldsymbol\psi}
+\newcommand{\THETA}{\boldsymbol\theta}
+\newcommand{\PHI}{\boldsymbol\phi}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -713,9 +721,30 @@ as well as others, these will be emphasized in Section \ref{sec:our_method}.
   they term \textit{subpixel} convolutions, where they perform a regular
   convolution operation with an increased number of filters, and then reshape
   the resulting tensor into one with larger spatial extent but fewer channels.
-\item \cite{rippel2017real}
-\item \cite{balle2018variational} base their architecture heavily on the one
-  presented in \cite{balle2016end} in particular,
+\item \cite{rippel2017real} use a fully convolutional encoder/decoder pair,
+  downscaling between convolutions. They also add in an additional residual
+  connection from every layer to the last, summing at the end. They call this
+  \textit{pyramidal decomposition} and \textit{interscale alignment}, with the
+  rationale behind it being that the residual connections extract features at
+  different scales, and so the latent representations can take advantage of this.
+\item \cite{balle2018variational} extend the architecture presented in
+  \cite{balle2016end}. In particular, the encoder and decoder remain the same,
+  and they add an additional stochastic layer on top of the architecture.
+  However, it is important to note, that this is not a hierarchical VAE, it
+  resembles instead a probabilistic ladder network \cite{sonderby2016train}.
+  The layers leading to the second level are more standard, it is still fully
+  convlutional with downsampling after convolutions, however, instead of GDN
+  they use ReLUs.
+  \par
+  A slightly strange
+  design choice on their part is since they will wish to force the second stage
+  activations to be positive (it will be predicting a scale parameter), instead
+  of using an exponential or softplus ($\log (1 + \exp\{x\})$) activation at the
+  end, they take the absolute value of the input to the first layer, and rely on
+  the ReLUs never giving negative values. We are not sure if this was meant to
+  be a computational saving, as taking absolute values is certainly cheaper then
+  either of the aforementioned standard ways of forcing positive values, or it
+  if it gave better results.
 \end{itemize}
 
 \subsubsection{Quantization}
@@ -804,9 +833,26 @@ suffers from neither of these issues, as we forego the quantization step altoget
   need for them to approximate it to make it differentiable.
 \item
   \textbf{Quantization }
-  
-  \cite{balle2018variational}
-  \textbf{Rate }
+  \cite{balle2018variational} the quantization scheme remains the same as in
+  \cite{balle2016end}, extended to the second stochastic layer as well.
+
+  \textbf{Rate } 
+  As for the rate, they us a non-parametric, fully factorized prior for the
+  second stage:
+  \[
+    p(\vec{\tilde{z}}^{(2)} \mid \psi) =
+    \prod_i \left(  p\left(\tilde{z}^{(2)}_i \mid \psi_i\right) *
+      \Unif\left(-\frac{1}{2}, -\frac{1}{2}\right)\right).
+  \]
+  Then, they model the first stage as dithered zero-mean Gaussians with variable
+  scale depending on the second stage, thereby relaxing the initial independence
+  assumption on the latent space to a more general \textit{conditional
+    indepenence} assumption \cite{bishop1998latent}:
+  \[
+    p(\vec{\tilde{z}}^{(1)} \mid \vec{\tilde{z}}^{(2)}) = 
+    \prod_i \left(  \Norm\left(\tilde{z}^{(1)}_i \mid 0, \tilde{\sigma}^2_i\right)*
+      \Unif\left(-\frac{1}{2}, -\frac{1}{2}\right)\right).
+  \]
 \end{itemize}
 
 Crucially, the rate term in our optimization objective is different from
@@ -836,8 +882,31 @@ and we briefly review them here.
 \item \cite{toderici2017full}
 \item \cite{theis2017lossy} used their estimated probabilities $q(\vec{z})$ and
   used an off-the-shelf publicly available range coder to compress their latents.
-\item \cite{rippel2017real} bitplane decomposition 
-\item \cite{balle2018variational}
+\item \cite{rippel2017real} treat each bit of their $B$-bit precision quantized
+  representations individually, because they want to utilize the sparsity of
+  more significant bits. They train a separate binary classifier to predict
+  probabilities for each individual bit based on a set of features (they call
+  it a \textit{context}) to use in an adaptive arithmetic coder. They further
+  add a regularizing term during training based on the codelength of a batch to
+  match a length target. This is to encourage sparsity for high-resolution, but
+  low entropy images and a longer codelength for low resolution but high entropy
+  images.
+\item \cite{balle2018variational} use a non-adaptive arithmetic coder as their
+  entropy code. As they have two stochastic levels, with the
+  first depending on the second, they have to code them sequentially. For the
+  second level, they get their frequency estimates for $\vec{\hat{z}}^{(2)}$
+  from the non-parametric prior:
+  \[
+    p(\hat{z}^{(2)}_i) =
+    \int_{\hat{z}^{(2)}_i-\frac{1}{2}}^{\hat{z}^{(2)}_i+\frac{1}{2}}p(\tilde{z}_i \mid \psi_i) \d \tilde{z}_i.
+  \]
+  Then, on the first level, their probaibilities are given by:
+  \[
+    p(\hat{z}^{(1)} \mid \tilde{z}^{(2)}) = p(\hat{z}^{(1)} \mid
+    \tilde{\sigma}^2_i) = 
+    \int_{\hat{z}^{(1)}_i-\frac{1}{2}}^{\hat{z}^{(1)}_i + \frac{1}{2}}\Norm(\tilde{z}_i \mid 0, \tilde{\sigma}^2_i) \d \tilde{z}_i.
+  \]
+
 \end{itemize}
 
 \subsubsection{Training}
@@ -852,7 +921,7 @@ and we briefly review them here.
   As this is a non-differentiable loss function due to the quantization, they
   replace the discrete entropy term with a differential entropy term:
   \[
-   L = \Exp\left[ -sum_i \log_2 p(z_i + \delta z_i \mid \psi^{(i)}) +
+   L = \Exp\left[ -\sum_i \log_2 p(z_i + \delta z_i \mid \psi^{(i)}) +
                      \beta d(\vec{x}, \vec{\hat{x}})\right].
   \]
   \par Since they use MSE as the distance metric, they note that their
@@ -889,10 +958,36 @@ and we briefly review them here.
   the training performance saturated, they unmasked them incrementally.
   They trained the model with Adam, with a small learning rate decay.
 \item \cite{rippel2017real} use the MS-SSIM metric as the training objective and
-  they use an adversarial loss 
-  \cite{rippel2017real} use GANs \cite{goodfellow2014generative}
-\item \cite{balle2018variational} train 32 models, half optimized for MSE and
-  half optimized for MS-SSIM
+  they use an adversarial \cite{goodfellow2014generative} loss use GANs 
+\item \cite{balle2018variational} in the same vein as they laid out their
+  VAE-based training objective in \cite{balle2016end}, the data log likelihood
+  term stays, but now the regularizing term is the KL divergence between the
+  joint posterior $q(\vec{\tilde{z}}^{(1)}, \vec{\tilde{z}}^{(2)} \mid \vec{x})$
+  and the joint prior 
+  $q(\vec{\tilde{z}}^{(1)}, \vec{\tilde{z}}^{(2)})$. Here, as due to the
+  dithering assumption, the joint posterior works out to be
+  \[
+    q\left(\vec{\tilde{z}}^{(1)}, \vec{\tilde{z}}^{(2)} \mid \vec{x}\right) =
+    \prod_i \Unif\left(\tilde{z}^{(1)}_i \mid \hat{z}^{(1)}, 1\right) \cdot
+    \prod_i \Unif\left(\tilde{z}^{(2)}_i \mid \hat{z}^{(2)}, 1\right).
+  \]
+  The prior is as explained in the previous section
+  \par
+  Then, taking the KL between these, the full traning objective works out to be
+  \begin{equation}
+    \label{eq:balle_var_train_objective}
+    L = \Exp\left[ -\sum_i \log_2 p(\tilde{z}^{(2)}_i \mid \psi^{(i)}) 
+      -\sum_i \log_2 p(\tilde{z}^{(1)}_i \mid \tilde{\sigma}^2_i) +
+      \beta d(\vec{x}, \vec{\hat{x}})\right].
+  \end{equation}
+  Eq \ref{eq:balle_var_train_objective} is very important, as it will be
+  directly translated to our learning objective.
+  \par
+  They train 32 models, half using the architecture from \cite{balle2016end} and
+  half using the current one, half optimized for MSE and half of MS-SSIM, with 8
+  different $\beta$s. They use Adam to optimize their model, and they report
+  that neither batch normalization nor learning rate decay gave better results.
+  The former they attribute to GDN.
 \end{itemize}
 
 \subsubsection{Evaluation}
@@ -967,6 +1062,14 @@ inverse, the IGDN layer for decoding \cite{balle2015density} \cite{balle2016end}
 
 \subsubsection{VAEs}
 \par
+As a baseline, we started by attempting to replicate the exact architecture
+presented in \cite{balle2016end}, but with a Gaussian prior and posterior
+instead. Although they do not describe it, we chose mirror padding, as it seems
+to be the standard for this task \cite{theis2017lossy}. Luckily, the most
+error-prone part, the implementation of the GDN and IGDN layers was already
+available in \texttt{Tensorflow}\footnotemark.
+
+\footnotetext{\url{https://www.tensorflow.org/api_docs/python/tf/contrib/layers/gdn}}
 
 \subsubsection{Probabilistic Ladder Network}
 \paragraph{}
@@ -999,12 +1102,64 @@ inverse, the IGDN layer for decoding \cite{balle2015density} \cite{balle2016end}
   \caption{Greedy sampler}
   \label{alg:greedy_sampler}
   \begin{algorithmic}
-    \Procedure{Greedy-Sampler}{}
-    \State
+    \Procedure{Greedy-Sampler}{$K, B, \MU_p, \SIGMA_p^2, q, \langle s_1, \hdots s_k \rangle$}
+
+    \State $\vec{\tilde{z}}_0 \gets \vec{0}$
+    \Comment Initialize the sample
+
+    \State $I = ()$
+    \Comment Initialize the index set to an empty list
+    \For{$k = 1, \hdots, K$}
+
+    \State Draw $\vec{s}_{k, b} \sim \Norm\left(\frac{\MU_p}{K}, \frac{\SIGMA_p}{K}
+    \right)\quad$ for $b = 1,\hdots,B$
+    
+    \State $\vec{c}_{k, b} = \vec{\tilde{z}}_{k - 1} + \vec{s}_{k, b}$
+
+    \State $\vec{\tilde{z}}_k \gets \argmax_{\vec{c}_{k, b}} \left\{ \log q(\vec{c}_{k, b}) \right\}$
+    \Comment Create new sample
+
+    \State $i_k \gets \argmax_{b} \left\{ \log q(\vec{c}_{k, b}) \right\}$
+    \Comment Store the index of the shard sample that we used
+
+    \State Append $i_k$ to $I$.
+    
+    \EndFor
+
+    \State \Return $\vec{\tilde{z}}_K, I$
+    
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
-
+\par
+To solve the issue of dimensionality, we would need a way to code the sample
+from the whole multivariate distribution. One way of doing this, as we have
+seen, was using the indpendence assumption of the latents and break it up per
+dimension. But there is another way. The strategy will be to progressively ``build''
+a reasonable sample from the posterior. A well known fact about Gaussian
+distributed random variables is that they are closed under addition. Concretely,
+if $X \sim \Norm(\mu_X, \sigma^2_X), Y \sim \Norm(\mu_Y, \sigma^2_Y)$, then
+\[
+  X + Y \sim \Norm(\mu_X + \mu_Y, \sigma_X^2 + \sigma_Y^2).
+\]
+Assuming that the normals are diagonal multivariate Gaussians, the extension of
+the above to it is straight forward.
+Using this simple fact, we may now do the following: pick an integer, $K$, that
+we will call the number of shards. Then, given the prior $p(\vec{z}^{(1)} \mid
+\MU, \SIGMA^2)$, we can break it up into $K$ equal shards $p_k\left(\vec{z}^{(1)}
+\mid \frac{\MU}{K}, \frac{\SIGMA^2}{K}\right)$. Now, for each individual shard,
+we may allocate a bit budget $B$. Then, we draw $2^B$ samples from each shard.
+Note, if we assign a different, but preagreed sequence of random seeds to each
+shard, then each sample can be coded in $B$ bits. Start with an initial sample
+$\vec{\tilde{z}}_0 = \vec{0}$. Now, draw $2^B$ samples $\vec{s}_{1, b}$ from the
+first shard $p_1$ and create ``candidate samples''$\vec{c}_{1, b} =
+\vec{tilde{z}}_0 + \vec{s}_{1, b}$ and calculate their log-likelihoods under the
+target. Finally, set $\vec{\tilde{z}}_1 = \argmax_{\vec{c}_{1, b}}\log
+q(\vec{c}_{1, b})$, and repeat until we reach $\vec{\tilde{z}}_K$, at which
+point we return it. Then the returned vector will be approximately from the
+target. More precisely, this is a ``guided'' random walk, where we bias the
+trajectory towards the median of the distribution. The algorithm is described in
+more detail in Algorithm \ref{alg:greedy_sampler}.
 \begin{algorithm}
   \caption{Adaptive Importance Sampler}
   \label{alg:adaptive_importance_sampler}
@@ -1077,7 +1232,7 @@ The rejection sampling algorithm presented here is due to
 
 \begin{algorithm}
   \caption{Importance sampling algorithm proposed by \cite{havasi2018minimal}}
-  \label{alg:imp_samp}
+  \label{alg:miracle_imp_samp}
   \begin{algorithmic}
     \Procedure{Importance-Sampler}{$P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
     \Comment $P$ is the prior
