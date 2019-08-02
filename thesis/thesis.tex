@@ -1072,7 +1072,14 @@ available in \texttt{Tensorflow}\footnotemark.
 \footnotetext{\url{https://www.tensorflow.org/api_docs/python/tf/contrib/layers/gdn}}
 
 \subsubsection{Probabilistic Ladder Network}
-\paragraph{}
+\par
+As mentioned in \cite{balle2018variational}, their scale hyperprior architecture
+closely resembles a \textit{probabilistic ladder network} (PLN), as defined by
+\cite{sonderby2016train}. We quickly present here a brief overview of them.
+\par
+In order to get to the PLN, we first start by Hieararchical VAEs (H-VAEs). They
+allow us to stack multiple stochastic layers on top of one another, in a rather
+obvious way.
 
 \subsubsection{Two-Stage VAE}
 \paragraph{}
@@ -1092,11 +1099,72 @@ available in \texttt{Tensorflow}\footnotemark.
   \caption{Parallelized, bit-budgeted rejection sampling}
   \label{alg:multivariate_rej_samp}
   \begin{algorithmic}
-    \Procedure{Rej-Sampler}{q}
+    \Procedure{Rej-Sampler}{$B, P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \State $D \gets \text{dim}(P)$
+    \State $p_{d, 0}(x) \gets 0 \quad \forall x \in \X, \forall d = 1,\hdots D$.
+    \State $p_{d, 0}^* \gets 0, \forall d = 1,\hdots D$.
+    \State $A = \vec{0} \in \{0, 1\}^D$
+    \Comment Keeps track of whether a dimension has been accepted or not
+
+    \State $S = \vec{0} \in \Reals^D$
+    \Comment Sample we are ``building''
+
+    \State $I = -\vec{1} \in \Nats^D$
+    \Comment MIRACLE index vector for each dimension
+
+    \For{$i \gets 1, \hdots 2^B$}
+
+    \For{$d \gets 1, \hdots D$}
+
+    \If{$A_d = 1$}
+
+    \State Skip
+
+    \EndIf
+
+
     \State
+    $\alpha_{d, i}(x) \gets \min{P_d(x) - p_{d, i - 1}(x), (1 - p_{d, i - 1}^*)Q_d(x)}\quad
+    \forall x \in \X$
+
+    \State $p_{d, i}(x) \gets p_{d, i - 1}(x) + \alpha_{d, i}(x)$
+    
+    \State $p_{d, i}^* \gets \sum_{x \in \X}p_{d, i}(x)$
+
+    \State $\beta_{d, i}(x_i) \gets \frac{\alpha_{d, i}(x)}{(1 - p_{d, i}^*)Q_d(x)}$
+
+    \State Draw $u \sim \Unif(0, 1)$
+
+    \If{$u < \beta_{d, i}(x_i)$}
+
+    \State $A_d \gets 1$
+    \Comment Indicate we accepted the sample
+
+    \State $S_d \gets x_i$
+    \State $I_d \gets i$
+
+    \EndIf
+    
+    \EndFor
+    \EndFor
+
+    \State\Return $I, S$
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
+
+\par
+We modify Algorithm \ref{alg:harsha_rej_sampling} in two ways to make it more
+efficient. While their algorithm is Las Vegas, i.e. it always gives the right
+answer, but in random time, this can get very inefficient if we have a few
+dimensions with very high KL. Instead, to circumvent this issue and fix the
+runtime of the algorithm, by allocating a bit budget $B$ to each dimension, and
+only allowing $2^B$ samples to be examined. If the sample is accepted within
+these draws, then we carry on with their sample indices. The
+dimensions where every sample was rejected, we sample from the true target,
+and quantize the samples to 16 bits. We then communicate these quantized
+samples. The concrete details can be seen in Algorithm
+\ref{alg:multivariate_rej_samp}.
 
 \begin{algorithm}
   \caption{Greedy sampler}
@@ -1153,7 +1221,7 @@ Note, if we assign a different, but preagreed sequence of random seeds to each
 shard, then each sample can be coded in $B$ bits. Start with an initial sample
 $\vec{\tilde{z}}_0 = \vec{0}$. Now, draw $2^B$ samples $\vec{s}_{1, b}$ from the
 first shard $p_1$ and create ``candidate samples''$\vec{c}_{1, b} =
-\vec{tilde{z}}_0 + \vec{s}_{1, b}$ and calculate their log-likelihoods under the
+\vec{\tilde{z}}_0 + \vec{s}_{1, b}$ and calculate their log-likelihoods under the
 target. Finally, set $\vec{\tilde{z}}_1 = \argmax_{\vec{c}_{1, b}}\log
 q(\vec{c}_{1, b})$, and repeat until we reach $\vec{\tilde{z}}_K$, at which
 point we return it. Then the returned vector will be approximately from the
@@ -1164,12 +1232,80 @@ more detail in Algorithm \ref{alg:greedy_sampler}.
   \caption{Adaptive Importance Sampler}
   \label{alg:adaptive_importance_sampler}
   \begin{algorithmic}
-    \Procedure{Greedy-Sampler}{}
-    \State
+    \Procedure{Adaptive-Importance-Sampler}{$K, G, B, P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \State $\Gamma \gets ()$
+    \Comment Group sizes
+    \State $kl_i \gets \KL{Q_i}{P_i} \forall i = 1, \hdots N$
+    \Comment Get KLs for each dimension
+    \State $OI \gets $ \Call{Where}{$kl_i > K$}
+    \Comment Outlier indices in the vector
+    \State Sample $O \sim Q_{OI}$
+    \Comment Target distribution restricted to the dimensions defined by $OI$.
+    \State $\hat{O} \gets $ \Call{Quantize}{O}
+    \State $Q' \gets Q_{\setminus OI}$
+    \State $P' \gets P_{\setminus OI}$
+    \Comment Remove outlier dimensions
+    \State $\gamma \gets 0$
+    \Comment Current group size
+    \State $k \gets 0$
+    \Comment Current group KL
+
+    \For{$i \gets 1, \hdots \text{dim}(Q')$}
+
+    \If{$k + kl_i > B$ or $\gamma - \text{last}(\Gamma) > G$}
+
+    \State Append $\gamma$ to $\Gamma$
+    \State $k \gets kl_i$
+    \State $\gamma \gets 1$
+
+    \Else
+
+    \State $k \gets k + kl_i$
+    \State $\gamma \gets \gamma + 1$
+
+    \EndIf
+
+    \EndFor
+
+    \State Append $\gamma$ to $\Gamma$
+    \Comment Append the last group size
+
+    \State $S = ()$
+    \Comment Importance samples for the groups
+    \State $I = ()$
+    \Comment MIRACLE sample indices
+    \State $g \gets 0$
+    \Comment Current group index
+
+    \For{$\gamma$ in $\Gamma$}
+    \Comment Now importance sample each group
+
+    \State $idx, s \gets$ \Call{Importance-Sample}{$P_{g:g + \gamma}, Q_{g: g +
+        \gamma}, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \State Append $idx$ to $I$
+    \State Append $s$ to $S$
+
+    \EndFor
+
+    \State \Return I, S
+
     \EndProcedure
   \end{algorithmic}
 \end{algorithm}
-
+The adaptive importance sampler uses the importance sampler described in
+Algorithm \ref{alg:miracle_imp_samp}. The idea is to use the block based
+importance sampling, as proposed in \cite{havasi2018minimal}, however, unlike
+them we allocate the block sizes dynamically. In particular, we set a bit
+budget $B$ per group, a maximum group size $G$ and an individual limit $K$.
+We first begin by discarding individual dimensions where the KL is larger
+than $K$. Then, we flatten the remaining dimensions in raster-scan order and 
+iteratively add dimensions into the current group so long as the total KL of the
+group reaches either the bit budget $B$ or the number of dimensions added to the
+group reaches $G$. At this point we start with a new group. Once the whole
+vector has been partitioned, we importance sample each group using Algorithm 
+\ref{alg:miracle_imp_samp}. The removed dimensions are sampled directly from
+the posterior and then the samples are quantized to 16 bits. The complete
+algorithm can be seen in Algorithm \ref{alg:adaptive_importance_sampler}.
 \subsection{Arithmetic Coding}
 \paragraph{}
 ac reference \cite{rissanen1981universal}
