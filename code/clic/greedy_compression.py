@@ -575,8 +575,19 @@ def decode_grouped_importance_sample(bitcode,
     outlier_samples = tfq.dequantize(tf.cast(outlier_samples, tf.quint16), -30, 30)
     
     # Add back the quantized outliers
-    updates = tf.scatter_nd(tf.reshape(outlier_indices, [-1, 1]), 
-                            tf.reshape(outlier_samples, [-1]), 
+    outlier_indices = tf.cast(tf.reshape(outlier_indices, [-1, 1]), tf.int32)
+    outlier_samples = tf.reshape(outlier_samples, [-1])
+    
+#     print(outlier_indices.dtype)
+#     print(outlier_indices.shape.as_list())
+    
+#     print(outlier_samples.dtype)
+#     print(outlier_samples.shape.as_list())
+    
+#     print(sample.dtype)
+#     print(sample.shape.as_list())
+    updates = tf.scatter_nd(outlier_indices, 
+                            outlier_samples, 
                             sample.shape.as_list())
                             
     sample = tf.where(tf.equal(updates, 0), sample, updates)

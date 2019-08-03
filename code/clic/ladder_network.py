@@ -765,7 +765,7 @@ class ClicNewLadderCNN(snt.AbstractModule):
         
         summaries = {
             "image_shape": image_shape,
-            "theoretical_byte_size": theoretical_byte_size,
+            "theoretical_byte_size": float(theoretical_byte_size.numpy()),
             "actual_byte_size": actual_byte_size,
             "extra_byte_size": extra_byte_size,
             "actual_no_extra": actual_no_extra,
