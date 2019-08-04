@@ -171,6 +171,7 @@ class ClicTwoStageVAE_Manifold(snt.AbstractModule):
                  likelihood="gaussian",
                  latent_filters=192,
                  num_layers=4,
+                 learn_log_gamma=True,
                  name="clic_two_stage_vae_manifold"):
 
         # Call superclass
@@ -192,6 +193,8 @@ class ClicTwoStageVAE_Manifold(snt.AbstractModule):
 
         self.num_layers = num_layers        
         self.latent_filters = latent_filters
+        
+        self.learn_log_gamma = learn_log_gamma
 
     @property
     def log_prob(self):
@@ -298,7 +301,7 @@ class ClicTwoStageVAE_Manifold(snt.AbstractModule):
             
         reconstruction = tf.nn.sigmoid(activations)
             
-        self.log_gamma = tf.get_variable("gamma_x", dtype=tf.float32, initializer=0.)
+        self.log_gamma = tf.get_variable("gamma_x", dtype=tf.float32, initializer=0.) if self.learn_log_gamma else 0.
         gamma = tf.exp(self.log_gamma)
         self.likelihood = self.likelihood_dist(loc=reconstruction,
                                                scale=gamma)

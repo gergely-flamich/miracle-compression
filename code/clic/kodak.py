@@ -1,4 +1,4 @@
-import requests, os, glob
+import requests, os, glob, time, json
 
 from imageio import imwrite
 
@@ -94,6 +94,10 @@ def compress_kodak(kodak_dataset_path,
                    theoretical=None,
                    verbose=False):
     
+    
+    if theoretical is not None:
+        reconstruction_subdir = "theoretical_" + reconstruction_subdir
+    
     reconstruction_path = reconstruction_root + "/" + reconstruction_subdir
     
     if not os.path.exists(reconstruction_path):
@@ -126,11 +130,17 @@ def compress_kodak(kodak_dataset_path,
         
         kodak_im = kodak_im[tf.newaxis, ...]
         
+        kodak_im_name = kodak_im_format.format(i + 1)
+        stats_path = reconstruction_root + "/stats.json"
+        
         if theoretical is not None:
             
             # Everything is sampled from the true posterior
             if theoretical == "full":
                 reconstruction = vae(kodak_im)
+                
+                encoding_time = -1
+                decoding_time = -1
                 
             # The first level is sampled using the coded method, 
             # the second level is sampled from the true posterior
@@ -138,6 +148,8 @@ def compress_kodak(kodak_dataset_path,
             
                 # Set priors and posteriors
                 vae(kodak_im)
+                
+                start_time = time.time()
                 
                 sample1, _, _ = code_grouped_greedy_sample(target=vae.latent_posteriors[0], 
                                                             proposal=vae.latent_priors[0], 
@@ -149,9 +161,15 @@ def compress_kodak(kodak_dataset_path,
                                                             use_log_prob=use_log_prob,
                                                             adaptive=True)
                 
+                encoding_time = time.time() - start_time
+                
+                start_time = time.time()
+                
                 reconstruction = vae.decode((tf.zeros_like(vae.latent_priors[1].loc),
                                              tf.reshape(sample1, vae.latent_priors[0].loc.shape.as_list())
                                             ))
+                
+                decoding_time = time.time() - start_time
 
             else:
                 raise Exception("unrecognised theoretical setup: " + theoretical)
@@ -167,17 +185,19 @@ def compress_kodak(kodak_dataset_path,
             image_shape = kodak_im.shape.as_list()
             
             bpp = theoretical_byte_size / (image_shape[1] * image_shape[2]) 
-            
-            with open(reconstruction_path + "/bpp.csv", "a") as log_csv:
-                log_csv.write(kodak_im_format.format(i + 1) + ",{:.4f}\n".format(bpp))
-                
-                
-                
+
+            summaries = {"bpp": bpp,
+                         "encoding_time": encoding_time,
+                         "decoding_time": decoding_time,
+                         "total_time": encoding_time + decoding_time}
+
         else:
             if os.path.exists(comp_file_paths[i]):
                 print(comp_file_paths[i] + " already exists, skipping coding.")
 
             else:
+                
+                start_time = time.time()
                 _, summaries = vae.code_image_greedy(image=kodak_im,
                                                     seed=seed,
                                                     rho=rho,
@@ -192,21 +212,81 @@ def compress_kodak(kodak_dataset_path,
                                                     second_level_max_group_size_bits=second_level_max_group_size_bits,
                                                     second_level_dim_kl_bit_limit=12,
                                                     verbose=verbose)
-
-                with open(reconstruction_path + "/bpp.csv", "a") as log_csv:
-                    efficiency = summaries["actual_byte_size"] / summaries["theoretical_byte_size"]
-                    log_csv.write(kodak_im_format.format(i + 1) + ",{:.4f},{:.4f}\n".format(summaries["bpp"],
-                                                                                            efficiency))
-
+                
+                encoding_time = time.time() - start_time
+                
             if os.path.exists(reconstruction_im_paths[i]):
                 print(reconstruction_im_paths[i] + " already exists, skipping reconstruction.")
 
             else:
+                start_time = time.time()
                 reconstruction = vae.decode_image_greedy(comp_file_path=comp_file_paths[i],
                                                          verbose=verbose,
                                                          rho=rho)
-                
+                decoding_time = time.time() - start_time
                 print("Writing " + reconstruction_im_paths[i])
                 
                 reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
                 imwrite(reconstruction_im_paths[i], reconstruction)
+                
+        summaries["encoding_time"] = encoding_time,
+        summaries["decoding_time"] = decoding_time,
+        summaries["total_time"] = encoding_time + decoding_time
+                  
+        print(summaries)
+        
+        if os.path.exists(stats_path):
+            with open(stats_path, "r") as stats_fp:
+                stats = json.load(stats_fp)
+        else:
+            stats = {}
+
+        if kodak_im_name not in stats:
+            stats[kodak_im_name] = {}
+            
+        with open(stats_path, "w") as stats_fp:
+            stats[kodak_im_name][reconstruction_subdir] = summaries
+
+            json.dump(stats, stats_fp)
+            
+            
+def baseline_compress_kodak(kodak_dataset_path,
+                           reconstruction_root="../../data/kodak_miracle/",
+                           n_kodak_images=24,
+                           kodak_im_format="kodim{:02d}",
+                           jpeg_quality_steps=7,
+                           verbose=False):
+  
+    # Create lists of paths for every image in the dataset
+    kodak_im_paths = [kodak_dataset_path + "/" + kodak_im_format.format(i) + ".png"
+                      for i in range(1, n_kodak_images + 1)]
+
+    # Load in the Kodak dataset
+    kodak_paths_ds = tf.data.Dataset.from_tensor_slices(kodak_im_paths)
+    kodak_ds = kodak_paths_ds.map(load_and_process_image)
+
+    jpeg_max_quality = 95
+    jpeg_min_quality = 1
+
+    # Create JPEG baseline
+    for j in range(jpeg_min_quality, jpeg_max_quality, jpeg_quality_steps):
+
+        print("JPEG quality setting: {}".format(j))
+        
+        reconstruction_path = reconstruction_root + "/jpeg_{}".format(j)
+        
+        if not os.path.exists(reconstruction_path):
+            print("Creating reconstruction directory " + reconstruction_path)
+
+            os.makedirs(reconstruction_path)
+
+        reconstruction_im_paths = [reconstruction_path + "/" + kodak_im_format.format(i) + ".jpg"
+                                   for i in range(1, n_kodak_images + 1)]
+            
+        for i, kodak_im in tqdm(enumerate(kodak_ds)):
+            imsave(reconstruction_im_paths[i], quality=j)
+            
+        # TODO: Create JPEG2000 baseline
+
+        # TODO: Create WebP baseline
+    

@@ -1,0 +1,37 @@
+{
+    "checkpoint_name": "_ckpt", 
+    
+    "num_epochs": 20,
+    "batch_size": 8, 
+    
+    "residual": true,
+    "use_reconstruction_loss": true,
+    
+    "pixels_per_training_image": 196608, 
+    "training_set_size": 93085,
+    "image_size": [
+        256, 
+        256
+    ], 
+    
+    "beta": 0.1, 
+    "gamma": 0.0, 
+    
+    "learning_rate": 3e-05, 
+    "optimizer": "adam", 
+    "warmup": 4.0,
+    "learn_log_gamma": false,
+    
+    "latent_dist": "gaussian", 
+    "likelihood": "gaussian", 
+    
+    "latent_dims": 128, 
+    
+    "first_level_layers": 4, 
+    "second_level_layers": 4, 
+    
+    "first_stage_channels": 192,
+    "second_stage_channels": 192, 
+    
+    "log_freq": 50
+}

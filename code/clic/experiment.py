@@ -73,11 +73,12 @@ def run(config_path,
     
     global_step = tf.train.get_or_create_global_step()
     
-    learning_rate = tf.compat.v1.train.exponential_decay(config["learning_rate"],
-                                                         global_step,
-                                                         config["learning_rate_decay_step"], 
-                                                         0.96, 
-                                                         staircase=False)
+    learning_rate = lambda: tf.constant(config["learning_rate"])
+#     learning_rate = tf.compat.v1.train.exponential_decay(config["learning_rate"],
+#                                                          global_step,
+#                                                          config["learning_rate_decay_step"], 
+#                                                          0.96, 
+#                                                          staircase=False)
 
     optimizer = optimizers[config["optimizer"]](learning_rate)
 

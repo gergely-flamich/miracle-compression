@@ -11,7 +11,7 @@
         256
     ], 
     
-    "beta": 0.01, 
+    "beta": 1.0, 
     "gamma": 0.0, 
     "heteroscedastic": false,
     "average_gamma": false,
@@ -20,7 +20,7 @@
     "learning_rate_decay_step": 1500,
     "optimizer": "adam", 
     "warmup": 4.0,
-    "learn_log_gamma": false,
+    "learn_log_gamma": true,
     
     "first_level_latent_dist": "gaussian", 
     "second_level_latent_dist": "gaussian", 
