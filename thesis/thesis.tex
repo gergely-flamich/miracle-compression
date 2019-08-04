@@ -70,8 +70,9 @@ backend=biber,
 \newcommand{\Ints}{\mathbb{Z}}
 \newcommand{\Nats}{\mathbb{N}}
 
-\newcommand{\Norm}{\mathcal{N}}
-\newcommand{\Unif}{\mathcal{U}}
+\newcommand{\Norm}[1]{\mathcal{N}\left( #1 \right)}
+\newcommand{\Unif}[1]{\mathcal{U}\left( #1 \right)}
+\newcommand{\Laplace}[1]{\mathcal{L}\left( #1 \right)}
 
 % Bold maths symbols
 \newcommand{\MU}{\boldsymbol\mu}
@@ -297,7 +298,6 @@ It will be useful to clarify some of the notation throughout this work.
 \end{itemize}
 \subsection{Image Compression}
 \par
-The most popular lossy image codec today is JPEG \cite{bull2014communicating},
 with 
 \paragraph{Source Coding}
 From a theoretical point of view, given some source $S$, a sender and a
@@ -769,7 +769,7 @@ suffers from neither of these issues, as we forego the quantization step altoget
   quantization error as dither, i.e. they replace their quantized latents
   $\hat{z}_i$ by
   \[
-    \tilde{z}_i = z_i + \delta z_i, \quad z_i \sim \Unif(0, 1). 
+    \tilde{z}_i = z_i + \delta z_i, \quad z_i \sim \Unif{0, 1}. 
   \]
   \par \textbf{Rate }
   To model the rate, they also require to learn a distribution over the
@@ -811,8 +811,8 @@ suffers from neither of these issues, as we forego the quantization step altoget
   dimensions, which gives the negative log likelihood
   \[
     -\log_2 q(\vec{z} + \vec{u}) =
-    \sum_{i, j, k} \log_2 \sum_s \pi_{k, s} \Norm(z_{k,i,j} + u_{k, i, j} \mid
-    0, \sigma_{k, s}^2),
+    \sum_{i, j, k} \log_2 \sum_s \pi_{k, s} \Norm{z_{k,i,j} + u_{k, i, j} \mid
+    0, \sigma_{k, s}^2},
   \]
   where $i,j$ iterate through the spatial dimensions and $k$ indexes the filters.
   
@@ -842,7 +842,7 @@ suffers from neither of these issues, as we forego the quantization step altoget
   \[
     p(\vec{\tilde{z}}^{(2)} \mid \psi) =
     \prod_i \left(  p\left(\tilde{z}^{(2)}_i \mid \psi_i\right) *
-      \Unif\left(-\frac{1}{2}, -\frac{1}{2}\right)\right).
+      \Unif{-\frac{1}{2}, -\frac{1}{2}\right)}.
   \]
   Then, they model the first stage as dithered zero-mean Gaussians with variable
   scale depending on the second stage, thereby relaxing the initial independence
@@ -850,8 +850,8 @@ suffers from neither of these issues, as we forego the quantization step altoget
     indepenence} assumption \cite{bishop1998latent}:
   \[
     p(\vec{\tilde{z}}^{(1)} \mid \vec{\tilde{z}}^{(2)}) = 
-    \prod_i \left(  \Norm\left(\tilde{z}^{(1)}_i \mid 0, \tilde{\sigma}^2_i\right)*
-      \Unif\left(-\frac{1}{2}, -\frac{1}{2}\right)\right).
+    \prod_i \left(  \Norm{\tilde{z}^{(1)}_i \mid 0, \tilde{\sigma}^2_i\right)*
+      \Unif{-\frac{1}{2}, -\frac{1}{2}}}.
   \]
 \end{itemize}
 
@@ -904,7 +904,7 @@ and we briefly review them here.
   \[
     p(\hat{z}^{(1)} \mid \tilde{z}^{(2)}) = p(\hat{z}^{(1)} \mid
     \tilde{\sigma}^2_i) = 
-    \int_{\hat{z}^{(1)}_i-\frac{1}{2}}^{\hat{z}^{(1)}_i + \frac{1}{2}}\Norm(\tilde{z}_i \mid 0, \tilde{\sigma}^2_i) \d \tilde{z}_i.
+    \int_{\hat{z}^{(1)}_i-\frac{1}{2}}^{\hat{z}^{(1)}_i + \frac{1}{2}}\Norm{\tilde{z}_i \mid 0, \tilde{\sigma}^2_i} \d \tilde{z}_i.
   \]
 
 \end{itemize}
@@ -929,7 +929,7 @@ and we briefly review them here.
   strange, VAE with Gaussian likelihood
   \[
     p(\vec{x} \mid \vec{\tilde{z}}, \beta) =
-    \Norm(\vec{x} \mid \vec{\hat{x}}, (2\beta)^{-1}\vec{1}),
+    \Norm{\vec{x} \mid \vec{\hat{x}}, (2\beta)^{-1}\vec{1}},
   \]
   mean-field prior
   \[
@@ -939,9 +939,9 @@ and we briefly review them here.
   and mean-field posterior
   \[
     q(\vec{\tilde{z}} \mid \vec{x}) =
-    \prod_i \Unif(\tilde{z}_i \mid z_i, 1),
+    \prod_i \Unif{\tilde{z}_i \mid z_i, 1},
   \]
-  where $\Unif(\tilde{z}_i \mid z_i, 1),$ is the uniform distribution centered
+  where $\Unif{\tilde{z}_i \mid z_i, 1},$ is the uniform distribution centered
   on $z_i$ of width 1. They train their model using Adam \cite{kingma2014adam},
   with learning rate decay. They do not state how long they trained their
   architecture.
@@ -968,8 +968,8 @@ and we briefly review them here.
   dithering assumption, the joint posterior works out to be
   \[
     q\left(\vec{\tilde{z}}^{(1)}, \vec{\tilde{z}}^{(2)} \mid \vec{x}\right) =
-    \prod_i \Unif\left(\tilde{z}^{(1)}_i \mid \hat{z}^{(1)}, 1\right) \cdot
-    \prod_i \Unif\left(\tilde{z}^{(2)}_i \mid \hat{z}^{(2)}, 1\right).
+    \prod_i \Unif{\tilde{z}^{(1)}_i \mid \hat{z}^{(1)}, 1} \cdot
+    \prod_i \Unif{\tilde{z}^{(2)}_i \mid \hat{z}^{(2)}, 1}.
   \]
   The prior is as explained in the previous section
   \par
@@ -1031,6 +1031,7 @@ way as the layout of Section \ref{sec:lit_comparison}. Within a section we
 persent ideas we tried in chronological order
 
 \subsection{Dataset and Preprocessing}
+\label{sec:dataset_preproc}
 \par
 We trained our image on the CLIC 2018 dataset \cite{clic2018}, as it seemed
 sufficiently extensive for our project, as well as ``bad'' images have been
@@ -1077,23 +1078,146 @@ As mentioned in \cite{balle2018variational}, their scale hyperprior architecture
 closely resembles a \textit{probabilistic ladder network} (PLN), as defined by
 \cite{sonderby2016train}. We quickly present here a brief overview of them.
 \par
-In order to get to the PLN, we first start by Hieararchical VAEs (H-VAEs). They
-allow us to stack multiple stochastic layers on top of one another, in a rather
-obvious way.
-
-\subsubsection{Two-Stage VAE}
-\paragraph{}
-\cite{dai2019diagnosing}
-
-\subsection{MIRACLE Coding}
-\label{sec:mir_coding}
-\paragraph{}
-\cite{havasi2018minimal}
-
-\subsubsection{Rejection sampling}
-\paragraph{}
-\cite{harsha2007communication}
-
+In order to understand PLNs, we start by a slightly simpler model family:
+hieararchical VAEs (H-VAEs). For simplicity's sake, we consider two stochastic
+level H-VAEs and PLNs only, the ideas here extend trivially to more stochastic levels.
+On a basic level, we will be merely just stacking VAEs on top of each other.
+Hence, for reference we define level 0 as the input - output layer pairs. The
+In a regular VAE then, we have a first level encoder, that given some input
+$\vec{x}$ predicts the posterior
+\[
+  q^{(1)}(\vec{z}^{(1)} \mid \vec{x}) = \Norm{\vec{z}^{(1)} \mid
+  \MU^{e, (1)}(\vec{x}), \SIGMA^{e, (1)}(\vec{x})},
+\]
+where $\MU^{e, (1)}(\vec{x}) = (m \circ f)(\vec{x})$ predicts the mean and
+$\SIGMA^{e, (1)}(\vec{x}) = (\exp \circ s \circ f)(\vec{x})$ predicts the
+standard deviation of the posterior. Here $f$ is a highly nonlinear mapping of
+the input, in reality these correspond to several layers of neural network
+layers. Notice that $f$ is shared for the two statistics. Then, $m$ and $s$ are
+custom linear transformations, and finally we take the exponential of $s \circ f
+$ to force the standard deviation to be positive. We sample $\vec{\tilde{z}}^{(1)}
+\sim q^{(1)}$.
+The first level prior is usually assumed to be a diagonal Gaussian
+\[
+  p^{(1)}(\vec{z}^{(1)})  = \Norm{\vec{z}^{(1)} \mid \vec{0}, I}.
+\]
+Finally, the first level decoder predicts the mean of the data likelihood,
+which in our case is a diagonal, unit-scale Laplace distribution
+\[
+  p(\vec{x} \mid \vec{z}^{(1)}) = \Laplace{\vec{\hat{x}} \mid
+  \MU^{d, (1)}(\vec{\tilde{z}}^{(1)}), I},
+\]
+where $\MU^{d, (1)}$ is the reverse operation of $\MU^{e, (1)}$.
+\par
+To get a 2-level H-VAE, once $\vec{\tilde{z}}^{(1)}$ is sampled, we use it to predict
+the statistics of the second level posterior
+\[
+  q^{(2)}(\vec{z}^{(2)} \mid \vec{z}^{(1)}) = \Norm{\vec{z}^{(2)} \mid 
+  \MU^{e, (2)}(\vec{\tilde{z}}^{(1)}), \SIGMA^{e, (2)}(\vec{\tilde{z}}^{(1)})},
+\]
+where $\MU^{e, (2)}(\vec{\tilde{z}}^{(1)})$ and
+$\SIGMA^{e, (2)}(\vec{\tilde{z}}^{(1)})$ are analogous to their first level
+counterparts. Next the second level is sampled $\vec{\tilde{z}}^{(2)} \sim
+q^{(2)}$. The second level prior $p^{(2)}(\vec{z}^{(2)})$ is now the diagonal
+unit-variance Gaussian, and the first level priors' statistics are predicted
+using $\vec{\tilde{z}}^{(2)}$:
+\[
+  p^{(1)}(\vec{z}^{(1)} \mid \vec{z}^{(2)}) =
+  \Norm{\vec{z}^{(1)} \mid \MU^{d, (2)}(\vec{\tilde{z}}^{(2)}),
+    \SIGMA^{e, (2)}(\vec{\tilde{z}}^{(2)})}.
+\] 
+The data likelihood's mean is predicted using $\vec{\tilde{z}}^{(1)}$ as before
+\cite{sonderby2016train}.
+\par
+The issue with H-VAEs is that the flow of information is limited by the
+bottleneck of the final stochastic layer. PLNs resolve this issue by allowing
+the flow of information between lower levels as well. To arrive at them, we
+make the following modification to our H-VAE: first, once $q^{(1)}$ is known,
+instead of sampling it immediately, we instead use its mean to predict the
+statistics of the second level posterior:
+\[
+  q^{(2)}(\vec{z}^{(2)} \mid \vec{z}^{(1)}) = \Norm{\vec{z}^{(2)} \mid 
+  \MU^{e, (2)}(\MU_{\vec{x}}), \SIGMA^{e, (2)}(\MU_{\vec{x}})},
+\]
+where $\MU_{\vec{x}} = \MU^{e, (1)}(\vec{x})$. Now, $\vec{\tilde{z}}^{(2)} \sim
+q^{(2)}$ is sampled. The first level prior $p^{(1)}$ is calculated as before.
+Finally, we allow the flow information on the first level by combining $q^{(1)}$
+and $p^{(1)}$, inspired by the self-conjugacy of the Normal distribution in
+Bayesian inference\footnotemark:
+\[
+  q^{(1)}(\vec{\tilde{z}}^{(1)} \mid \vec{\tilde{z}}^{2}, \vec{x}) =
+  \Norm{\vec{\tilde{z}}^{(1)} \,\bigg|\,
+    \frac{\SIGMA_{\vec{z}^{(1)}}^{-1} \MU_{\vec{x}} + \SIGMA_{\vec{x}}^{-1}
+      \MU_{\vec{z}^{(1)}}}{\SIGMA_{\vec{x}}^{-1} + \SIGMA_{\vec{z}^{(1)}}^{-1}
+    },
+  \frac{1}{\SIGMA_{\vec{x}}^{-1} + \SIGMA_{\vec{z}^{(1)}}^{-1} }}
+\]
+We sample $\vec{\tilde{z}}^{(1)} \sim q^{(1)}(\vec{\tilde{z}}^{(1)} \mid
+\vec{\tilde{z}}^{2}, \vec{x})$, and predict the mean of the likelihood using it.
+\par 
+The reason why H-VAEs and PLNs are more powerful models than regular VAEs, is
+because regular VAEs make an independence assumption between the latents to make
+the model tractable to compute, while H-VAEs and PLNs relax this assumption to a
+\textit{conditional indpendence} assumption. This is the same way
+\cite{balle2018variational} 
+\footnotetext{We note that the formula we used is the actual combination rule
+  for a Gaussian likelihood and Gaussian prior. The formula given in
+  \cite{sonderby2016train} is slightly different. We are not sure if it is a
+  typo or it is what they actually used. We found our combination rule worked
+  quite well in practice.}
+\subsection{Training}
+\par \cite{sonderby2016train} give two key advices on training PLNs:
+\begin{itemize}
+\item use batch normalization \cite{ioffe2015batch}
+\item and use a warmup on the coefficient of the KL term in the loss.
+  Concretely, given a target coefficient $\beta_0$, the actual coefficient they
+  recommend should be
+  \[
+    \beta(t) = \min\left\{ \frac{t}{W}, 1 \right\} \times \beta_0,
+  \]
+  where $t$ is the number of current batch and $W$ is the \textit{warmup period}.
+\end{itemize} 
+We ended up not utilizing point 1, due to an argument of
+\cite{balle2018variational}, namely that GDN already performs a similar kind of
+normalization as BN, and in the same way as it did not impact their training
+results, we did not expect it to do for us either.
+\subsubsection{Learning the Variance of the Likelihood}
+\par
+As we have noted, the reconstructions are blurry.
+A solution offered by \cite{dai2019diagnosing} is to introduce a new parameter
+$\gamma$ to the model, that will be the scale of the data likelihood. In our
+case, since we are using a Laplace likelihood, we will have
+\[
+  p(\vec{\hat{x}} \mid \vec{z}^{(1)}) = \Laplace{\vec{\hat{x}} \mid \MU^{d,
+      (1)}(\vec{\tilde{z}}^{(1)}, \gamma)}.
+\]
+In the case of a Gaussian, $\gamma$ would be the variance of the distribution.
+Then, it is suggested that instead of predicting gamma (i.e. using a
+heteroscedastic model), or setting it as a hyperparameter, \textit{we learn it}.
+In \cite{dai2019diagnosing} this is used in conjunction with another novel
+technique to achieve generative results with VAEs that are competitive with
+state-of-the-art GANs. In this work however, as the second technique is more
+irrelevant to us, we focus on learning $\gamma$ only.
+\par
+Let us examine this concept a bit more: let $D$ be the (original) log-likelihood
+term with unit scale, and $R$ the (original) regularizing term, already
+multiplied by our target coefficient $\beta$. Then, our new loss is going to be
+\[
+  L = \frac{1}{\gamma}D + R.
+\]
+Multiplying this through by $\gamma$ does not change the minimizer of the
+expression, but we get the new loss
+\[
+  L' = D + \gamma R.
+\]
+In \cite{dai2019diagnosing} it is shown that if $\gamma$ is learned, then it is
+always true that $\gamma \rightarrow 0$ as $t \rightarrow \infty$. This means,
+that if we set some target $\gamma_\infty$, and use
+\[
+  \gamma' = \max\{ \gamma, \gamma_\infty \},
+\]
+as the scale of the data likelihood, we actually get a dual effect to the warmup
+recommended by \cite{sonderby2016train}, but the scaling is automatic!
 
 \begin{algorithm}
   \caption{Parallelized, bit-budgeted rejection sampling}
@@ -1133,7 +1257,7 @@ obvious way.
 
     \State $\beta_{d, i}(x_i) \gets \frac{\alpha_{d, i}(x)}{(1 - p_{d, i}^*)Q_d(x)}$
 
-    \State Draw $u \sim \Unif(0, 1)$
+    \State Draw $u \sim \Unif{0, 1}$
 
     \If{$u < \beta_{d, i}(x_i)$}
 
@@ -1179,8 +1303,8 @@ samples. The concrete details can be seen in Algorithm
     \Comment Initialize the index set to an empty list
     \For{$k = 1, \hdots, K$}
 
-    \State Draw $\vec{s}_{k, b} \sim \Norm\left(\frac{\MU_p}{K}, \frac{\SIGMA_p}{K}
-    \right)\quad$ for $b = 1,\hdots,B$
+    \State Draw $\vec{s}_{k, b} \sim \Norm{\frac{\MU_p}{K}, \frac{\SIGMA_p}{K}}
+    \quad$ for $b = 1,\hdots,B$
     
     \State $\vec{c}_{k, b} = \vec{\tilde{z}}_{k - 1} + \vec{s}_{k, b}$
 
@@ -1306,13 +1430,89 @@ vector has been partitioned, we importance sample each group using Algorithm
 \ref{alg:miracle_imp_samp}. The removed dimensions are sampled directly from
 the posterior and then the samples are quantized to 16 bits. The complete
 algorithm can be seen in Algorithm \ref{alg:adaptive_importance_sampler}.
-\subsection{Arithmetic Coding}
-\paragraph{}
-ac reference \cite{rissanen1981universal}
+\subsection{Coding}
+\par
+
+\subsubsection{Coding the rejection sampled latents}
+\par
+Simply writing the indices of the individual dimensions given by the rejection
+sampler would be very inefficient, because without additional assumptions the
+way to uniquely decode them would be to block code them (i.e. code all indices
+in 8 bits, say). This would however would add an $\Oh(1)$ cost per dimension on
+the coding length, which is very undesirable. Hence, we implemented a simple
+non-adaptive arithmetic coder \cite{rissanen1981universal} to compress the 
+indices even further. The
+probabilities for the symbol table have been estimated  by encoding the entire
+training set and using the empirical probability distribution. For unseen
+indices we used Laplace smoothing. In particular, given the empirical
+distribution of the sample indices $P$, the probability distribution
+used is
+\[
+  \tilde{P}(i) = \begin{cases}
+    (1 - \alpha)P(i) & \text{if } i \in I \\
+    \frac{\alpha}{N} & \text{otherwise}
+    \end{cases}
+\]
+where $I$ is the allowed index set, in our case since we allocated $B = 8$ bits
+for each individual dimension, $I = \{0, \hdots 255\}$. Since we quantized the
+outliers to 16 bits, $N = 2^{16} - 2^{8}$. We found that choosing $\alpha
+\approx 0.01$ worked reasonably well.
+\subsubsection{Coding the greedy \& importance sampled latents}
+\par
+\paragraph{Importance Sampler}  For the importance sampler, we note that the
+inefficiency of block coding the sample index goes away, as the $\Oh(1)$ cost is
+now shared across the dimensions and is going to negligible, as well as
+estimating empirical probabilities for indices would have been very costly and
+would not have increased efficiency significantly. On the other hand, we also
+have to communicate the groups as well. We note, that instead of communicating
+group indices, we can instead order the latents and communicate consecutive
+group sizes, from which the indices can be easily reconstructed, but each
+group's size takes up at most $\lceil \log_2G \rceil$ bits. We also note that in
+the best case we will have $\lceil \frac{N_2}{G} \rceil$ groups, but probably
+more (where $N_2$ is the dimensionality of the second level). This means that
+there is still a huge inefficiency here still, however so long as $N_2$ is
+sufficiently small, compared to the codelength for the indices, it will be
+manageable. We also note that the group size is likely to be biased towards
+higher values, and hence building an empyrical distribution them and arithmetic
+coding the sequence could lead to a big reduction in the inefficiency, however,
+we found this not to be too important to focus on. 
 
 \section{Experimental Results}
-
+\par
+In this section we detail how we setup and empiricall show the correctness and
+the efficiency of our model. We compare our results against JPEG, the most
+widely used lossy compression method \cite{bull2014communicating}, and the
+current state-of-the-art, the results of \cite{balle2018variational}\footnotemark.
 \cite{zhao2015loss}
+
+\footnotetext{We thank the authors of the paper for making their data available
+  to us.}
+
+\par
+As we based our models on that of \cite{balle2016end} and
+\cite{balle2018variational}, we mirror a lot of their training setup as well
+(See Section \ref{sec:dataset_preproc} for the dataset and preprocessing). We
+trained all our models with Adam with a starting learning rate of $\alpha_0 =
+3 \times 10^{-5}$ and trained all of our models for 20 epochs. We used a smooth
+exponential learning rate decay schedule, according to the formula
+\[
+  \alpha(t) = \alpha_0 \times r^{\frac{t}{D}}.
+\]
+Where $r$ is the decay rate, $D$ is the decay step size and $t$ is the current
+batch number. We found $r = 0.96$ and $D = 1500$ worked well for our
+experiments. We note, however, that we did not notice signifcant performance
+gains by using this schedule compared to just using a fixed one.
+\par
+A surprising result is that even though we have not trained our models for
+nearly as long, or on nearly as much data as \cite{balle2018variational}, our
+method still gets reasonably close to their results.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/kodak_comparison/kodim01_comparison}
+  \caption{haha}
+  \label{fig:kodim01_comp}
+\end{figure}
 \section{Discussion}
 \section{Conclusion}
 
@@ -1351,7 +1551,7 @@ The rejection sampling algorithm presented here is due to
 
     \State $\beta_i(x_i) \gets \frac{\alpha_i(x)}{(1 - p_i^*)Q(x)}$
 
-    \State Draw $u \sim \Unif(0, 1)$
+    \State Draw $u \sim \Unif{0, 1}$
 
     \Statex
 
