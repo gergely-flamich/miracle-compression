@@ -5,13 +5,13 @@
     "batch_size": 8, 
     
     "pixels_per_training_image": 196608, 
-    "training_set_size": 76500,
+    "training_set_size": 93085,
     "image_size": [
         256, 
         256
     ], 
     
-    "beta": 0.01, 
+    "beta": 1.0, 
     "gamma": 0.0, 
     "heteroscedastic": false,
     "average_gamma": false,

@@ -94,6 +94,10 @@ def compress_kodak(kodak_dataset_path,
                    theoretical=None,
                    verbose=False):
     
+    
+    if theoretical is not None:
+        reconstruction_subdir = "theoretical_" + reconstruction_subdir
+    
     reconstruction_path = reconstruction_root + "/" + reconstruction_subdir
     
     if not os.path.exists(reconstruction_path):
@@ -134,6 +138,9 @@ def compress_kodak(kodak_dataset_path,
             # Everything is sampled from the true posterior
             if theoretical == "full":
                 reconstruction = vae(kodak_im)
+                
+                encoding_time = -1
+                decoding_time = -1
                 
             # The first level is sampled using the coded method, 
             # the second level is sampled from the true posterior

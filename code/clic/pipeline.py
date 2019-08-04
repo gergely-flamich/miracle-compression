@@ -72,6 +72,7 @@ def create_model(model_key, config, train_stage=0):
         vae_man = ClicTwoStageVAE_Manifold(latent_dist=config["latent_dist"],
                                            likelihood=config["likelihood"],
                                            latent_filters=config["latent_dims"],
+                                           learn_log_gamma=config["learn_log_gamma"],
                                            num_layers=config["first_level_layers"])
         
         
