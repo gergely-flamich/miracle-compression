@@ -62,11 +62,12 @@ def create_kodak_dataset(kodak_dataset_path="../../data/kodak/",
 
     
 def create_kodak_comparison_dataset(comparison_dataset_path,
-                                    comparison_dataset_subdir,
+                                    comparison_dataset_subdir="*",
                                     n_kodak_images=24,
                                     kodak_im_format="/kodim{:02d}.png"):
     
     comp_ds_dirs = glob.glob(comparison_dataset_path + "/" + comparison_dataset_subdir + "*")
+    comp_ds_dirs = list(filter(os.path.isdir, comp_ds_dirs))
     comp_ds_dirs.sort()
     
     comp_ds_folders = [os.path.basename(p) for p in comp_ds_dirs]
@@ -78,7 +79,7 @@ def create_kodak_comparison_dataset(comparison_dataset_path,
     
     comp_ds = comp_ds_paths_ds.map(lambda x: tf.map_fn(load_and_process_image, x, dtype=tf.float32))
     
-    return comp_ds
+    return comp_ds, comp_ds_paths_ds
                 
 
     
@@ -174,10 +175,8 @@ def compress_kodak(kodak_dataset_path,
             else:
                 raise Exception("unrecognised theoretical setup: " + theoretical)
                 
-            reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
             
-            print("Writing " + reconstruction_im_paths[i])
-            imwrite(reconstruction_im_paths[i], reconstruction)
+            
             
             total_kl = sum([tf.reduce_sum(x) for x in vae.kl_divergence])
             theoretical_byte_size = (total_kl + 2 * np.log(total_kl + 1)) / np.log(2)
@@ -186,11 +185,12 @@ def compress_kodak(kodak_dataset_path,
             
             bpp = theoretical_byte_size / (image_shape[1] * image_shape[2]) 
 
-            summaries = {"bpp": bpp,
+            summaries = {"bpp": float(bpp.numpy()),
                          "encoding_time": encoding_time,
                          "decoding_time": decoding_time,
                          "total_time": encoding_time + decoding_time}
-
+            
+        # Non-theoretical reconstruction
         else:
             if os.path.exists(comp_file_paths[i]):
                 print(comp_file_paths[i] + " already exists, skipping coding.")
@@ -225,13 +225,20 @@ def compress_kodak(kodak_dataset_path,
                                                          rho=rho)
                 decoding_time = time.time() - start_time
                 print("Writing " + reconstruction_im_paths[i])
-                
-                reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
-                imwrite(reconstruction_im_paths[i], reconstruction)
-                
+          
+        
+        ms_ssim = tf.image.ssim_multiscale(kodak_im, reconstruction, max_val=1.0)
+        psnr = tf.image.psnr(kodak_im, reconstruction, max_val=1.0)    
+        
+        if not os.path.exists(reconstruction_im_paths[i]):
+            reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
+            imwrite(reconstruction_im_paths[i], reconstruction)
+        
         summaries["encoding_time"] = encoding_time,
         summaries["decoding_time"] = decoding_time,
         summaries["total_time"] = encoding_time + decoding_time
+        summaries["ms_ssim"] = float(ms_ssim.numpy())
+        summaries["psnr"] = float(psnr.numpy())
                   
         print(summaries)
         

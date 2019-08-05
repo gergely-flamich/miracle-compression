@@ -32,7 +32,8 @@ def run(config_path,
         kodak_path,
         rec_path,
         model_key,
-        model_dir):
+        model_dir,
+        theoretical):
     
     config = json.load(config_path)
 
@@ -77,10 +78,10 @@ def run(config_path,
     rim = compress_kodak(vae=vae,
                          kodak_dataset_path=kodak_dataset_path,
                          reconstruction_root=reconstruction_root,
-                         reconstruction_subdir=os.path.basename(model_dir), 
+                         reconstruction_subdir=os.path.splitext(os.path.basename(config_path.name))[0], 
                          backfitting_steps_level_1=0,
                          use_log_prob=True,
-                         theoretical=None,
+                         theoretical="full" if theoretical else None,
                          verbose=False)
     
 
@@ -102,6 +103,11 @@ if __name__ == "__main__":
     parser.add_argument('--model_dir',
                         type=lambda x: is_valid_file(parser, x),
                         help='The model directory.')
+    
+    parser.add_argument('--theoretical', 
+                        action="store_true",
+                        dest="theoretical",
+                        default=False)
                             
 
     args = parser.parse_args()
@@ -110,4 +116,5 @@ if __name__ == "__main__":
         model_key=args.model,
         model_dir=args.model_dir,
         kodak_path=args.kodak_path,
-        rec_path=args.rec_path)
+        rec_path=args.rec_path,
+        theoretical=args.theoretical)
