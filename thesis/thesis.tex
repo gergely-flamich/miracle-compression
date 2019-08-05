@@ -414,9 +414,11 @@ more fine-tuned JPEG codecs.
 \par
 Our work also falls into this line of research, although with signifcant
 differences, which will be pointed out later.
-\subsection{The MDL principle and the Bits-Back Argument}
+\subsection{The MDL, Bits-Back and MIRACLE}
+\par
+Here we overview the theoretical foundation of our project.
+\subsubsection{MDL Principle} 
 \label{sec:mdl}
-\paragraph{MDL Principle} 
 Our approach is based on the Minimum Description Length (MDL) Principle
 \cite{rissanen1986stochastic}. In essence, it is a formalization of Occam's
 Razor, i.e. the simplest model that describes the data well is the best model of
@@ -439,7 +441,7 @@ This makes Eq \ref{eq:min_desc_princ} a very appealing learning objective for
 optimization-based compression methods, ours included.
 Below, we briefly review how this has been applied so far and how it translates
 to our case.
-\paragraph{Bits-Back Argument}
+\subsubsection{Bits-Back Argument}
 First, we begin with the bits-back argument, introduced in
 \cite{hinton1993keeping}, which is a direct application of the above. The main
 goal of this work was to develop a regularisation technique for neural networks
@@ -486,7 +488,8 @@ subtracted from the original cost, yielding
 $\Exp_{q_\phi}[-\log p_{\theta}] - \Exp_{q_\phi}[-\log q_{\phi}] =
 \KL{q_{\phi}}{p_\theta}$ nats. This ``recovery'' is the namesake for the
 bits-back argument.
-\paragraph{MIRACLE}
+\subsubsection{MIRACLE}
+\label{sec:miracle_theory}
 Inspired by the above idea, \cite{havasi2018minimal} asked a natural question:
 \textit{is it possible to communicate only the weights of a network at
   bits-back efficiency?}
@@ -568,14 +571,14 @@ MIRACLE, and instead the authors propose an importance sampling-based
 approximate sampling algorithm, which is also discussed in further detail in
 Appendix A. They are important, as we have used both in our project.
 
-\paragraph{Our method} Our project is based upon the simple observation, that
+\subsubsection{Our method}
+Our project is based upon the simple observation, that
 the MIRACLE framework may be utilised for compression of any data where in our
 model a public prior distribution $p_{\theta}$ and a learned $q_{\phi}$ is
 available and we are allowed to share a source of randomness. We have already
 noted the extreme similarity of the original BNN training objective to that of
 the $\beta$-VAE \cite{higgins2017beta}, and indeed they are precisely the model
-that we shall use for the compression of images in our case.
-
+that we shall use for the compression of images in our case. 
 % ==============================================================================
 % ==============================================================================
 %
@@ -1030,6 +1033,30 @@ In this section we describe the models we have tried. We present it in a similar
 way as the layout of Section \ref{sec:lit_comparison}. Within a section we
 persent ideas we tried in chronological order
 
+At a high level, our strategy for compressing images is going to be as follows:
+
+\begin{enumerate}
+\item Pick an appropriate VAE architecture for image reconstruction. (Section
+  \ref{sec:architectures})
+\item Train the VAE on a reasonably selected dataset for this task. (Section
+  \ref{sec:dataset_preproc})
+\item Once the VAE is trained, we can compress an image by using the methods
+  proposed for MIRACLE \cite{havasi2018minimal}. Concretely, for an image
+  $\vec{x}$, we can use the latent posteriors $q(\vec{z} \mid \vec{x})$ and
+  priors $p(\vec{z})$ for our coded sampling algorithm. (Section
+  \ref{sec:coded_sampling})
+\item We may consider to use entropy codes to further increase the efficiency of
+  our method. (Section \ref{sec:entropy_coding})
+\end{enumerate}
+
+\par
+A rather pleasing aspect of this is the modularity that is allowed by the
+removal of quantization from the training pipeline: our method is reusable with
+virtually any regular VAE architecture, which opens up the possibility of
+creating efficient compression algorithms for any domain where a VAE can be used
+to reconstruct the objects of interest. (More generally, any method where we
+can obtain a prior and approximate posterior on the latent representaion will do.)
+
 \subsection{Dataset and Preprocessing}
 \label{sec:dataset_preproc}
 \par
@@ -1053,7 +1080,8 @@ based on their size of the image, according to the formula
 where $W, H$ are the width and height of the current image, respectively and $C$
 is an integer constant we set. We used $C = 15$, which yielded us a training set
 of 93085 patches.
-\subsection{Architecture}
+\subsection{Architectures}
+\label{sec:architectures}
 \par
 In this section we describe the various architectures that we experimented with.
 The basis of all our architectures were inspired by the ones used in
@@ -1219,6 +1247,56 @@ that if we set some target $\gamma_\infty$, and use
 as the scale of the data likelihood, we actually get a dual effect to the warmup
 recommended by \cite{sonderby2016train}, but the scaling is automatic!
 
+\subsection{Coded Sampling}
+\label{sec:coded_sampling}
+\par
+Once the appropriate network has been trained, this means that for any image $\vec{x}$
+we are able to produce a latent posterior $q(\vec{z} \mid \vec{x})$ and prior
+$p(\vec{z})$. Hence, as alluded to in Section \ref{sec:miracle_theory}, we can
+use the MIRACLE algorithm to code $\vec{x}$ in approximately $\KL{q}{p}$ nats!
+The question is how MIRACLE can be adapted to our setting. There are several key
+differences in our situation compared to the setting in
+\cite{havasi2018minimal}:
+
+\begin{itemize}
+\item \textbf{Variable sized latent space:} The original method has been
+  developed for compressing the weight distribution of a BNN, whose dimension is
+  fixed. In our case, due to our fully convolutional architecture, our rendition
+  of the algorithm must be able to adapt gracefully to a range of latent space
+  dimensions which can be as much as 4 magnitudes different for each other.
+
+\item \textbf{Different posterior effects:} as our latent spaces will carry much
+  more information about the topological nature of the coded image, the
+  distribution of informative versus non-informative posteriors, and their
+  properties will be different from the original setting, and we will need to
+  adapt to these effects.
+
+\item \textbf{Practicality / Resource efficiency:} Since the original method has
+  been proposed to compress neural networks after they have been trained, the
+  algorithm was proposed with people who have sufficient resources to train them
+  in mind. In particular, the original method incorporates several rounds of
+  incremental retraining during compression to guarantee their efficiency, which
+  might require several GPU hours to complete. As our aim in this work to
+  present a practical, universal compression algorithm, we must also design our
+  method with a much broader audience in mind. Though we still assume the
+  presence of a GPU, our requirements and coding times are much less harsh than
+  that of the original work.
+\end{itemize}
+
+In the rest of this section we present the ways we have attempted to address the
+above points.
+
+\subsubsection{Parallelized Rejection Sampling}
+\par
+Our initial goal was to perform parallelization in a way that preserves image
+quality, i.e. draws exact samples and also achieves the postulated upper bound.
+As mentioned earlier, the rejection sampling algorithm given in
+\cite{harsha2007communication} achieves this, and hence it served as a good
+baseline. As pointed out in \cite{havasi2018minimal}, however, this algorithm
+quickly becomes intractable once we leave the univariate setting. Fortunately, as we
+are working with (conditional) independence assumptions between the latents,
+sampling each dimension exactly by itself and then aggregating them will also
+give an exact multivariate sample.
 \begin{algorithm}
   \caption{Parallelized, bit-budgeted rejection sampling}
   \label{alg:multivariate_rej_samp}
@@ -1290,6 +1368,15 @@ and quantize the samples to 16 bits. We then communicate these quantized
 samples. The concrete details can be seen in Algorithm
 \ref{alg:multivariate_rej_samp}.
 
+\paragraph{Issues} Sadly, sampling each dimension individually leads to an
+$\Oh(1)$ cost per dimension, as we will produce an index for each dimension, as
+opposed to one index for the whole multivariate distribution. In other words,
+the length of the concatenated indices will be much longer than the single index
+that would be produced by rejection sampling the whole distribution. In Section
+\ref{sec:rej_samp_artihmetic_coding} we discuss how we reduced these costs using
+arithmetic coding.
+
+\subsubsection{Refinement: Greedy Sampling}
 \begin{algorithm}
   \caption{Greedy sampler}
   \label{alg:greedy_sampler}
@@ -1352,6 +1439,21 @@ point we return it. Then the returned vector will be approximately from the
 target. More precisely, this is a ``guided'' random walk, where we bias the
 trajectory towards the median of the distribution. The algorithm is described in
 more detail in Algorithm \ref{alg:greedy_sampler}.
+\paragraph{Issues}
+While the greedy sampler makes sampling efficient and tractable from the
+posterior, it comes at the cost of reduced sample quality. In particular, it
+gives blurrier images. This also means that if we use a PLN to compress an
+image and we use the greedy technique to code the latents on the second level,
+the first level priors' statistics derived from the biased sample will be off,
+and $KL{q(\vec{z}^{(1)} \mid \vec{z}^{(2)}, \vec{x})}{p(\vec{z}^{(1)} \mid
+  \vec{z}^{(2)})}$ will be higher. We have verified empirically, that while
+using a biased sample on the second level does not degrade image quality
+(possibly due to the noise tolerance of VAEs), it does significantly increase
+the compression size (by a factor of $1.2 - 1.5$) of the first level, which is
+very significant. This motivated the final sampling algorithm presented here,
+only used on the second level of our PLNs.
+
+\subsubsection{Second Refinement: Adaptive Importance Sampling}
 \begin{algorithm}
   \caption{Adaptive Importance Sampler}
   \label{alg:adaptive_importance_sampler}
@@ -1430,10 +1532,13 @@ vector has been partitioned, we importance sample each group using Algorithm
 \ref{alg:miracle_imp_samp}. The removed dimensions are sampled directly from
 the posterior and then the samples are quantized to 16 bits. The complete
 algorithm can be seen in Algorithm \ref{alg:adaptive_importance_sampler}.
+
 \subsection{Coding}
+\label{sec:entropy_coding}
 \par
 
 \subsubsection{Coding the rejection sampled latents}
+\label{sec:rej_samp_artihmetic_coding}
 \par
 Simply writing the indices of the individual dimensions given by the rejection
 sampler would be very inefficient, because without additional assumptions the
@@ -1457,6 +1562,21 @@ where $I$ is the allowed index set, in our case since we allocated $B = 8$ bits
 for each individual dimension, $I = \{0, \hdots 255\}$. Since we quantized the
 outliers to 16 bits, $N = 2^{16} - 2^{8}$. We found that choosing $\alpha
 \approx 0.01$ worked reasonably well.
+\subsubsection{A note on the Arithmetic Coder}
+\par
+While for small alphabets the naive implementation of the arithmetic coder is
+very fast, the decoding time actually grows as $\Oh(|\A|)$ in the size of the
+alphabet. In particular, decoding the arithmetic code of a reasonably large
+image would take up to 30 minutes using the naive implementation. The
+inefficiency is due to a bottleneck where we need to find in a partition of $[0,
+1]$ into which partition the currently coded interval fits. In the naive
+implementation this is simply determined using a linear search over the
+partitions. This can be made more efficient by using height-balanced binary
+search trees (BSTs). In particular, we need to find the least upper bounding
+item in the BST for the given point, which can be done in $\Oh(\log_2|\A|)$.
+Using this additional trick, we can decode large images' code in a few seconds.
+In particular we implemented an AVL-tree to serve as the BST, which is always
+guaranteed to be height balanced \cite{adel1962algorithm}.
 \subsubsection{Coding the greedy \& importance sampled latents}
 \par
 \paragraph{Importance Sampler}  For the importance sampler, we note that the
@@ -1476,6 +1596,13 @@ manageable. We also note that the group size is likely to be biased towards
 higher values, and hence building an empyrical distribution them and arithmetic
 coding the sequence could lead to a big reduction in the inefficiency, however,
 we found this not to be too important to focus on. 
+\paragraph{Greedy Sampler} It is easy to see that the greedy sampler is already
+as efficient as it could be. The sample indices for each shard are as compactly
+represented, as we expect the maximum of the samples to be uniformly
+distributed. Hence, the only other things that needs to be coded is the number
+of shards and the number of samples for each shard for the cumulative sample to
+be decodable. Hence, for the greedy sampler we just wrote the indices straight
+to the binary file.
 
 \section{Experimental Results}
 \par
@@ -1494,7 +1621,8 @@ As we based our models on that of \cite{balle2016end} and
 (See Section \ref{sec:dataset_preproc} for the dataset and preprocessing). We
 trained all our models with Adam with a starting learning rate of $\alpha_0 =
 3 \times 10^{-5}$ and trained all of our models for 20 epochs. We used a smooth
-exponential learning rate decay schedule, according to the formula
+exponential learning rate decay schedule except in the case of the
+$\gamma$-VAEs, according to the formula
 \[
   \alpha(t) = \alpha_0 \times r^{\frac{t}{D}}.
 \]
@@ -1505,7 +1633,25 @@ gains by using this schedule compared to just using a fixed one.
 \par
 A surprising result is that even though we have not trained our models for
 nearly as long, or on nearly as much data as \cite{balle2018variational}, our
-method still gets reasonably close to their results.
+method still gets reasonably close to their results. We compare our results to
+theirs, which as far as we are aware are the current state-of-the-art on both
+the MS-SSIM and PSNR perceptual metrics.
+\par
+\begin{equation}
+\label{eq:metric_psnr}
+\text{PSNR}(\vec{x}, \vec{\hat{x}}) =
+-10 \cdot \log_{10}\text{MSE}(\vec{x}, \vec{\hat{x}})
+\end{equation}
+
+\begin{equation}
+\label{eq:metric_ms_ssim}
+-10 \cdot \log_{10}\left( 1 - \text{MS-SSIM}(\vec{x}, \vec{\hat{x}}) \right)
+\end{equation}
+
+We present the comparison for the following:
+\begin{itemize}
+\item JPEG, JPEG2000, and BPG
+\end{itemize}
 
 \begin{figure}[H]
   \centering
