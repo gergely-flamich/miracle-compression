@@ -5,6 +5,7 @@ coding.html
 *.npy
 papers/
 data/
+bpg/
 
 # General
 *.tar.gz
