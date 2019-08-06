@@ -361,7 +361,6 @@ Structural Similarity Index (SSIM) \cite{wang2004image} and its multiscale
 version (MS-SSIM) \cite{msssim}. Crucially, these
 two metrics are not only the most popular, but are also differentiable, which
 means they lend themselves for gradient-based optimization.
-PSNR is not a good metric \cite{girod1993s} \cite{eskicioglu1994image}.
 % TODO --------------------------------------------------
 \textbf{TODO: More discussion on metrics}
 
@@ -374,8 +373,8 @@ $P(z_i)$. A fundamental result by Shannon states that $\vec{z}$ may not be
 encoded losslessly in fewer than $H[\vec{z}]$ nats
 \cite{shannon1998mathematical}. Entropy codes, such as Huffman codes
 \cite{huffman1952method} or Arithmetic Coding \cite{rissanen1981universal} can
-get very close to this lower bound. We will coding methods further in Section
-\ref{sec:mir_coding}. The rate (in nats) of the compression algorithm is defined
+get very close to this lower bound. We will discuss coding methods further in Sections
+\ref{sec:coded_sampling} and \ref{sec:entropy_coding}. The rate (in nats) of the compression algorithm is defined
 as the average number of nats required to code a single dimension of the input, i.e.
 \[
   R = \frac{1}{N} H[\vec{z}].
@@ -1080,6 +1079,11 @@ based on their size of the image, according to the formula
 where $W, H$ are the width and height of the current image, respectively and $C$
 is an integer constant we set. We used $C = 15$, which yielded us a training set
 of 93085 patches.
+\par
+We note that all image data we used for learning was in RGB format. It is
+possible to achieve better compression rates using the YCbCr format
+\cite{balle2016end}, \cite{rippel2017real}, however, for simplicity's sake as
+well as due to time constraints we leave investigating this for later work.
 \subsection{Architectures}
 \label{sec:architectures}
 \par
@@ -1098,20 +1102,14 @@ to be the standard for this task \cite{theis2017lossy}. Luckily, the most
 error-prone part, the implementation of the GDN and IGDN layers was already
 available in \texttt{Tensorflow}\footnotemark.
 
+\par While VAEs are by now fairly standard and we assume that the reader is at
+least somewhat familiar with them, our later models build on them and are
+non-standard, hence it will be useful to briefly go over them and introduce
+notation that we will extend in the following sections.
+
 \footnotetext{\url{https://www.tensorflow.org/api_docs/python/tf/contrib/layers/gdn}}
 
-\subsubsection{Probabilistic Ladder Network}
-\par
-As mentioned in \cite{balle2018variational}, their scale hyperprior architecture
-closely resembles a \textit{probabilistic ladder network} (PLN), as defined by
-\cite{sonderby2016train}. We quickly present here a brief overview of them.
-\par
-In order to understand PLNs, we start by a slightly simpler model family:
-hieararchical VAEs (H-VAEs). For simplicity's sake, we consider two stochastic
-level H-VAEs and PLNs only, the ideas here extend trivially to more stochastic levels.
-On a basic level, we will be merely just stacking VAEs on top of each other.
-Hence, for reference we define level 0 as the input - output layer pairs. The
-In a regular VAE then, we have a first level encoder, that given some input
+In a regular VAE, we have a first level encoder, that is given some input
 $\vec{x}$ predicts the posterior
 \[
   q^{(1)}(\vec{z}^{(1)} \mid \vec{x}) = \Norm{\vec{z}^{(1)} \mid
@@ -1129,13 +1127,76 @@ The first level prior is usually assumed to be a diagonal Gaussian
 \[
   p^{(1)}(\vec{z}^{(1)})  = \Norm{\vec{z}^{(1)} \mid \vec{0}, I}.
 \]
-Finally, the first level decoder predicts the mean of the data likelihood,
-which in our case is a diagonal, unit-scale Laplace distribution
+Finally, the first level decoder predicts the statistics of the data likelihood,
 \[
+  p(\vec{x} \mid \vec{z}^{(1)}).
+\]
+
+\paragraph{A note on the latent distributions} We have chosen to use Gaussian
+latent distributions due to their simplicity, as well as their extenesibility to
+PLNs (see Section \ref{sec:prob_ladder_networks}). On the other hand, we note
+that Gaussians are inappropriate, as it has been shown that the filter responses
+of natural images usually follow a heavy-tailed distribution, usually assumed to
+be a Laplacian \cite{jain1989fundamentals}, as used directly in
+\cite{clic2018winner}, but can also be approximated reasonably well by Gaussian
+Scale Mixtures \cite{portilla2003image}, as adopted by \cite{theis2017lossy}.
+While it would be interesting to investigate incorporating these into our
+model, as they do not extend trivially to our more complex model settings (in
+particular PLNs, as we formulated here requre the latent posterior
+distribution's family to be self-conjugate), we leave this for future work.
+
+\paragraph{Data Likelihood and Training Objective}
+As is standard for VAEs, we aim to maximize the the (weighted) Evidence
+Lower Bound (ELBO):
+\begin{equation}
+\label{eq:regular_vae_elbo}
+\Exp_{q^{(1)}}[\log p(\vec{x} \mid \vec{z}^{(1)})] - \beta\KL{q^{(1)}}{p^{(1)}}.
+\end{equation}
+As the latent posterior and prior are both Gaussians, the KL can be computed
+analytically, and there is no need for a Monte Carlo estimation. A popular and
+simple choice for the likelihood to be chosen a Gaussian, in which case the
+expectectation of the log-likelihood corresponds to the mean squared error
+between the original image and its reconstruction. This also corresponds to
+optimizing for the PSNR as the perceptual metric. However, it has been shown
+that PSNR correlates badly with the HVS's perception of image quality \cite{girod1993s}
+\cite{eskicioglu1994image}. This is mainly because an MSE training objective is
+tolerant to small deviations regardless of the structure in the image, and hence
+this leads to blurry colour patch artifacts in low-textured regions, which the
+HVS quickly picks up as unpleasant. A thorough survey of different
+training objectives for image reconstruction was performed by
+\cite{zhao2015loss}. As far as we are aware, they were also the first to propose
+MS-SSIM as a training objective as well. However, they also show another
+interesting result: Mean Absolute Error (MAE) already significantly reduces and
+in some cases completely removes the unpleasant artifacts introduced by MSE.
+This is because MAE no longer underestimates small deviations, at the cost of
+somewhat blurrier edges, which MSE penalized more. The MAE corresponds to a
+diagonal Laplacian log-likelihood with unit scale, which is what we ended up
+using. This results in
+efficient training (an MS-SSIM training loss is very expensive to compute) as
+well as it will enable us for a further enchancement, see Section
+\ref{sec:learn_gamma}.
+
+Concretely, our likelihood is going to be
+\begin{equation}
+\label{eq:laplace_likelihood}
   p(\vec{x} \mid \vec{z}^{(1)}) = \Laplace{\vec{\hat{x}} \mid
   \MU^{d, (1)}(\vec{\tilde{z}}^{(1)}), I},
-\]
+\end{equation}
 where $\MU^{d, (1)}$ is the reverse operation of $\MU^{e, (1)}$.
+
+
+\subsubsection{Probabilistic Ladder Network}
+\label{sec:prob_ladder_networks}
+\par
+As mentioned in \cite{balle2018variational}, their scale hyperprior architecture
+closely resembles a \textit{probabilistic ladder network} (PLN), as defined by
+\cite{sonderby2016train}. We quickly present here a brief overview of them.
+\par
+In order to understand PLNs, we start by a slightly simpler model family:
+hieararchical VAEs (H-VAEs). For simplicity's sake, we consider two stochastic
+level H-VAEs and PLNs only, the ideas here extend trivially to more stochastic levels.
+On a basic level, we will be merely just stacking VAEs on top of each other.
+Hence, for reference we define level 0 as the input - output layer pairs. The
 \par
 To get a 2-level H-VAE, once $\vec{\tilde{z}}^{(1)}$ is sampled, we use it to predict
 the statistics of the second level posterior
@@ -1187,12 +1248,22 @@ The reason why H-VAEs and PLNs are more powerful models than regular VAEs, is
 because regular VAEs make an independence assumption between the latents to make
 the model tractable to compute, while H-VAEs and PLNs relax this assumption to a
 \textit{conditional indpendence} assumption. This is the same way
-\cite{balle2018variational} 
+\cite{balle2018variational}.
 \footnotetext{We note that the formula we used is the actual combination rule
   for a Gaussian likelihood and Gaussian prior. The formula given in
   \cite{sonderby2016train} is slightly different. We are not sure if it is a
   typo or it is what they actually used. We found our combination rule worked
   quite well in practice.}
+\par
+Finally we need to update the regularizing term of the ELBO to incorporate the
+joint posterior and priors over the latents. Luckily, we can break it up as
+\[
+  \KL{q(\vec{z}^{(1)}, \vec{z}^{(2)} \mid \vec{x})}{p(\vec{z}^{(1)}, \vec{z}^{(2)})} = 
+  \KL{q(\vec{z}^{(2)} \mid \vec{x})}{p(\vec{z}^{(2)})} + 
+  \KL{q(\vec{z}^{(1)} \mid \vec{z}^{(2)} , \vec{x})}{p(\vec{z}^{(1)} \mid \vec{z}^{(2)})},
+\]
+which we can now compute analytically again.
+
 \subsection{Training}
 \par \cite{sonderby2016train} give two key advices on training PLNs:
 \begin{itemize}
@@ -1210,6 +1281,7 @@ We ended up not utilizing point 1, due to an argument of
 normalization as BN, and in the same way as it did not impact their training
 results, we did not expect it to do for us either.
 \subsubsection{Learning the Variance of the Likelihood}
+\label{sec:learn_gamma}
 \par
 As we have noted, the reconstructions are blurry.
 A solution offered by \cite{dai2019diagnosing} is to introduce a new parameter
@@ -1439,6 +1511,24 @@ point we return it. Then the returned vector will be approximately from the
 target. More precisely, this is a ``guided'' random walk, where we bias the
 trajectory towards the median of the distribution. The algorithm is described in
 more detail in Algorithm \ref{alg:greedy_sampler}.
+\paragraph{A note on implementation}
+We note that empirically the greedy sampler is sensitive to small variances on
+the priors. To ameliorate this, we standardize the prior, and scale the
+posterior according to the standardization, i.e. we set 
+\[
+  q'(\vec{z} \mid \vec{x}) = \Norm{\vec{z} \bigg| \frac{\mu_q -
+      \mu_p}{\sigma_p}, \frac{\sigma^2_{q}}{\sigma^2_{p}}},
+\]
+where $\mu_p, \sigma^2_p$ are the statistics of the original prior and $\mu_q,
+\sigma^2_q$ are the statistics of the original posterior. We communicate the
+approximate sample $\vec{z}'$ from $q'$ instead of $q$. This is not problematic, as
+Gaussian distributed random variables are closed under linear transformations,
+i.e. given $X \sim \Norm{m, s^2}$, we have
+\[
+  \alpha X + \beta = Y \sim \Norm{\alpha m + \beta, \alpha^2 s^2}.
+\]
+Hence, the decoder may recover an approximate sample from $q$, by calculating
+$\vec{z} = \sigma_{p} \vec{z}' + \mu_{p}$.
 \paragraph{Issues}
 While the greedy sampler makes sampling efficient and tractable from the
 posterior, it comes at the cost of reduced sample quality. In particular, it
@@ -1650,8 +1740,32 @@ the MS-SSIM and PSNR perceptual metrics.
 
 We present the comparison for the following:
 \begin{itemize}
-\item JPEG, JPEG2000, and BPG
+\item JPEG, with quality settings from 1 to 92, with increments of 7 between
+  settings. As this is the most widely used lossy image compression codec, it is
+  crucial to demonstrate that our method is at least competitive with it, and
+  ideally beats it.
+\item BPG\footnotemark with 4:4:4 chroma sampling, as we are comparing against
+  RGB-based compression techniques. We used quantization settings between 51 to
+  33 wiht decrements of 3 between settings.
 \end{itemize}
+
+\par
+For our method, for each model we present two results: the \textit{theoretically
+optimal} performance, and the \textit{actual} performance. The theoretically
+optimal BPP was calculated using the theoretically achievable upper bound for
+the compression size in bits as given by \cite{harsha2007communication},
+without the constant term:
+\[
+  \I[\vec{x} : \vec{z}] + 2 \log \left( \I[\vec{x} : \vec{z}] + 1\right).
+\]
+The optimal reconstruction error was calculated by passing an image through the
+VAE regularly, instead of using the coded approximate sample. Thus, any
+actual method's performance using the same setup must apper to the right of (less
+efficient compression) or below (worse reconstruction quality) the theoretical
+position.
+
+We trained the PLNs using $\beta = \{0.01, 0.03, 0.1, 0.3, 1\}$ and the
+$\gamma$-PLNs using $\beta = \{10, 3, 1, 0.3, 0.1\}$.
 
 \begin{figure}[H]
   \centering
@@ -1659,8 +1773,13 @@ We present the comparison for the following:
   \caption{haha}
   \label{fig:kodim01_comp}
 \end{figure}
+
+\footnotetext{We used the implementation available at \url{http://bellard.org/bpg}}
+
 \section{Discussion}
+\par
 \section{Conclusion}
+\par
 
 \cite{townsend2019practical}
 \printbibliography
