@@ -202,40 +202,26 @@ def code_grouped_greedy_sample(target,
 
     current_group_size = 0
     current_group_kl = 0
-    idx = -1
-    prev_idx = -2
-    twice_same = False
+    
+    n_nats_per_group = n_bits_per_group * np.log(2) - 1
 
-    while idx < num_dimensions - 1:
+    for idx in range(num_dimensions):
 
-        if twice_same and idx == prev_idx:
-
-            print("oh no: {}".format(idx))
-            return
-
-        twice_same = idx == prev_idx
-        prev_idx = idx
-
-        idx = idx + 1
-        current_group_size = current_group_size + 1
-        current_group_kl = current_group_kl + kl_divs[idx]
-
-        #num_group_samps = np.ceil(np.exp(current_group_kl))
-
-        if not ( np.log(current_group_size) / np.log(2) < max_group_size_bits and 
-                 current_group_kl < n_bits_per_group * np.log(2) - 1):
+        group_bits = np.log(current_group_size + 1) / np.log(2)
+        
+        if group_bits >= max_group_size_bits or \
+           current_group_kl + kl_divs[idx] >= n_nats_per_group or \
+           idx == num_dimensions - 1:
 
             group_start_indices.append(idx)
-            group_kls.append((current_group_kl - kl_divs[idx]) / np.log(2))
-
-            current_group_size = 0
-            current_group_kl = 0
-
-            idx = idx - 1
-
-
-        if idx == len(kl_divs) - 1:
             group_kls.append(current_group_kl / np.log(2))
+
+            current_group_size = 1
+            current_group_kl = kl_divs[idx]
+            
+        else:
+            current_group_kl += kl_divs[idx]
+            current_group_size += 1
 
     # ====================================================================== 
     # Sample each group
@@ -457,40 +443,26 @@ def code_grouped_importance_sample(target,
 
     current_group_size = 0
     current_group_kl = 0
-    idx = -1
-    prev_idx = -2
-    twice_same = False
+    
+    n_nats_per_group = n_bits_per_group * np.log(2) - 1
 
-    while idx < num_dimensions - 1:
+    for idx in range(num_dimensions):
 
-        if twice_same and idx == prev_idx:
-
-            print("oh no: {}".format(idx))
-            return
-
-        twice_same = idx == prev_idx
-        prev_idx = idx
-
-        idx = idx + 1
-        current_group_size = current_group_size + 1
-        current_group_kl = current_group_kl + kl_divs[idx]
-
-        #num_group_samps = np.ceil(np.exp(current_group_kl))
-
-        if not ( np.log(current_group_size) / np.log(2) < max_group_size_bits and 
-                 current_group_kl < n_bits_per_group * np.log(2) - 1):
+        group_bits = np.log(current_group_size + 1) / np.log(2)
+        
+        if group_bits >= max_group_size_bits or \
+           current_group_kl + kl_divs[idx] >= n_nats_per_group or \
+           idx == num_dimensions - 1:
 
             group_start_indices.append(idx)
-            group_kls.append((current_group_kl - kl_divs[idx]) / np.log(2))
-
-            current_group_size = 0
-            current_group_kl = 0
-
-            idx = idx - 1
-
-
-        if idx == len(kl_divs) - 1:
             group_kls.append(current_group_kl / np.log(2))
+
+            current_group_size = 1
+            current_group_kl = kl_divs[idx]
+            
+        else:
+            current_group_kl += kl_divs[idx]
+            current_group_size += 1
         
     print("Maximum group KL: {:.3f}".format(np.max(group_kls)))
     

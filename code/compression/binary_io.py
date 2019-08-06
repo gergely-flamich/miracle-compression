@@ -7,7 +7,7 @@ import numpy as np
 def to_bit_string(num, num_bits):
     
     if num >= 2**num_bits:
-        raise Exception("The number is bigger than what we can encode!")
+        raise Exception("The number {} (>= {}) is bigger than what we can encode!".format(num, 2**num_bits))
         
     bitcode = []
     

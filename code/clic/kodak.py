@@ -226,35 +226,35 @@ def compress_kodak(kodak_dataset_path,
                 decoding_time = time.time() - start_time
                 print("Writing " + reconstruction_im_paths[i])
           
-        
-        ms_ssim = tf.image.ssim_multiscale(kodak_im, reconstruction, max_val=1.0)
-        psnr = tf.image.psnr(kodak_im, reconstruction, max_val=1.0)    
-        
-        if not os.path.exists(reconstruction_im_paths[i]):
-            reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
-            imwrite(reconstruction_im_paths[i], reconstruction)
-        
-        summaries["encoding_time"] = encoding_time,
-        summaries["decoding_time"] = decoding_time,
-        summaries["total_time"] = encoding_time + decoding_time
-        summaries["ms_ssim"] = float(ms_ssim.numpy())
-        summaries["psnr"] = float(psnr.numpy())
-                  
-        print(summaries)
-        
-        if os.path.exists(stats_path):
-            with open(stats_path, "r") as stats_fp:
-                stats = json.load(stats_fp)
-        else:
-            stats = {}
+        if theoretical or not os.path.exists(reconstruction_im_paths[i]):
+            ms_ssim = tf.image.ssim_multiscale(kodak_im, reconstruction, max_val=1.0)
+            psnr = tf.image.psnr(kodak_im, reconstruction, max_val=1.0)    
 
-        if kodak_im_name not in stats:
-            stats[kodak_im_name] = {}
-            
-        with open(stats_path, "w") as stats_fp:
-            stats[kodak_im_name][reconstruction_subdir] = summaries
+            if not os.path.exists(reconstruction_im_paths[i]):
+                reconstruction = tf.cast(tf.squeeze(255 * reconstruction), tf.uint8).numpy()
+                imwrite(reconstruction_im_paths[i], reconstruction)
 
-            json.dump(stats, stats_fp)
+            summaries["encoding_time"] = encoding_time,
+            summaries["decoding_time"] = decoding_time,
+            summaries["total_time"] = encoding_time + decoding_time
+            summaries["ms_ssim"] = float(ms_ssim.numpy())
+            summaries["psnr"] = float(psnr.numpy())
+
+            print(summaries)
+
+            if os.path.exists(stats_path):
+                with open(stats_path, "r") as stats_fp:
+                    stats = json.load(stats_fp)
+            else:
+                stats = {}
+
+            if kodak_im_name not in stats:
+                stats[kodak_im_name] = {}
+
+            with open(stats_path, "w") as stats_fp:
+                stats[kodak_im_name][reconstruction_subdir] = summaries
+
+                json.dump(stats, stats_fp)
             
             
 def baseline_compress_kodak(kodak_dataset_path,
