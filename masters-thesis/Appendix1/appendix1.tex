@@ -1,0 +1,71 @@
+%!TEX root = ../thesis.tex
+% ******************************* Thesis Appendix A ****************************
+\chapter{Appendix A} 
+
+\subsection*{Rejection Sampling}
+\par
+The rejection sampling algorithm presented here is due to
+\cite{harsha2007communication}.
+
+\begin{algorithm}
+  \caption{Rejection sampling presented in \cite{harsha2007communication}.}
+  \label{alg:harsha_rej_sampling}
+  \begin{algorithmic}[1]
+    \Procedure{Rej-Sampler}{$P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \Comment $P$ is the prior
+    \Statex
+    \Comment $Q$ is the posterior
+    \Statex
+    \Comment $x_i$ are i.i.d. samples from $Q$
+    \State $p_0(x) \gets 0 \quad \forall x \in \X$.
+    \State $p_0^* \gets 0$.
+    \For{$i \gets 1, \hdots \infty$}
+
+    \State
+    $\alpha_i(x) \gets \min{P(x) - p_{i - 1}(x), (1 - p_{i - 1}^*)Q(x)}\quad
+    \forall x \in \X$
+
+    \State $p_i(x) \gets p_{i - 1}(x) + \alpha_i(x)$
+    
+    \State $p_i^* \gets \sum_{x \in \X}p_i(x)$
+
+    \State $\beta_i(x_i) \gets \frac{\alpha_i(x)}{(1 - p_i^*)Q(x)}$
+
+    \State Draw $u \sim \Unif{0, 1}$
+
+    \Statex
+
+    \If{$u < \beta_i(x_i)$}
+
+    \State\Return $i, x_i$
+
+    \EndIf
+    
+    \EndFor
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Importance sampling algorithm proposed by \cite{havasi2018minimal}}
+  \label{alg:miracle_imp_samp}
+  \begin{algorithmic}
+    \Procedure{Importance-Sampler}{$P, Q, \langle x_i \sim Q \mid i \in \Nats \rangle$}
+    \Comment $P$ is the prior
+    \Statex
+    \Comment $Q$ is the posterior
+    \Statex
+    \Comment $x_i$ are i.i.d. samples from $Q$
+
+    \State $K \gets \exp\{\KL{Q}{P}\}$
+
+    \State $\tilde{w}_i \gets \frac{Q(x_i)}{P(x_i)} \quad \forall i =
+    1,\hdots K$
+
+    \State Sample $j \sim p(\tilde{w})$
+
+    \Return $j, x_j$
+    \Statex
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}

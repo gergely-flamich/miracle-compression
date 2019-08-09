@@ -192,3 +192,39 @@ The original image size was 1.8 MB
 
 * Things to do [/]
 ** 
+
+* Penultimate meeting with Marton [4/23]:
+
+** DONE put everything in the camb phd thesis template
+   CLOSED: [2019-08-08 Thu 20:59]
+** DONE Change Section headers to Chapters
+   CLOSED: [2019-08-08 Thu 20:59]
+** TODO write everything in present tense
+** TODO Check out LaTeX notation section
+** TODO Reduce / cut background section
+** DONE More discussion on perceptual metrics not needed
+   CLOSED: [2019-08-08 Thu 21:02]
+** TODO Write out Shannon's source coding theorem
+** TODO Citation rule of thumb: Author Year
+** TODO Expand bits back argument, maybe make extra graphic
+*** Note: We can't get the actual bits back. 
+   We can encode an auxiliary message into the random bits
+** TODO Change MIRACLE section to be about quantizationless  
+   coding: go from bits-back as argument to harsha rejection
+** TODO Small Introductiong description paragraph
+** TODO Related Works: these are the works that we are comparing,  
+   as there are no standard techniques or datasets or bencchmarks developed yet
+** TODO Get architecture / reconstruction images from related works
+** TODO More general discussion of related work sections
+** TODO Differentiate Quantization methods by name
+** TODO Emphasize problems with Quantization
+** TODO Training section in Related works needs more general discussion
+** TODO Evaluation Section is good for explaining perceptual metric formualae 
+/ what they do.
+** TODO Write out abbreviations: VAE, MSE
+** TODO Find better notation for laplace - ELBO loss mathcal L problem
+** DONE WRite first level second level into the graph, 
+   CLOSED: [2019-08-08 Thu 21:04]
+** TODO To reduce clutter, paramtericze normals with stdev
+** TODO Condition on sample, not the RV
+

@@ -1,0 +1,461 @@
+%!TEX root = ../thesis.tex
+%*******************************************************************************
+%*********************************** First Chapter *****************************
+%*******************************************************************************
+\chapter{Introduction}
+
+\section{Motivation}
+\par
+There have been several exciting developments in neural image compression
+recently, demonstrating methods that consistently outperform classical methods
+such as JPEG, WebP and BPG \cite{toderici2017full}, \cite{theis2017lossy},
+\cite{rippel2017real}, \cite{balle2018variational}, \cite{johnston2018cvpr},
+\cite{mentzer2018cvpr}.
+
+\par
+The first advantage of ML-based image codecs, is that they can adapt to the
+statistics of each individual image much better than even the best hand-crafted
+methods. This allows them to code images in much fewer bits, while retaining good
+perceptual quality. A second advantage is that they are generally far easier to
+adapt to new media formats, such as lightfield cameras, $360^\circ$ images,
+Virtual Reality (VR), video streaming etc. The purposes of compression and the
+devices on which the encoding and decoding is performed varies greatly, from
+archiving gigabytes of genetic data for later research on a supercomputer,
+through compressing images to be displayed on a blog or a news article, to
+streaming video on a mobile device. Classical methods are usually
+``one-size-fits-all'', and their compression efficiency can severly degrade when
+attempting to compress media for which they were not designed. Designing good
+hand-crafted codecs for these is difficult, can take several years, and
+requires the knowledge of many experts. ML techniques on the other hand allow to
+create equally or better performing, much more flexible codecs within a few months.
+
+\par
+The chief limitation of current neural image compression methods is while most
+models these days are trained using gradient-based optmizers, quantization, a
+key step in the (lossy) image compression pipeline, is an inherently
+non-differentiable operation. Hence, all current methods need to resort to
+``tricks'' and approximations so that the learning signal can still be passed
+through the whole model. A review of these methods will be presented in Chapter 
+\ref{chapter:related_works}.
+
+\par
+Our approach differs from virtually all previous methods in that we take
+inspiration from information theory \cite{rissanen1986stochastic},
+\cite{harsha2007communication} and neural network compression
+\cite{hinton1993keeping}, \cite{havasi2018minimal} to develop a general compression
+framework that allows us to forgo the quantization step in our compression
+pipeline completely. We then apply these ideas to image compression and
+demonstrate that our codec achieves close to state-of-the-art performance on the
+Kodak Dataset \cite{kodakdataset} with no fine-tuning of our architecture.
+
+\section{Our Contributions}
+\par
+The contributions of our thesis are as follows:
+\begin{enumerate}
+\item A \textbf{comparative review} of recent influential works in the field of
+  neural image compression.
+
+\item The development of a machine learning-based \textbf{general compression
+    framework} that forgos the quantization step in the compression pipeline,
+  thus allowing end-to-end optimization of models using of gradient-based methods.
+
+\item A \textbf{novel image compression algorithm} using our framework, that 
+  achieves close to state-of-the-art performance on the Kodak Dataset
+  \cite{kodakdataset} without any fine-tuning of model hyperparameters.
+
+\item An \textbf{approximate sampling algorithm} for multivariate Gaussian
+  distributions, that can be readily used in our compression framework.
+\end{enumerate}
+
+\section{Thesis Outline}
+\par 
+Our thesis begins with an introduction to the field of neural image compression
+(Section \ref{sec:theoretical_foundations}).
+We first review concepts in image compression, such as lossless versus lossy
+compression, the rate-distortion trade-off and linear and non-linear transform
+coding. We emphasize the fundamental role quantization plays in virtually all
+previous approaches in image compression. We then shift our focus to information
+theory, where we introduce the Minimum Description Length (MDL) Principle
+\cite{rissanen1981universal} and the Bits-back Argument
+\cite{hinton1993keeping}. Taking inspiration from these, as well as from
+\cite{harsha2007communication} and \cite{havasi2018minimal}, we develop a
+general framework for compressing data.
+
+\par
+Next, in Chapter \ref{chapter:related_works} we give a comparative review of recent
+influential developments in neural image compression. We examine their whole
+pipeline: the datasets used, their architectures, the ``trick'' used to
+circumvent the non-differentiability of quantization, their coding methds,
+training procedures and evaluation methods.
+
+\par
+In Chapter \ref{chapter:method} we describe our proposed method. We explain our
+choice of dataset, and preprocessing steps. We give a detailed description of
+our model and why we ended up choosing it. We then walk the reader through the
+training procedure, based on ideas from \cite{sonderby2016train},
+\cite{higgins2017beta}, \cite{balle2018variational} and \cite{dai2019diagnosing}.
+Next, we present 3 ``codable'' sampling techniques, that can be used in our
+compression framework andpoint out their strengths and weaknesses.
+
+\par
+Finally, in Chapter \ref{chapter:experiments} we compare our trained models to
+current compression algorithms, both classical such as JPEG and BPG, and
+the current state-of-the-art neural methods \cite{balle2018variational}. In
+particulare, we compare these methods by their compression rates for a given
+perceptual quality as measured by the two most popular perceptual metrics, Peak
+Signal-to-Noise Ratio (PSNR) \cite{psnr} and the Multi-scale Structural
+Similarity Index (MS-SSIM) \cite{msssim}, and show that we achieve close to
+state-of-the-art performance, with no fine-tuning of model hyperparameters.
+We also present some further analysis of our chosen models, to empyrically
+justify their use, as well as to analyze some of the aspects that were not of
+primary concern of this work, such as coding speed.
+\paragraph{}
+
+\section{Theoretical Foundations}
+\label{sec:theoretical_foundations}
+\par
+As compression is not a standard topic in machine learning, it will be useful to
+first spend some time establishing the main concepts and familiarize ourselves
+with the jargon. We first go through some notation that will be used throughout
+this work. Then we go through a brief introduction to compression in general,
+and lossy compression and transform coding in particular. Third, we examine the
+motivating line of research to our project, the MDL framework, the bits-back
+argument and MIRACLE. Although our work is inspired by and based on earlier
+work, it differs from them in several significant ways. We will point out these
+differences throughout.
+\section{Notation and Basic Concepts}
+\paragraph{}
+It will be useful to clarify some of the notation throughout this work.
+\begin{itemize}
+\item Vectors will be denoted by boldface lowercase letters: $\vec{u}, \vec{x}, ...$
+\item Matrices will be denoted by uppercase letters: $A, M, ...$
+\item Probability mass functions will be denoted by uppercase letters: $P(x),
+  Q(z), ...$
+\item Probability density functions will be denoted by lowercase letters: $p(y),
+  q(u), ...$
+\item In general, exact/continuous values will be denoted by unannotated letters
+  (e.g. $z_i, \vec{w}$), their quantized counterparts denoted by a hat
+  ($\hat{z}_i, \vec{\hat{w}}$) and their approximate counterparts by a tilde
+  ($\tilde{z}_i, \vec{\tilde{w}}$).
+\item $\Exp_{p(x)}[f(x)]$ denotes the expected value of $f(x)$ with respect to
+  the mass / density $p(x)$, i.e.:
+  \[
+    \Exp_{p(x)}[f(x)] = \int_\Omega f(x) \d p(x),
+  \]
+  where $\Omega$ is the sample space. As $\Omega$ will usually denote $\Reals^n$
+  or will be understood from context, it will be omitted, and the integral will
+  be rewritten as
+  \[
+    \Exp_{p(x)}[f(x)] = \int f(x)p(x) \d x.
+  \]
+\item $H[X]$ denotes the Shannon entropy of the random variable $X$. If $X$ is
+  discrete, then it is defined as
+  \[
+    -\sum_{X=x}P(X=x)\log P(X=x).
+  \]
+  If it is continuous, then it will refer to the \textit{differential entropy}
+  of $X$, namely
+  \[
+    -\int_{\X}\log p(x) \d p(x),
+  \]
+  where $\X$ denotes the support of $X$.
+  \paragraph{Note:} we used the natural logarithm in our definition of entropy,
+  and hence its units are \textbf{nats}. If we used the base 2 logarithm
+  instead, the units would be \textbf{bits}.
+\item $\KL{q(x)}{p(x)}$ denotes the Kullback-Leibler divergence between two
+  distributions and is defined as
+  \[
+    \KL{q(x)}{p(x)} = \Exp_{q(x)}\left[\log\frac{q(x)}{p(x)}\right].
+  \]
+\item $I[X : Y]$ denotes the mutual information between random variables $X$ and
+  $Y$ and is defined as
+  \[
+    I[X : Y] = \KL{p(x, y)}{p(x)p(y)},
+  \]
+  where $(X, Y) \sim p(x, y)$ and $p(x)$ and $p(y)$ denote the marginals.
+\end{itemize}
+\section{Image Compression}
+\par
+with 
+\paragraph{Source Coding}
+From a theoretical point of view, given some source $S$, a sender and a
+receiver, compression may be described as the aim of the sender communicating an
+arbitrary sequence $X_1, X_2, \hdots, X_n$ taken from $S$ to the receiver in as few bits
+as possible such that the receiver may recover relevant information from the message.
+If the receiver can always recover all the information from the message of the sender, we
+call the algorithm \textbf{lossless}, otherwise we call it \textbf{lossy}. 
+\par
+At first it might seem non-sensical to allow for lossy compression, and in some
+domains this is definitely true, e.g. in text compression. However, 
+human's audio-visual perception is neither completely aligned with the range of
+what can be digitally represented, nor does it always scale the same way. Hence,
+there is a huge opportunity for compressing media in a lossy way by discarding
+information with the change being imperceptible for a human observer, while
+making huge gains in size reduction.
+\paragraph{Lossy Compression}
+As the medium of interest in lossy compression is generally assumed to be a
+real-valued vectory $\vec{x} \in \Reals^N$, such as RGB pixel intensities in an
+image or frequency coefficients in an audio file, the usual pipeline consists of 
+an encoder $C \circ \Enc$ map a point $\vec{x} \in \Reals^N$ to a string of bits and a
+decoder mapping from bitstrings to reconstruction $\vec{\hat{x}}$. The
+factors of the encoder $\Enc$ and $C$ can be understood as a map from $\Reals^N$ to a
+finite symbol set $\A$, called a \textbf{lossy encoder} and a map from $\A$ to a
+string of bits called a \textbf{lossless code} \cite{goyal2001theoretical}.
+We will examine both $\Enc$ and $C$ in more detail shortly. The decoder then can be
+thought of as inverting the code first and then using an approximate inverse of
+$\Enc$ to get the reconstruction $\vec{\hat{x}}$: $\Dec \circ C^{-1}$.
+\par
+It is important to be able to quantify
+\begin{itemize}
+\item the \textbf{distortion} of the compressor: on average, how closely does
+  $\vec{\hat{x}}$ resemble $\vec{x}$?
+\item the \textbf{rate} of the compressor: on average, how many bits are
+  required to communicate $\vec{x}$? We want this to be as low as possible of course.
+\end{itemize}
+
+\paragraph{Distortion}
+In order to measure ``closeness'' in the space of interest $\ImSpace$,
+a distance metric $d(\cdot, \cdot): \ImSpace
+\times \ImSpace \rightarrow \Reals$ is introduced. Then, the distortion $D$ is 
+is defined as
+\[
+  D = \Exp_{p(\vec{\hat{x}})}[d(\vec{x}, \vec{\hat{x}})].
+\]
+A popular choice of $d$, across many domains of compression is the normalized $L_2$ metric
+or MSE, defined as
+\[
+  d(\vec{x}, \vec{\hat{x}}) = \frac{1}{N} \sum_{i}^N (x_i - \hat{x}_i)^2, \quad
+  \ImSpace = \Reals^N.
+\]
+It is a popular metric as it is simple, easy to implement and has nice
+interpretations in both a Bayesian \cite{bishop2013pattern} and the MDL
+(\cite{hinton1993keeping}, to be introduced in Section \ref{sec:mdl}) settings.
+In the image compression setting, however, the MSE is problematic, since it is
+optimizing for such metric does not necessarily translate to obtaining pleasant-looking
+reconstructions \cite{zhao2015loss}, and hence more appropriate, so-called \textit{perceptual
+  metrics} were developed. The ones relevant to our discussion are Peak
+Signal-to-Noise Ratio (PSNR) \cite{psnr}, \cite{gupta2011modified} and the
+Structural Similarity Index (SSIM) \cite{wang2004image} and its multiscale
+version (MS-SSIM) \cite{msssim}. Crucially, these
+two metrics are not only the most popular, but are also differentiable, which
+means they lend themselves for gradient-based optimization.
+
+\paragraph{Rate}
+We noted above that the code used after the lossy encoder is lossless. To
+further elaborate, in virtually all cases it is an \textbf{entropy code}
+\cite{goyal2001theoretical}. This means that we assume that each symbol
+in the representation $\vec{z} = \Enc(\vec{x})$ has some probability mass
+$P(z_i)$. A fundamental result by Shannon states that $\vec{z}$ may not be
+encoded losslessly in fewer than $H[\vec{z}]$ nats
+\cite{shannon1998mathematical}. Entropy codes, such as Huffman codes
+\cite{huffman1952method} or Arithmetic Coding \cite{rissanen1981universal} can
+get very close to this lower bound. We will discuss coding methods further in Sections
+\ref{sec:coded_sampling} and \ref{sec:entropy_coding}. The rate (in nats) of the compression algorithm is defined
+as the average number of nats required to code a single dimension of the input, i.e.
+\[
+  R = \frac{1}{N} H[\vec{z}].
+\]
+\paragraph{Transform Coding}
+The issue with source coding is that coding $\vec{x}$ might have a lot of
+dependencies across its dimensions. For images, this manifests on multiple
+scales and semantic levels, e.g. a pixel being blue might indicate that most
+pixels around it are blue as the scene is depicting the sky or a body of water;
+a portrait of a face will also imply that eyes, a nose and mouth are probably
+present, etc. Modelling and coding this dependence structure in very high
+dimensions is highly non-trivial or perhaps even impossible, and hence we need
+to make simplifying assumptions about it to proceed.
+\par
+\textit{Transform coding} attempts to solve the above problem by decomposing the
+encoder function $\Enc = Q \circ T$ into a so-called \textbf{analysis transform}
+$T$ and a \textbf{quantizer} $Q$. The idea is that to transform the input into a
+domain, such that the dependencies between the dimensions are removed, and hence
+they can be coded individually. The decoder inverts the steps of the encoder,
+where the inverse operation of $T$ is called the \textbf{synthesis transform}
+\cite{gupta2011modified}.
+\par
+In \textit{linear transform coding}, $T$ is an invertible linear trasformation,
+such as a discrete cosine transformation (DCT), as it is in the case of JPEG
+\cite{wallace1992jpeg}, or discrete wavelet transforms in JPEG 2000
+\cite{rabbani2002overview}. While simple, fast and elegant, linear transform
+coding has the key limitation that it can only at most remove correlations (i.e.
+first-order dependencies), and this can severly limit its efficiency
+\cite{balle2016endtrans}. Instead, \cite{balle2016endtrans} propose a method for
+\textit{non-linear transform coding}, where $T$ is replaced by a highly
+non-linear transformation, and its inverse is now replaced by an approximate
+inverse, which is a separate non-linear transformation. Both $T$ and its
+approximate inverse are learnt, and the authors show that with a more
+complicated transformation they can easily surpass the performance of the much
+more fine-tuned JPEG codecs.
+\par
+Our work also falls into this line of research, although with signifcant
+differences, which will be pointed out later.
+\section{The MDL, Bits-Back and MIRACLE}
+\par
+Here we overview the theoretical foundation of our project.
+\subsection{MDL Principle} 
+\label{sec:mdl}
+Our approach is based on the Minimum Description Length (MDL) Principle
+\cite{rissanen1986stochastic}. In essence, it is a formalization of Occam's
+Razor, i.e. the simplest model that describes the data well is the best model of
+the data \cite{grünwald2007minimum}. Here, ``simple'' and ``well'' need to be
+defined, and these definitions are precisely what the MDL principle gives us.
+Informally, it asserts that given a class of hypotheses $\Hypos$ (e.g. a certain
+statistical model and its parameters) and some data $\Data$, if a particular
+hypothesis $H \in \Hypos$ can be described with at most $L(H)$ bits and the using the
+hypothesis the data can be described with at most $L(\Data \mid H)$ bits, then the
+minimum description length of the data is
+\begin{equation}
+\label{eq:min_desc_princ}
+  L = \min_{H \in \Hypos}\{ L(H) + L(\Data \mid H) \},
+\end{equation}
+and the best hypothesis is the $H$ that minimizes the above quantity.
+\par
+Crucially, the MDL principle can thus be interpreted as telling us that
+\textbf{the best model of the data is the one that compresses it the most}.
+This makes Eq \ref{eq:min_desc_princ} a very appealing learning objective for
+optimization-based compression methods, ours included.
+Below, we briefly review how this has been applied so far and how it translates
+to our case.
+\subsection{Bits-Back Argument}
+First, we begin with the bits-back argument, introduced in
+\cite{hinton1993keeping}, which is a direct application of the above. The main
+goal of this work was to develop a regularisation technique for neural networks
+by framing the training of a neural network as a communication problem, where
+the training input and the fixed network architecture is public, but the weights,
+the network's output given a particular input, and the training targets are
+only available to the sender, and the task is to communicate the
+\textit{training targets} with minimal bits.
+\par
+Concretely, they train a Bayesian Neural Network, by equipping the weights
+$\vec{w}$ with a prior $p_\theta(\vec{w})$ and a posterior $q_\phi(\vec{w})$
+(parameterized by $\theta$ and $\phi$, respectively) and maximize
+the \textit{evidence lower bound} (ELBO) given a likelihood $p(\Data \mid \vec{w})$:
+\begin{equation}
+  \label{eq:elbo_target}
+  \Exp_{q_\phi}[\log p(\Data \mid \vec{w})] - \KL{q_{\phi}}{p_{\theta}}.
+\end{equation}
+Given a sufficiently finely quantized likelihood, the minimum description length
+of the data given this model is $\Exp_{q_\phi}[-\log p(\Data \mid \vec{w})]$
+\cite{shannon1998mathematical}, and hence the first term in Eq
+\ref{eq:elbo_target} corresponds to $-L(\Data \mid H)$. In their work then,
+\cite{hinton1993keeping} show that the second term in Eq \ref{eq:elbo_target}
+is equal to $-L(H)$, which establishes a link between the variational training
+objective of the BNN and the MDL principle.
+\par
+To do this, the encoder
+\begin{enumerate}
+\item trains the neural network, optimising Eq \ref{eq:elbo_target}.
+\item draws a random sample $\vec{\hat{w}} \sim q_{\phi}(\vec{w})$. This
+  represents a message of $\Exp_{q_\theta}[- \log q_\phi]$ nats.
+\item $\vec{\hat{w}}$ is then used to calculate the residuals $\vec{r}$ between
+  the network's output and the targets.
+\item $\vec{r}$ is coded with $\vec{\hat{w}}$ and then $\vec{\hat{w}}$ is coded
+  using its prior $p_\theta$. The total length of the message is hence $\Exp_{q_\phi}[-\log
+  p(\Data \mid \vec{\hat{w}})] + \Exp_{q_\phi}[-\log p_{\theta}]$.
+\end{enumerate}
+Once everything has been communicated, the decoder can recover the true training
+targets, but then they can also run the same training algorithm that the encoder
+used to then recover the posterior $q_\phi$. This means that the code of
+$\vec{\hat{w}}$ is ``free bits'' in the sense that the decoder can recover them
+exactly given what they already have. 
+Hence, the whole cost of drawing $\vec{\hat{w}}$ should be
+subtracted from the original cost, yielding
+$\Exp_{q_\phi}[-\log p_{\theta}] - \Exp_{q_\phi}[-\log q_{\phi}] =
+\KL{q_{\phi}}{p_\theta}$ nats. This ``recovery'' is the namesake for the
+bits-back argument.
+\subsection{MIRACLE}
+\label{sec:miracle_theory}
+Inspired by the above idea, \cite{havasi2018minimal} asked a natural question:
+\textit{is it possible to communicate only the weights of a network at
+  bits-back efficiency?}
+\par
+If the above were true, it would give a method for compressing neural networks
+rather efficiently. It is clear that the coding must be different than it was in
+\cite{hinton1993keeping}, as their method focused on the regularisation aspect
+of the KL-divergence and is very inefficient for actual communication of the
+model parameters.
+\par
+A second, important question that arises in conjunction with the first, natural
+for compression algorithms:
+\textit{is it possible trade off accuracy of a fixed neural network architecture
+  for better compression rates, and vice versa?}
+\par
+Luckily, the answer to both of the above questions is yes, and we shall begin by
+addressing the latter first. Fix a network architecture, and some data
+likelihood given a weight set $p(\Data \mid \vec{\hat{w}})$. Akin to
+\cite{hinton1993keeping}, we will actually train a BNN with weight prior
+$p(\vec{w})$ and posterior $q(\vec{w})$. Then, given a budget of $C$ nats, we
+hope to maximize the following constrained objective:
+\begin{equation}
+\label{eq:miracle_hard_train_target}
+\Exp_{q_\phi}[\log p(\Data \mid \vec{w})] \quad \text{subject to }
+\KL{q_{\phi}}{p_{\theta}} < C.
+\end{equation}
+We can rewrite Eq \ref{eq:miracle_hard_train_target} as its Lagranagian
+relaxation under the KKT conditions \cite{karush2014minima},
+\cite{kuhn2014nonlinear}, \cite{higgins2017beta} and get:
+\[
+  \F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) = 
+  \Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta (\KL{q_{\phi}}{p_{\theta}} - C).
+\]
+By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
+term in the above equation will provide a lower bound for it:
+\begin{equation}
+\label{eq:miracle_train_target}
+\F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) \geq
+\L(\theta, \phi, \beta \Data, \vec{\hat{w}}) =
+\Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta \KL{q_{\phi}}{p_{\theta}}.
+\end{equation}
+Notice, that this is the same as Eq \ref{eq:elbo_target}, but with the addition of
+the parameter $\beta$ that will control the regularisation term and eventually
+the compression cost of the weights. It is also intimately related to the
+training target of $\beta$-VAEs \cite{higgins2017beta}, except for where they
+regularise the distributions of activations on a stochastic layer, here the
+regularisation is for the distributions of weights. 
+\par
+Now, to answer the first question, we first need to establish the right setting
+for the task, which will be another communications problem.
+Concretely, given a dataset $\Data$ sampled from a distribution $p(D)$, and
+$q_\phi(\vec{w})$, our trained weight posterior for a given $\beta$, what are
+the bounds on the minimum description length for the posterior $L(q_{\phi})$?
+\par
+Under some mild assumptions, it can be shown \cite{harsha2007communication} that
+in fact
+\[
+  \Exp_{p(D)}[L(q_{\phi})] \geq \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}],
+\]
+i.e. in this probabilistic setting bits-back efficiency is the best we can hope
+for. Now, if we make the further assumption that the sender and the receiver are
+allowed to \textit{share a source of randomness} (e.g. a random number generator
+and a seed for it), then a rather tight upper bound can also be derived, also
+due to \cite{harsha2007communication}:
+\begin{equation}
+\label{eq:miracle_ub}
+  \Exp_{p(D)}[L(q_{\phi})] \leq I[\Data : \vec{w}] + 2 \log \left( I[\Data :
+    \vec{w}] + 1 \right) + \Oh(1)
+\end{equation}
+where $I[D : \vec{w}] = \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}]$ is the
+mutual information between the distribution of datasets and the weights.
+\paragraph{Note:} Hence, tuning $\beta$ in \ref{eq:miracle_train_target}
+\textit{directly} controls the rate of the compression algorithm.
+\par
+Eq \ref{eq:miracle_ub} is proven by exposing an algorithm that achieves the
+postualted coding efficiency, an adaptive rejection sampling algorithm, which we
+detail in the Appendix A. This turns out to be infeasible in the case of
+MIRACLE, and instead the authors propose an importance sampling-based
+approximate sampling algorithm, which is also discussed in further detail in
+Appendix A. They are important, as we have used both in our project.
+
+\subsection{Our method}
+Our project is based upon the simple observation, that
+the MIRACLE framework may be utilised for compression of any data where in our
+model a public prior distribution $p_{\theta}$ and a learned $q_{\phi}$ is
+available and we are allowed to share a source of randomness. We have already
+noted the extreme similarity of the original BNN training objective to that of
+the $\beta$-VAE \cite{higgins2017beta}, and indeed they are precisely the model
+that we shall use for the compression of images in our case. 
+
+\nomenclature[z-VAE]{VAE}{Variational Auto-Encoder}
+\nomenclature[z-MSE]{MSE}{Mean Squared Error}
+\nomenclature[z-MAE]{MAE}{Mean Absolute Error}
+\nomenclature[z-PLN]{PLN}{Probabilistic Ladder Network}

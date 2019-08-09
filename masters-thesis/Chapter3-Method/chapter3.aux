@@ -1,0 +1,130 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\citation{havasi2018minimal}
+\citation{clic2018}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Method}{23}{chapter.3}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chapter:method}{{3}{23}{Method}{chapter.3}{}}
+\newlabel{sec:our_method}{{3}{23}{Method}{chapter.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Dataset and Preprocessing}{23}{section.3.1}}
+\newlabel{sec:dataset_preproc}{{3.1}{23}{Dataset and Preprocessing}{section.3.1}{}}
+\citation{balle2016end}
+\citation{rippel2017real}
+\citation{balle2016end}
+\citation{balle2018variational}
+\citation{balle2015density}
+\citation{balle2016end}
+\citation{balle2016end}
+\citation{theis2017lossy}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Architectures}{24}{section.3.2}}
+\newlabel{sec:architectures}{{3.2}{24}{Architectures}{section.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}VAEs}{24}{subsection.3.2.1}}
+\citation{jain1989fundamentals}
+\citation{clic2018winner}
+\citation{portilla2003image}
+\citation{theis2017lossy}
+\citation{girod1993s}
+\citation{eskicioglu1994image}
+\citation{zhao2015loss}
+\@writefile{toc}{\contentsline {paragraph}{A note on the latent distributions}{25}{section*.18}}
+\@writefile{toc}{\contentsline {paragraph}{Data Likelihood and Training Objective}{25}{section*.20}}
+\newlabel{eq:regular_vae_elbo}{{3.1}{25}{Data Likelihood and Training Objective}{equation.3.2.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces \textbf  {a)} \texttt  {kodim21.png} from the Kodak Dataset. \textbf  {b)} A random sample from the VAE posterior. \textbf  {c)} Posterior means in a randomly selected channel. \textbf  {d)} Posterior standard deviations in the same randomly selected channel. We can see that there is a lot of structure in the latent space, on which the full indepenence assumption will have a detrimental effect. (We have examined several random channels and observed the similarly high structure. We present the above cross-section without preference.)\relax }}{26}{figure.caption.19}}
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:vae_rand_posterior}{{3.1}{26}{\textbf {a)} \texttt {kodim21.png} from the Kodak Dataset. \textbf {b)} A random sample from the VAE posterior. \textbf {c)} Posterior means in a randomly selected channel. \textbf {d)} Posterior standard deviations in the same randomly selected channel. We can see that there is a lot of structure in the latent space, on which the full indepenence assumption will have a detrimental effect. (We have examined several random channels and observed the similarly high structure. We present the above cross-section without preference.)\relax }{figure.caption.19}{}}
+\citation{balle2016end}
+\citation{balle2016end}
+\citation{balle2018variational}
+\citation{sonderby2016train}
+\newlabel{eq:laplace_likelihood}{{3.2}{27}{Data Likelihood and Training Objective}{equation.3.2.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.2}Probabilistic Ladder Network}{27}{subsection.3.2.2}}
+\newlabel{sec:prob_ladder_networks}{{3.2.2}{27}{Probabilistic Ladder Network}{subsection.3.2.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces PLN network architecture. The blocks signal data transformations, the arrows signal the flow of information. \textbf  {Block descriptions:} \textit  {Conv2D:} 2D convolutions along the spatial dimensions, where the $W\times H \times C / S$ implies a $W \times H$ convolution kernel, with $C$ target channels and $S$ gives the downsampling rate (given a preceding letter ``d'') or the upsampling rate (given a preceding letter ``u''). If the slash is missing, it means that there is no up/downsampling. All convolutions operate in \texttt  {same} mode with mirror padding. \textit  {GDN / IGDN:} these are the non-linearities described in \cite  {balle2016end}. \textit  {Leaky ReLU:} elementwise non-linearity defined as $\qopname  \relax m{max}\{x, \mitalpha x\}$, where we set $\mitalpha =0.2$. \textit  {Sigmoid:} Elementwise non-linearity defined as $\frac  {1}{1 + \qopname  \relax o{exp}\{-x\}}$. We ran all experiments presented here with $N = 196, M = 128, F = 128, G = 24$.\relax }}{28}{figure.caption.21}}
+\newlabel{fig:pln_architecture}{{3.2}{28}{PLN network architecture. The blocks signal data transformations, the arrows signal the flow of information. \textbf {Block descriptions:} \textit {Conv2D:} 2D convolutions along the spatial dimensions, where the $W\times H \times C / S$ implies a $W \times H$ convolution kernel, with $C$ target channels and $S$ gives the downsampling rate (given a preceding letter ``d'') or the upsampling rate (given a preceding letter ``u''). If the slash is missing, it means that there is no up/downsampling. All convolutions operate in \texttt {same} mode with mirror padding. \textit {GDN / IGDN:} these are the non-linearities described in \cite {balle2016end}. \textit {Leaky ReLU:} elementwise non-linearity defined as $\max \{x, \alpha x\}$, where we set $\alpha =0.2$. \textit {Sigmoid:} Elementwise non-linearity defined as $\frac {1}{1 + \exp \{-x\}}$. We ran all experiments presented here with $N = 196, M = 128, F = 128, G = 24$.\relax }{figure.caption.21}{}}
+\citation{sonderby2016train}
+\citation{balle2018variational}
+\citation{sonderby2016train}
+\citation{sonderby2016train}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces We continue the analysis of the latent spaces induced by \texttt  {kodim21} from the Kodak Dataset. Akin to Figure \ref  {fig:vae_rand_posterior}, we have selected a random channel for both the first and second levels each and present the spatial cross-sections along these channels. \textbf  {a)} Level 1 prior means. \textbf  {b)} Level 1 posterior means. \textbf  {c)} Level 1 prior standard deviations. \textbf  {d)} Level 1 posterior standard deviations. \textbf  {e)} Random sample from the Level 1 posterior. \textbf  {f)} The sample from \textbf  {e)} standardized according to the level 1 prior. Most structure from the sample is removed, hence we see that the second level has successfully learned a lot of the dependencies between the latents. We have checked cross-sections along several randomly selected channels and observed the same phenomenon. We present the above with no preference.\relax }}{30}{figure.caption.22}}
+\newlabel{fig:ladder_rand_posterior}{{3.3}{30}{We continue the analysis of the latent spaces induced by \texttt {kodim21} from the Kodak Dataset. Akin to Figure \ref {fig:vae_rand_posterior}, we have selected a random channel for both the first and second levels each and present the spatial cross-sections along these channels. \textbf {a)} Level 1 prior means. \textbf {b)} Level 1 posterior means. \textbf {c)} Level 1 prior standard deviations. \textbf {d)} Level 1 posterior standard deviations. \textbf {e)} Random sample from the Level 1 posterior. \textbf {f)} The sample from \textbf {e)} standardized according to the level 1 prior. Most structure from the sample is removed, hence we see that the second level has successfully learned a lot of the dependencies between the latents. We have checked cross-sections along several randomly selected channels and observed the same phenomenon. We present the above with no preference.\relax }{figure.caption.22}{}}
+\citation{ioffe2015batch}
+\citation{balle2018variational}
+\citation{dai2019diagnosing}
+\citation{dai2019diagnosing}
+\citation{dai2019diagnosing}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Training}{31}{section.3.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}Learning the Variance of the Likelihood}{31}{subsection.3.3.1}}
+\newlabel{sec:learn_gamma}{{3.3.1}{31}{Learning the Variance of the Likelihood}{subsection.3.3.1}{}}
+\citation{sonderby2016train}
+\citation{havasi2018minimal}
+\citation{harsha2007communication}
+\citation{havasi2018minimal}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Coded Sampling}{32}{section.3.4}}
+\newlabel{sec:coded_sampling}{{3.4}{32}{Coded Sampling}{section.3.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.4}{\ignorespaces We continue the analysis of the latent spaces induced by \texttt  {kodim21} from the Kodak Dataset. Akin to Figures \ref  {fig:vae_rand_posterior} and \ref  {fig:ladder_rand_posterior}, we have selected a random channel for both the first and second levels each and present the spatial cross-sections along these channels. \textbf  {a)} Level 1 prior means. \textbf  {b)} Level 1 posterior means. \textbf  {c)} Level 1 prior standard deviations. \textbf  {d)} Level 1 posterior standard deviations. \textbf  {e)} Random sample from the Level 1 posterior. \textbf  {f)} The sample from \textbf  {e)} standardized according to the level 1 prior. We observe the same phenomenon, with no significant difference, as in Figure \ref  {fig:ladder_rand_posterior}. We note that while the posterior sample may seem like it has more significant structure than the one in the previous Figure. This is only coincidence; some of the regular PLN's channels contain similar structure, and some of the $\mitgamma $-PLN's channels contain more noisy elements. \relax }}{33}{figure.caption.23}}
+\newlabel{fig:gamma_rand_posterior}{{3.4}{33}{We continue the analysis of the latent spaces induced by \texttt {kodim21} from the Kodak Dataset. Akin to Figures \ref {fig:vae_rand_posterior} and \ref {fig:ladder_rand_posterior}, we have selected a random channel for both the first and second levels each and present the spatial cross-sections along these channels. \textbf {a)} Level 1 prior means. \textbf {b)} Level 1 posterior means. \textbf {c)} Level 1 prior standard deviations. \textbf {d)} Level 1 posterior standard deviations. \textbf {e)} Random sample from the Level 1 posterior. \textbf {f)} The sample from \textbf {e)} standardized according to the level 1 prior. We observe the same phenomenon, with no significant difference, as in Figure \ref {fig:ladder_rand_posterior}. We note that while the posterior sample may seem like it has more significant structure than the one in the previous Figure. This is only coincidence; some of the regular PLN's channels contain similar structure, and some of the $\gamma $-PLN's channels contain more noisy elements. \relax }{figure.caption.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4.1}Parallelized Rejection Sampling}{34}{subsection.3.4.1}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Parallelized, bit-budgeted rejection sampling\relax }}{34}{algorithm.1}}
+\newlabel{alg:multivariate_rej_samp}{{1}{34}{Parallelized, bit-budgeted rejection sampling\relax }{algorithm.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Issues}{35}{section*.24}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4.2}Refinement: Greedy Sampling}{35}{subsection.3.4.2}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Greedy sampler\relax }}{35}{algorithm.2}}
+\newlabel{alg:greedy_sampler}{{2}{35}{Greedy sampler\relax }{algorithm.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{A note on implementation}{36}{section*.25}}
+\@writefile{toc}{\contentsline {paragraph}{Issues}{36}{section*.26}}
+\citation{havasi2018minimal}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4.3}Second Refinement: Adaptive Importance Sampling}{37}{subsection.3.4.3}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces Adaptive Importance Sampler\relax }}{37}{algorithm.3}}
+\newlabel{alg:adaptive_importance_sampler}{{3}{37}{Adaptive Importance Sampler\relax }{algorithm.3}{}}
+\citation{rissanen1981universal}
+\citation{adel1962algorithm}
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Coding}{38}{section.3.5}}
+\newlabel{sec:entropy_coding}{{3.5}{38}{Coding}{section.3.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.1}Coding the rejection sampled latents}{38}{subsection.3.5.1}}
+\newlabel{sec:rej_samp_artihmetic_coding}{{3.5.1}{38}{Coding the rejection sampled latents}{subsection.3.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.2}A note on the Arithmetic Coder}{38}{subsection.3.5.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5.3}Coding the greedy \& importance sampled latents}{39}{subsection.3.5.3}}
+\@writefile{toc}{\contentsline {paragraph}{Importance Sampler}{39}{section*.27}}
+\@writefile{toc}{\contentsline {paragraph}{Greedy Sampler}{39}{section*.28}}
+\@setckpt{Chapter3-Method/chapter3}{
+\setcounter{page}{40}
+\setcounter{equation}{2}
+\setcounter{enumi}{4}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{2}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{3}
+\setcounter{section}{5}
+\setcounter{subsection}{3}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{4}
+\setcounter{table}{0}
+\setcounter{@pps}{0}
+\setcounter{@ppsavesec}{0}
+\setcounter{@ppsaveapp}{0}
+\setcounter{NAT@ctr}{0}
+\setcounter{parentequation}{0}
+\setcounter{Item}{12}
+\setcounter{Hfootnote}{2}
+\setcounter{Hy@AnnotLevel}{0}
+\setcounter{bookmark@seq@number}{39}
+\setcounter{ContinuedFloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{float@type}{8}
+\setcounter{algorithm}{3}
+\setcounter{ALG@line}{31}
+\setcounter{ALG@rem}{31}
+\setcounter{ALG@nested}{0}
+\setcounter{ALG@Lnr}{2}
+\setcounter{ALG@blocknr}{10}
+\setcounter{ALG@storecount}{0}
+\setcounter{ALG@tmpcounter}{0}
+\setcounter{section@level}{4}
+}

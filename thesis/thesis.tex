@@ -30,7 +30,7 @@ backend=biber,
 \usepackage{algpseudocode}
 
 
-\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
 
 
 % ==============================================================================
@@ -178,406 +178,6 @@ Wordcount: \textbf{16384} words
 % ==============================================================================
 % ==============================================================================
 
-\section{Introduction}
-
-High level description of every section
-
-\subsection{Motivation}
-- adaptive
-- need for compression in a lot of new areas for which existing techniques might
-not work well
-lightfield cameras, 360 images / video, VR, video streams
-- good handcrafted codecs are hard to design
-- put the problem in a well-grounded mathematical framework, get theoretical guarantees
-
-\subsubsection{Why Image Compression?}
-\paragraph{}
-Well studied problem, good literature availability, on handcrafted methods, NN
-based methods and performance evaluation.
-
-\subsubsection{Why Lossy?}
-\paragraph{}
-In lossless image compression we are limited by the true distribution of image
-pixels in how much we can compress stuff.
-
-In lossy compression we can make a huge saving, by only concentrating on details
-that are perceptually important to the viewer.
-
-\subsection{Our Goals}
-
-Several metrics to optimise for:
-- compression quality
-- compression size
-- compression time
-- compressor size
-- compressor power consumption
-- robustness of compressor (i.e. resistance to errors / adversarial attacks)
-- security / privacy of compression
-- scalability: image size, image quality
-
-\subsection{Our Contributions}
-\paragraph{}
-
-We present:
-\begin{itemize}
-\item a brief introduction to the technical background on neural-network
-  based lossy image compression
-\item a review of recent influential works in the area
-
-\item a novel image compression algorithm trained on the CLIC 2018 dataset \cite{clic2018}
-
-\item experiments and analysis of performance to confirm its theoretical properties
-\end{itemize}
-
-\subsection{Thesis Outline}
-\paragraph{}
-
-
-
-\section{Background}
-\par
-As compression is not a standard topic in machine learning, it will be useful to
-first spend some time establishing the main concepts and familiarize ourselves
-with the jargon. We first go through some notation that will be used throughout
-this work. Then we go through a brief introduction to compression in general,
-and lossy compression and transform coding in particular. Third, we examine the
-motivating line of research to our project, the MDL framework, the bits-back
-argument and MIRACLE. Although our work is inspired by and based on earlier
-work, it differs from them in several significant ways. We will point out these
-differences throughout.
-\subsection{Notation and Basic Concepts}
-\paragraph{}
-It will be useful to clarify some of the notation throughout this work.
-\begin{itemize}
-\item Vectors will be denoted by boldface lowercase letters: $\vec{u}, \vec{x}, ...$
-\item Matrices will be denoted by uppercase letters: $A, M, ...$
-\item Probability mass functions will be denoted by uppercase letters: $P(x),
-  Q(z), ...$
-\item Probability density functions will be denoted by lowercase letters: $p(y),
-  q(u), ...$
-\item In general, exact/continuous values will be denoted by unannotated letters
-  (e.g. $z_i, \vec{w}$), their quantized counterparts denoted by a hat
-  ($\hat{z}_i, \vec{\hat{w}}$) and their approximate counterparts by a tilde
-  ($\tilde{z}_i, \vec{\tilde{w}}$).
-\item $\Exp_{p(x)}[f(x)]$ denotes the expected value of $f(x)$ with respect to
-  the mass / density $p(x)$, i.e.:
-  \[
-    \Exp_{p(x)}[f(x)] = \int_\Omega f(x) \d p(x),
-  \]
-  where $\Omega$ is the sample space. As $\Omega$ will usually denote $\Reals^n$
-  or will be understood from context, it will be omitted, and the integral will
-  be rewritten as
-  \[
-    \Exp_{p(x)}[f(x)] = \int f(x)p(x) \d x.
-  \]
-\item $H[X]$ denotes the Shannon entropy of the random variable $X$. If $X$ is
-  discrete, then it is defined as
-  \[
-    -\sum_{X=x}P(X=x)\log P(X=x).
-  \]
-  If it is continuous, then it will refer to the \textit{differential entropy}
-  of $X$, namely
-  \[
-    -\int_{\X}\log p(x) \d p(x),
-  \]
-  where $\X$ denotes the support of $X$.
-  \paragraph{Note:} we used the natural logarithm in our definition of entropy,
-  and hence its units are \textbf{nats}. If we used the base 2 logarithm
-  instead, the units would be \textbf{bits}.
-\item $\KL{q(x)}{p(x)}$ denotes the Kullback-Leibler divergence between two
-  distributions and is defined as
-  \[
-    \KL{q(x)}{p(x)} = \Exp_{q(x)}\left[\log\frac{q(x)}{p(x)}\right].
-  \]
-\item $I[X : Y]$ denotes the mutual information between random variables $X$ and
-  $Y$ and is defined as
-  \[
-    I[X : Y] = \KL{p(x, y)}{p(x)p(y)},
-  \]
-  where $(X, Y) \sim p(x, y)$ and $p(x)$ and $p(y)$ denote the marginals.
-\end{itemize}
-\subsection{Image Compression}
-\par
-with 
-\paragraph{Source Coding}
-From a theoretical point of view, given some source $S$, a sender and a
-receiver, compression may be described as the aim of the sender communicating an
-arbitrary sequence $X_1, X_2, \hdots, X_n$ taken from $S$ to the receiver in as few bits
-as possible such that the receiver may recover relevant information from the message.
-If the receiver can always recover all the information from the message of the sender, we
-call the algorithm \textbf{lossless}, otherwise we call it \textbf{lossy}. 
-\par
-At first it might seem non-sensical to allow for lossy compression, and in some
-domains this is definitely true, e.g. in text compression. However, 
-human's audio-visual perception is neither completely aligned with the range of
-what can be digitally represented, nor does it always scale the same way. Hence,
-there is a huge opportunity for compressing media in a lossy way by discarding
-information with the change being imperceptible for a human observer, while
-making huge gains in size reduction.
-\paragraph{Lossy Compression}
-As the medium of interest in lossy compression is generally assumed to be a
-real-valued vectory $\vec{x} \in \Reals^N$, such as RGB pixel intensities in an
-image or frequency coefficients in an audio file, the usual pipeline consists of 
-an encoder $C \circ \Enc$ map a point $\vec{x} \in \Reals^N$ to a string of bits and a
-decoder mapping from bitstrings to reconstruction $\vec{\hat{x}}$. The
-factors of the encoder $\Enc$ and $C$ can be understood as a map from $\Reals^N$ to a
-finite symbol set $\A$, called a \textbf{lossy encoder} and a map from $\A$ to a
-string of bits called a \textbf{lossless code} \cite{goyal2001theoretical}.
-We will examine both $\Enc$ and $C$ in more detail shortly. The decoder then can be
-thought of as inverting the code first and then using an approximate inverse of
-$\Enc$ to get the reconstruction $\vec{\hat{x}}$: $\Dec \circ C^{-1}$.
-\par
-It is important to be able to quantify
-\begin{itemize}
-\item the \textbf{distorsion} of the compressor: on average, how closely does
-  $\vec{\hat{x}}$ resemble $\vec{x}$?
-\item the \textbf{rate} of the compressor: on average, how many bits are
-  required to communicate $\vec{x}$? We want this to be as low as possible of course.
-\end{itemize}
-
-\paragraph{Distorsion}
-In order to measure ``closeness'' in the space of interest $\ImSpace$,
-a distance metric $d(\cdot, \cdot): \ImSpace
-\times \ImSpace \rightarrow \Reals$ is introduced. Then, the distortion $D$ is 
-is defined as
-\[
-  D = \Exp_{p(\vec{\hat{x}})}[d(\vec{x}, \vec{\hat{x}})].
-\]
-A popular choice of $d$, across many domains of compression is the normalized $L_2$ metric
-or MSE, defined as
-\[
-  d(\vec{x}, \vec{\hat{x}}) = \frac{1}{N} \sum_{i}^N (x_i - \hat{x}_i)^2, \quad
-  \ImSpace = \Reals^N.
-\]
-It is a popular metric as it is simple, easy to implement and has nice
-interpretations in both a Bayesian \cite{bishop2013pattern} and the MDL
-(\cite{hinton1993keeping}, to be introduced in Section \ref{sec:mdl}) settings.
-In the image compression setting, however, the MSE is problematic, since it is
-optimizing for such metric does not necessarily translate to obtaining pleasant-looking
-reconstructions \cite{zhao2015loss}, and hence more appropriate, so-called \textit{perceptual
-  metrics} were developed. The ones relevant to our discussion are Peak
-Signal-to-Noise Ratio (PSNR) \cite{psnr}, \cite{gupta2011modified} and the
-Structural Similarity Index (SSIM) \cite{wang2004image} and its multiscale
-version (MS-SSIM) \cite{msssim}. Crucially, these
-two metrics are not only the most popular, but are also differentiable, which
-means they lend themselves for gradient-based optimization.
-% TODO --------------------------------------------------
-\textbf{TODO: More discussion on metrics}
-
-\paragraph{Rate}
-We noted above that the code used after the lossy encoder is lossless. To
-further elaborate, in virtually all cases it is an \textbf{entropy code}
-\cite{goyal2001theoretical}. This means that we assume that each symbol
-in the representation $\vec{z} = \Enc(\vec{x})$ has some probability mass
-$P(z_i)$. A fundamental result by Shannon states that $\vec{z}$ may not be
-encoded losslessly in fewer than $H[\vec{z}]$ nats
-\cite{shannon1998mathematical}. Entropy codes, such as Huffman codes
-\cite{huffman1952method} or Arithmetic Coding \cite{rissanen1981universal} can
-get very close to this lower bound. We will discuss coding methods further in Sections
-\ref{sec:coded_sampling} and \ref{sec:entropy_coding}. The rate (in nats) of the compression algorithm is defined
-as the average number of nats required to code a single dimension of the input, i.e.
-\[
-  R = \frac{1}{N} H[\vec{z}].
-\]
-\paragraph{Transform Coding}
-The issue with source coding is that coding $\vec{x}$ might have a lot of
-dependencies across its dimensions. For images, this manifests on multiple
-scales and semantic levels, e.g. a pixel being blue might indicate that most
-pixels around it are blue as the scene is depicting the sky or a body of water;
-a portrait of a face will also imply that eyes, a nose and mouth are probably
-present, etc. Modelling and coding this dependence structure in very high
-dimensions is highly non-trivial or perhaps even impossible, and hence we need
-to make simplifying assumptions about it to proceed.
-\par
-\textit{Transform coding} attempts to solve the above problem by decomposing the
-encoder function $\Enc = Q \circ T$ into a so-called \textbf{analysis transform}
-$T$ and a \textbf{quantizer} $Q$. The idea is that to transform the input into a
-domain, such that the dependencies between the dimensions are removed, and hence
-they can be coded individually. The decoder inverts the steps of the encoder,
-where the inverse operation of $T$ is called the \textbf{synthesis transform}
-\cite{gupta2011modified}.
-\par
-In \textit{linear transform coding}, $T$ is an invertible linear trasformation,
-such as a discrete cosine transformation (DCT), as it is in the case of JPEG
-\cite{wallace1992jpeg}, or discrete wavelet transforms in JPEG 2000
-\cite{rabbani2002overview}. While simple, fast and elegant, linear transform
-coding has the key limitation that it can only at most remove correlations (i.e.
-first-order dependencies), and this can severly limit its efficiency
-\cite{balle2016endtrans}. Instead, \cite{balle2016endtrans} propose a method for
-\textit{non-linear transform coding}, where $T$ is replaced by a highly
-non-linear transformation, and its inverse is now replaced by an approximate
-inverse, which is a separate non-linear transformation. Both $T$ and its
-approximate inverse are learnt, and the authors show that with a more
-complicated transformation they can easily surpass the performance of the much
-more fine-tuned JPEG codecs.
-\par
-Our work also falls into this line of research, although with signifcant
-differences, which will be pointed out later.
-\subsection{The MDL, Bits-Back and MIRACLE}
-\par
-Here we overview the theoretical foundation of our project.
-\subsubsection{MDL Principle} 
-\label{sec:mdl}
-Our approach is based on the Minimum Description Length (MDL) Principle
-\cite{rissanen1986stochastic}. In essence, it is a formalization of Occam's
-Razor, i.e. the simplest model that describes the data well is the best model of
-the data \cite{grünwald2007minimum}. Here, ``simple'' and ``well'' need to be
-defined, and these definitions are precisely what the MDL principle gives us.
-Informally, it asserts that given a class of hypotheses $\Hypos$ (e.g. a certain
-statistical model and its parameters) and some data $\Data$, if a particular
-hypothesis $H \in \Hypos$ can be described with at most $L(H)$ bits and the using the
-hypothesis the data can be described with at most $L(\Data \mid H)$ bits, then the
-minimum description length of the data is
-\begin{equation}
-\label{eq:min_desc_princ}
-  L = \min_{H \in \Hypos}\{ L(H) + L(\Data \mid H) \},
-\end{equation}
-and the best hypothesis is the $H$ that minimizes the above quantity.
-\par
-Crucially, the MDL principle can thus be interpreted as telling us that
-\textbf{the best model of the data is the one that compresses it the most}.
-This makes Eq \ref{eq:min_desc_princ} a very appealing learning objective for
-optimization-based compression methods, ours included.
-Below, we briefly review how this has been applied so far and how it translates
-to our case.
-\subsubsection{Bits-Back Argument}
-First, we begin with the bits-back argument, introduced in
-\cite{hinton1993keeping}, which is a direct application of the above. The main
-goal of this work was to develop a regularisation technique for neural networks
-by framing the training of a neural network as a communication problem, where
-the training input and the fixed network architecture is public, but the weights,
-the network's output given a particular input, and the training targets are
-only available to the sender, and the task is to communicate the
-\textit{training targets} with minimal bits.
-\par
-Concretely, they train a Bayesian Neural Network, by equipping the weights
-$\vec{w}$ with a prior $p_\theta(\vec{w})$ and a posterior $q_\phi(\vec{w})$
-(parameterized by $\theta$ and $\phi$, respectively) and maximize
-the \textit{evidence lower bound} (ELBO) given a likelihood $p(\Data \mid \vec{w})$:
-\begin{equation}
-  \label{eq:elbo_target}
-  \Exp_{q_\phi}[\log p(\Data \mid \vec{w})] - \KL{q_{\phi}}{p_{\theta}}.
-\end{equation}
-Given a sufficiently finely quantized likelihood, the minimum description length
-of the data given this model is $\Exp_{q_\phi}[-\log p(\Data \mid \vec{w})]$
-\cite{shannon1998mathematical}, and hence the first term in Eq
-\ref{eq:elbo_target} corresponds to $-L(\Data \mid H)$. In their work then,
-\cite{hinton1993keeping} show that the second term in Eq \ref{eq:elbo_target}
-is equal to $-L(H)$, which establishes a link between the variational training
-objective of the BNN and the MDL principle.
-\par
-To do this, the encoder
-\begin{enumerate}
-\item trains the neural network, optimising Eq \ref{eq:elbo_target}.
-\item draws a random sample $\vec{\hat{w}} \sim q_{\phi}(\vec{w})$. This
-  represents a message of $\Exp_{q_\theta}[- \log q_\phi]$ nats.
-\item $\vec{\hat{w}}$ is then used to calculate the residuals $\vec{r}$ between
-  the network's output and the targets.
-\item $\vec{r}$ is coded with $\vec{\hat{w}}$ and then $\vec{\hat{w}}$ is coded
-  using its prior $p_\theta$. The total length of the message is hence $\Exp_{q_\phi}[-\log
-  p(\Data \mid \vec{\hat{w}})] + \Exp_{q_\phi}[-\log p_{\theta}]$.
-\end{enumerate}
-Once everything has been communicated, the decoder can recover the true training
-targets, but then they can also run the same training algorithm that the encoder
-used to then recover the posterior $q_\phi$. This means that the code of
-$\vec{\hat{w}}$ is ``free bits'' in the sense that the decoder can recover them
-exactly given what they already have. 
-Hence, the whole cost of drawing $\vec{\hat{w}}$ should be
-subtracted from the original cost, yielding
-$\Exp_{q_\phi}[-\log p_{\theta}] - \Exp_{q_\phi}[-\log q_{\phi}] =
-\KL{q_{\phi}}{p_\theta}$ nats. This ``recovery'' is the namesake for the
-bits-back argument.
-\subsubsection{MIRACLE}
-\label{sec:miracle_theory}
-Inspired by the above idea, \cite{havasi2018minimal} asked a natural question:
-\textit{is it possible to communicate only the weights of a network at
-  bits-back efficiency?}
-\par
-If the above were true, it would give a method for compressing neural networks
-rather efficiently. It is clear that the coding must be different than it was in
-\cite{hinton1993keeping}, as their method focused on the regularisation aspect
-of the KL-divergence and is very inefficient for actual communication of the
-model parameters.
-\par
-A second, important question that arises in conjunction with the first, natural
-for compression algorithms:
-\textit{is it possible trade off accuracy of a fixed neural network architecture
-  for better compression rates, and vice versa?}
-\par
-Luckily, the answer to both of the above questions is yes, and we shall begin by
-addressing the latter first. Fix a network architecture, and some data
-likelihood given a weight set $p(\Data \mid \vec{\hat{w}})$. Akin to
-\cite{hinton1993keeping}, we will actually train a BNN with weight prior
-$p(\vec{w})$ and posterior $q(\vec{w})$. Then, given a budget of $C$ nats, we
-hope to maximize the following constrained objective:
-\begin{equation}
-\label{eq:miracle_hard_train_target}
-\Exp_{q_\phi}[\log p(\Data \mid \vec{w})] \quad \text{subject to }
-\KL{q_{\phi}}{p_{\theta}} < C.
-\end{equation}
-We can rewrite Eq \ref{eq:miracle_hard_train_target} as its Lagranagian
-relaxation under the KKT conditions \cite{karush2014minima},
-\cite{kuhn2014nonlinear}, \cite{higgins2017beta} and get:
-\[
-  \F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) = 
-  \Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta (\KL{q_{\phi}}{p_{\theta}} - C).
-\]
-By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
-term in the above equation will provide a lower bound for it:
-\begin{equation}
-\label{eq:miracle_train_target}
-\F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) \geq
-\L(\theta, \phi, \beta \Data, \vec{\hat{w}}) =
-\Exp_{q_\phi}[\log p(\Data \mid \vec{\hat{w}})] - \beta \KL{q_{\phi}}{p_{\theta}}.
-\end{equation}
-Notice, that this is the same as Eq \ref{eq:elbo_target}, but with the addition of
-the parameter $\beta$ that will control the regularisation term and eventually
-the compression cost of the weights. It is also intimately related to the
-training target of $\beta$-VAEs \cite{higgins2017beta}, except for where they
-regularise the distributions of activations on a stochastic layer, here the
-regularisation is for the distributions of weights. 
-\par
-Now, to answer the first question, we first need to establish the right setting
-for the task, which will be another communications problem.
-Concretely, given a dataset $\Data$ sampled from a distribution $p(D)$, and
-$q_\phi(\vec{w})$, our trained weight posterior for a given $\beta$, what are
-the bounds on the minimum description length for the posterior $L(q_{\phi})$?
-\par
-Under some mild assumptions, it can be shown \cite{harsha2007communication} that
-in fact
-\[
-  \Exp_{p(D)}[L(q_{\phi})] \geq \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}],
-\]
-i.e. in this probabilistic setting bits-back efficiency is the best we can hope
-for. Now, if we make the further assumption that the sender and the receiver are
-allowed to \textit{share a source of randomness} (e.g. a random number generator
-and a seed for it), then a rather tight upper bound can also be derived, also
-due to \cite{harsha2007communication}:
-\begin{equation}
-\label{eq:miracle_ub}
-  \Exp_{p(D)}[L(q_{\phi})] \leq I[\Data : \vec{w}] + 2 \log \left( I[\Data :
-    \vec{w}] + 1 \right) + \Oh(1)
-\end{equation}
-where $I[D : \vec{w}] = \Exp_{p(D)}[\KL{q_{\phi}}{p_{\theta}}]$ is the
-mutual information between the distribution of datasets and the weights.
-\paragraph{Note:} Hence, tuning $\beta$ in \ref{eq:miracle_train_target}
-\textit{directly} controls the rate of the compression algorithm.
-\par
-Eq \ref{eq:miracle_ub} is proven by exposing an algorithm that achieves the
-postualted coding efficiency, an adaptive rejection sampling algorithm, which we
-detail in the Appendix A. This turns out to be infeasible in the case of
-MIRACLE, and instead the authors propose an importance sampling-based
-approximate sampling algorithm, which is also discussed in further detail in
-Appendix A. They are important, as we have used both in our project.
-
-\subsubsection{Our method}
-Our project is based upon the simple observation, that
-the MIRACLE framework may be utilised for compression of any data where in our
-model a public prior distribution $p_{\theta}$ and a learned $q_{\phi}$ is
-available and we are allowed to share a source of randomness. We have already
-noted the extreme similarity of the original BNN training objective to that of
-the $\beta$-VAE \cite{higgins2017beta}, and indeed they are precisely the model
-that we shall use for the compression of images in our case. 
 % ==============================================================================
 % ==============================================================================
 %
@@ -1145,6 +745,19 @@ model, as they do not extend trivially to our more complex model settings (in
 particular PLNs, as we formulated here requre the latent posterior
 distribution's family to be self-conjugate), we leave this for future work.
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/vae_rand_posterior}
+  \caption{\textbf{a)} \texttt{kodim21.png} from the Kodak Dataset. \textbf{b)}
+    A random sample from the VAE posterior. \textbf{c)} Posterior means in a
+  randomly selected channel. \textbf{d)} Posterior standard deviations in the same
+  randomly selected channel. We can see that there is a lot of structure in the
+  latent space, on which the full indepenence assumption will have a detrimental
+  effect. (We have examined several random channels and observed the
+  similarly high structure. We present the above cross-section without preference.)}
+  \label{fig:vae_rand_posterior}
+\end{figure}
+
 \paragraph{Data Likelihood and Training Objective}
 As is standard for VAEs, we aim to maximize the the (weighted) Evidence
 Lower Bound (ELBO):
@@ -1187,6 +800,26 @@ where $\MU^{d, (1)}$ is the reverse operation of $\MU^{e, (1)}$.
 
 \subsubsection{Probabilistic Ladder Network}
 \label{sec:prob_ladder_networks}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/thesis/VAE_architecture}
+  \caption{PLN network architecture. The blocks signal data transformations, the
+    arrows signal the flow of information. \textbf{Block descriptions:}
+    \textit{Conv2D:} 2D convolutions along the spatial dimensions, where the
+    $W\times H \times C / S$ implies a $W \times H$ convolution kernel, with $C$
+  target channels and $S$ gives the downsampling rate (given a preceding letter
+  ``d'') or the upsampling rate (given a preceding letter ``u''). If the slash
+  is missing, it means that there is no up/downsampling. All convolutions operate
+  in \texttt{same} mode with mirror padding. \textit{GDN / IGDN:} these are the
+  non-linearities described in \cite{balle2016end}. \textit{Leaky ReLU:}
+  elementwise non-linearity defined as $\max\{x, \alpha x\}$, where we set
+  $\alpha=0.2$. \textit{Sigmoid:} Elementwise non-linearity defined as
+  $\frac{1}{1 + \exp\{-x\}}$. We ran all
+  experiments presented here with $N = 196, M = 128, F = 128, G = 24$.}
+  \label{fig:pln_architecture}
+\end{figure}
+
 \par
 As mentioned in \cite{balle2018variational}, their scale hyperprior architecture
 closely resembles a \textit{probabilistic ladder network} (PLN), as defined by
@@ -1254,6 +887,25 @@ the model tractable to compute, while H-VAEs and PLNs relax this assumption to a
   \cite{sonderby2016train} is slightly different. We are not sure if it is a
   typo or it is what they actually used. We found our combination rule worked
   quite well in practice.}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_rand_posterior}
+  \caption{We continue the analysis of the latent spaces induced by
+    \texttt{kodim21} from the Kodak Dataset. Akin to Figure
+    \ref{fig:vae_rand_posterior}, we have selected a random channel for both the
+    first and second levels each and present the spatial cross-sections along these
+    channels. \textbf{a)} Level 1 prior means. \textbf{b)} Level 1 posterior means.
+    \textbf{c)} Level 1 prior standard deviations. \textbf{d)} Level 1 posterior
+    standard deviations. \textbf{e)} Random sample from the Level 1 posterior.
+    \textbf{f)} The sample from \textbf{e)} standardized according to the level
+    1 prior. Most structure from the sample is removed, hence we see that the
+    second level has successfully learned a lot of the dependencies between the
+    latents. We have checked cross-sections along several randomly selected
+    channels and observed the same phenomenon. We present the above with no preference.}
+  \label{fig:ladder_rand_posterior}
+\end{figure}
+
 \par
 Finally we need to update the regularizing term of the ELBO to incorporate the
 joint posterior and priors over the latents. Luckily, we can break it up as
@@ -1318,6 +970,27 @@ that if we set some target $\gamma_\infty$, and use
 \]
 as the scale of the data likelihood, we actually get a dual effect to the warmup
 recommended by \cite{sonderby2016train}, but the scaling is automatic!
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/gamma_rand_posterior}
+  \caption{We continue the analysis of the latent spaces induced by
+    \texttt{kodim21} from the Kodak Dataset. Akin to Figures
+    \ref{fig:vae_rand_posterior} and \ref{fig:ladder_rand_posterior},
+    we have selected a random channel for both the
+    first and second levels each and present the spatial cross-sections along these
+    channels. \textbf{a)} Level 1 prior means. \textbf{b)} Level 1 posterior means.
+    \textbf{c)} Level 1 prior standard deviations. \textbf{d)} Level 1 posterior
+    standard deviations. \textbf{e)} Random sample from the Level 1 posterior.
+    \textbf{f)} The sample from \textbf{e)} standardized according to the level
+    1 prior. We observe the same phenomenon, with no significant difference, as
+    in Figure \ref{fig:ladder_rand_posterior}. We note that while the posterior
+    sample may seem like it has more significant structure than the one in the
+    previous Figure. This is only coincidence; some of the regular PLN's
+    channels contain similar structure, and some of the $\gamma$-PLN's channels
+    contain more noisy elements.
+  }
+  \label{fig:gamma_rand_posterior}
+\end{figure}
 
 \subsection{Coded Sampling}
 \label{sec:coded_sampling}
@@ -1556,9 +1229,9 @@ only used on the second level of our PLNs.
     \State $OI \gets $ \Call{Where}{$kl_i > K$}
     \Comment Outlier indices in the vector
     \State Sample $O \sim Q_{OI}$
-    \Comment Target distribution restricted to the dimensions defined by $OI$.
     \State $\hat{O} \gets $ \Call{Quantize}{O}
     \State $Q' \gets Q_{\setminus OI}$
+    \Comment Target distribution restricted to the dimensions defined by $OI$.
     \State $P' \gets P_{\setminus OI}$
     \Comment Remove outlier dimensions
     \State $\gamma \gets 0$
@@ -1568,7 +1241,7 @@ only used on the second level of our PLNs.
 
     \For{$i \gets 1, \hdots \text{dim}(Q')$}
 
-    \If{$k + kl_i > B$ or $\gamma - \text{last}(\Gamma) > G$}
+    \If{$k + kl_i > B$ or $\gamma + 1> G$}
 
     \State Append $\gamma$ to $\Gamma$
     \State $k \gets kl_i$
@@ -1622,13 +1295,21 @@ vector has been partitioned, we importance sample each group using Algorithm
 \ref{alg:miracle_imp_samp}. The removed dimensions are sampled directly from
 the posterior and then the samples are quantized to 16 bits. The complete
 algorithm can be seen in Algorithm \ref{alg:adaptive_importance_sampler}.
-
+\par
+For ease of referral, since we would perform Adaptive Importance Sampling on the
+second level, followed by the Greedy Sampling on the first, We will refer to
+this way of sample coding as IS-GS.
 \subsection{Coding}
 \label{sec:entropy_coding}
 \par
 
 \subsubsection{Coding the rejection sampled latents}
 \label{sec:rej_samp_artihmetic_coding}
+% why doesnt rejection sampling work exactly?
+% - the cost is not arising from bad independence assumptions, because we have
+%   indepenedence
+% - so does it come from a bad match of the actual image posteriors?
+
 \par
 Simply writing the indices of the individual dimensions given by the rejection
 sampler would be very inefficient, because without additional assumptions the
@@ -1694,7 +1375,8 @@ of shards and the number of samples for each shard for the cumulative sample to
 be decodable. Hence, for the greedy sampler we just wrote the indices straight
 to the binary file.
 
-\section{Experimental Results}
+\section{Results}
+\label{sec:experimental_results}
 \par
 In this section we detail how we setup and empiricall show the correctness and
 the efficiency of our model. We compare our results against JPEG, the most
@@ -1705,12 +1387,16 @@ current state-of-the-art, the results of \cite{balle2018variational}\footnotemar
 \footnotetext{We thank the authors of the paper for making their data available
   to us.}
 
+\paragraph{Note:} All experiments were run on a GeForce GTX 1080 GPU.
+
+\subsection{Experimental Setup}
 \par
 As we based our models on that of \cite{balle2016end} and
 \cite{balle2018variational}, we mirror a lot of their training setup as well
 (See Section \ref{sec:dataset_preproc} for the dataset and preprocessing). We
 trained all our models with Adam with a starting learning rate of $\alpha_0 =
-3 \times 10^{-5}$ and trained all of our models for 20 epochs. We used a smooth
+3 \times 10^{-5}$ and trained all of our models for 20 epochs or equivalently,
+approximately 200,000 iterations.. We used a smooth
 exponential learning rate decay schedule except in the case of the
 $\gamma$-VAEs, according to the formula
 \[
@@ -1726,19 +1412,11 @@ nearly as long, or on nearly as much data as \cite{balle2018variational}, our
 method still gets reasonably close to their results. We compare our results to
 theirs, which as far as we are aware are the current state-of-the-art on both
 the MS-SSIM and PSNR perceptual metrics.
+
+\subsection{Comparison of our method with other algorithms}
 \par
-\begin{equation}
-\label{eq:metric_psnr}
-\text{PSNR}(\vec{x}, \vec{\hat{x}}) =
--10 \cdot \log_{10}\text{MSE}(\vec{x}, \vec{\hat{x}})
-\end{equation}
 
-\begin{equation}
-\label{eq:metric_ms_ssim}
--10 \cdot \log_{10}\left( 1 - \text{MS-SSIM}(\vec{x}, \vec{\hat{x}}) \right)
-\end{equation}
-
-We present the comparison for the following:
+We present the rate-distorsion curves for the following:
 \begin{itemize}
 \item JPEG, with quality settings from 1 to 92, with increments of 7 between
   settings. As this is the most widely used lossy image compression codec, it is
@@ -1747,6 +1425,13 @@ We present the comparison for the following:
 \item BPG\footnotemark with 4:4:4 chroma sampling, as we are comparing against
   RGB-based compression techniques. We used quantization settings between 51 to
   33 wiht decrements of 3 between settings.
+\item Two models with the same architecture from \cite{balle2018variational},
+  one optimized for a MSE training objective, and one optimized for the
+  MS-SSIM perceptual metric.
+\item Two of our models, all of which were optimized with Laplacian likelihoods,
+  one PLN and one $\gamma$-PLN. We plot both their theoretically optimal
+  performance as well as their actual performance, with the differences
+  explained below.
 \end{itemize}
 
 \par
@@ -1764,17 +1449,145 @@ actual method's performance using the same setup must apper to the right of (les
 efficient compression) or below (worse reconstruction quality) the theoretical
 position.
 
+\footnotetext{We used the implementation available at \url{http://bellard.org/bpg}}
+
 We trained the PLNs using $\beta = \{0.01, 0.03, 0.1, 0.3, 1\}$ and the
 $\gamma$-PLNs using $\beta = \{10, 3, 1, 0.3, 0.1\}$.
 
-\begin{figure}[H]
+Our results can be seen in Figure \ref{fig:kodim01_comp}. We observe a similar
+phenomenon as \cite{balle2018variational}: there is a mismatch in the comparison
+of models according to different perceptual metrics, depending on what objective
+they have been optimized for. In particular, JPEG and BPG have both been
+optimized so that they give high PSNR (thus, low MSE), whereas they underperform
+on the newer MS-SSIM metric. We note that as MS-SSIM correlates better with what
+the HVS perceives, we find it more important to do well on that comparison.
+\par
+In interesting note, that also justifies our choice of the MAE as the training
+objective, is the fact that our model optimized for it does well on this metric.
+
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth]{../img/plots/kodak_comparison/kodim01_comparison}
-  \caption{haha}
+  \caption{Rate-Distorsion curves of several relevant methods. Please see
+    Section \ref{sec:experimental_results} for the description of how we
+    obtained each curve. We note that the MS-SSIM results are presented in
+    decibels, where the conversion is done using the formula $-10 \cdot
+    \log_{10}\left( 1 - \text{MS-SSIM}(\vec{x}, \vec{\hat{x}}) \right)$.
+    The PSNR is computed from the mean squared error, using the formula 
+    $-10 \cdot \log_{10}\text{MSE}(\vec{x}, \vec{\hat{x}})$.}
   \label{fig:kodim01_comp}
 \end{figure}
 
-\footnotetext{We used the implementation available at \url{http://bellard.org/bpg}}
+\subsection{Analysis of the contribution of the second level}
+\par
+An important part of verifying the validity of using PLNs is to analyze the
+contribution of the second level. Here we look at
+\begin{itemize}
+\item its contribution to the codelength
+\item its efficiency in capturing dependencies between the first level latents
+\end{itemize}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/kodak_side_info/kodim01_side_info}
+  \caption{Contribution of the second level to the rate, plotted agains the
+    actual rate. \textbf{Left:} Contribution in BPP, \textbf{Right:}
+    Contribution in percentages. We see that for lower bitrates there is more
+    contribution from the second level and it quickly decreases for higher
+    rates. It is also clear that on the same bitrates, the $\gamma$-PLN requires
+    less contribution from the second level than regular PLN.}
+  \label{fig:kodim01_side_info}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_q2_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_q2_comp}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_p1_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_p1_comp}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_q1_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_q1_comp}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_std_q1_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_std_q1_comp}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_kl_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_kl_comp}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/vae_latents/ladder_gamma_snr_comp}
+  \caption{ladder on kodim21}
+  \label{fig:ladder_gamma_snr_comp}
+\end{figure}
+
+\subsection{Compression Speed}
+\par
+Although not a focus of our project, we now briefly examine the the encoding and
+decoding speed of our method. We have plotted the compression ratios of our
+models against the time it took them to encode / decode them using IS-GS in
+Figure \ref{fig:kodim01_coding_time}. As increasing the reconstruction quality
+leads to higher KL divergences between the latent posteriors and priors, both the
+importance sampler and the greedy sampler will need to split up a higher total
+KL, and thus we expect the coding to become slower. This is precisely what we
+observe, with a seemingly approximately linear growth, although we do not have
+data to conclude this. We also see that encoding consistently takes around 3
+times as long as decoding. It is clear that our method is not yet practical:
+even the fastest case takes around a minute to encode and about 20 seconds to
+decode, which very far away for real-time applications for now. The precise
+values are reported in Table \ref{tab:kodim01_coding_time}.
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../img/plots/kodak_coding_time/kodim01_coding_time}
+  \caption{Coding times of models plotted agains their rates. \textbf{Left:}
+    Regular PLNs. \textbf{Right:} $\gamma$-PLNs. The striped lines indicate
+    the concrete positions of our models in the rate line. While it seems
+    that there is a
+    linear relationship between rate and coding time, we do not have enough
+    datapoints to conclude this.}
+  \label{fig:kodim01_coding_time}
+\end{figure}
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{|r||c|c|c|c||c|c|c|c|}
+    \hline
+    & \multicolumn{4}{c||}{\textbf{PLNs}} & \multicolumn{4}{c|}{\textbf{$\gamma$-PLNs}} \\
+    \hline 
+    $\beta$ & 1 & 0.3 & 0.1 & 0.03 & 10 & 3 & 1 & 0.1 \\ 
+    \hline\hline
+    Encoding Time (s) & 55.91 & 64.95 & 98.85 & 145.38 & 71.40 & 120.54 & 172.34 & 452.49 \\
+    \hline
+    Decoding Time (s) & 24.85 & 26.61 & 33.34 & 44.85 & 27.81 & 38.87 & 54.86 & 140.52 \\
+    \hline
+  \end{tabular}
+  \caption{haha}
+  \label{tab:kodim01_coding_time}
+\end{table}
+
+
+
+
+% EXPERIMENT TODO:
+% comparison of different sized images' coding
+% Balle hyperprior efficiency plot
+% Sonderby latent KL plot
+% latent variance plot
 
 \section{Discussion}
 \par
