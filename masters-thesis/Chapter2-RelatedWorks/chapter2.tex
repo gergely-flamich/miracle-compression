@@ -338,14 +338,14 @@ and we briefly review them here.
 \item \cite{balle2016end} Set out to train for the rate-distrotion trade-off
   directly, i.e.
   \[
-    L = H[\vec{\hat{z}}] + \beta \Exp[d(\vec{x}, \vec{\hat{x}})],
+    L = H[\vec{\hat{z}}] + \beta \Exp{d(\vec{x}, \vec{\hat{x}})}{},
   \]
   where the expectation is taken over training batches.
   As this is a non-differentiable loss function due to the quantization, they
   replace the discrete entropy term with a differential entropy term:
   \[
-   L = \Exp\left[ -\sum_i \log_2 p(z_i + \delta z_i \mid \psi^{(i)}) +
-                     \beta d(\vec{x}, \vec{\hat{x}})\right].
+   L = \Exp{-\sum_i \log_2 p(z_i + \delta z_i \mid \psi^{(i)}) +
+                     \beta d(\vec{x}, \vec{\hat{x}})}{}.
   \]
   \par Since they use MSE as the distance metric, they note that their
   architecture could be considered as an, albeit somewhat
@@ -374,7 +374,7 @@ and we briefly review them here.
   also optimize an approximation of the rate-distrotion trade-off, replacing the
   rate estimator with its upper bound:
   \[
-    L = -\Exp[\log_2 q(\vec{z} + \vec{u})] + \beta \Exp[d(\vec{x}, \vec{\hat{x}})].
+    L = -\Exp{\log_2 q(\vec{z} + \vec{u})}{} + \beta \Exp{d(\vec{x}, \vec{\hat{x}})}.
   \]
   They performed the training incrementally, in the sense that they masked most
   latents at the start, such that their contribution to the loss was 0. Then, as
@@ -399,9 +399,9 @@ and we briefly review them here.
   Then, taking the KL between these, the full traning objective works out to be
   \begin{equation}
     \label{eq:balle_var_train_objective}
-    L = \Exp\left[ -\sum_i \log_2 p(\tilde{z}^{(2)}_i \mid \psi^{(i)}) 
+    L = \Exp{ -\sum_i \log_2 p(\tilde{z}^{(2)}_i \mid \psi^{(i)}) 
       -\sum_i \log_2 p(\tilde{z}^{(1)}_i \mid \tilde{\sigma}^2_i) +
-      \beta d(\vec{x}, \vec{\hat{x}})\right].
+      \beta d(\vec{x}, \vec{\hat{x}})}{}.
   \end{equation}
   Eq \ref{eq:balle_var_train_objective} is very important, as it will be
   directly translated to our learning objective.

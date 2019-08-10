@@ -202,13 +202,14 @@
 \newcommand{\F}{\mathcal{F}}
 \renewcommand{\L}{\mathcal{L}}
 \newcommand{\X}{\mathcal{X}}
+\newcommand{\Y}{\mathcal{Y}}
 
 \newcommand{\Enc}{\mathtt{Enc}}
 \newcommand{\Dec}{\mathtt{Dec}}
 
 \newcommand{\Oh}{\mathcal{O}}
-\newcommand{\KL}[2]{\mathrm{KL}[\,#1\,\,||\,\,#2\,]}
-\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\KL}[2]{\mathrm{KL}\left[\,#1\,\,||\,\,#2\,\right]}
+\newcommand{\Exp}[2]{\mathbb{E}_{#2}\left[ #1 \right]}
 \newcommand{\I}{\mathbb{I}}
 
 \newcommand{\Hypos}{\mathcal{H}}
@@ -233,3 +234,5 @@
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
+
+\newtheorem{theorem}{Theorem}

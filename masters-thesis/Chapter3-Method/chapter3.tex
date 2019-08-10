@@ -141,12 +141,106 @@ distribution's family to be self-conjugate), we leave this for future work.
   \label{fig:vae_rand_posterior}
 \end{figure}
 
+%==============================================================================
+%==============================================================================
+% TODO
+%==============================================================================
+%==============================================================================
+
+\paragraph{MIRACLE}
+Inspired by the above idea, \cite{havasi2018minimal} asked a natural question:
+\textit{is it possible to communicate only the weights of a network at
+  bits-back efficiency?}
+\par
+If the above were true, it would give a method for compressing neural networks
+rather efficiently. It is clear that the coding must be different than it was in
+\cite{hinton1993keeping}, as their method focused on the regularisation aspect
+of the KL-divergence and is very inefficient for actual communication of the
+model parameters.
+\par
+A second, important question that arises in conjunction with the first, natural
+for compression algorithms:
+\textit{is it possible trade off accuracy of a fixed neural network architecture
+  for better compression rates, and vice versa?}
+\par
+Luckily, the answer to both of the above questions is yes, and we shall begin by
+addressing the latter first. Fix a network architecture, and some data
+likelihood given a weight set $p(\Data \mid \vec{\hat{w}})$. Akin to
+\cite{hinton1993keeping}, we will actually train a BNN with weight prior
+$p(\vec{w})$ and posterior $q(\vec{w})$. Then, given a budget of $C$ nats, we
+hope to maximize the following constrained objective:
+\begin{equation}
+\label{eq:miracle_hard_train_target}
+\Exp{\log p(\Data \mid \vec{w})}{q_\phi} \quad \text{subject to }
+\KL{q_{\phi}}{p_{\theta}} < C.
+\end{equation}
+We can rewrite Eq \ref{eq:miracle_hard_train_target} as its Lagranagian
+relaxation under the KKT conditions \cite{karush2014minima},
+\cite{kuhn2014nonlinear}, \cite{higgins2017beta} and get:
+\[
+  \F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) = 
+  \Exp{\log p(\Data \mid \vec{\hat{w}})}{q_\phi} - \beta (\KL{q_{\phi}}{p_{\theta}} - C).
+\]
+By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
+term in the above equation will provide a lower bound for it:
+\begin{equation}
+\label{eq:miracle_train_target}
+\F(\theta, \phi, \beta, \Data, \vec{\hat{w}}) \geq
+\L(\theta, \phi, \beta \Data, \vec{\hat{w}}) =
+\Exp{\log p(\Data \mid \vec{\hat{w}})}{q_\phi} - \beta \KL{q_{\phi}}{p_{\theta}}.
+\end{equation}
+Notice, that this is the same as Eq \ref{eq:elbo_target}, but with the addition of
+the parameter $\beta$ that will control the regularisation term and eventually
+the compression cost of the weights. It is also intimately related to the
+training target of $\beta$-VAEs \cite{higgins2017beta}, except for where they
+regularise the distributions of activations on a stochastic layer, here the
+regularisation is for the distributions of weights. 
+\par
+Now, to answer the first question, we first need to establish the right setting
+for the task, which will be another communications problem.
+Concretely, given a dataset $\Data$ sampled from a distribution $p(D)$, and
+$q_\phi(\vec{w})$, our trained weight posterior for a given $\beta$, what are
+the bounds on the minimum description length for the posterior $L(q_{\phi})$?
+\par
+Under some mild assumptions, it can be shown \cite{harsha2007communication} that
+in fact
+\[
+  \Exp{L(q_{\phi})}{p(D)} \geq \Exp{\KL{q_{\phi}}{p_{\theta}}}{p(D)},
+\]
+i.e. in this probabilistic setting bits-back efficiency is the best we can hope
+for. Now, if we make the further assumption that the sender and the receiver are
+allowed to \textit{share a source of randomness} (e.g. a random number generator
+and a seed for it), then a rather tight upper bound can also be derived, also
+due to \cite{harsha2007communication}:
+\begin{equation}
+\label{eq:miracle_ub}
+  \Exp{L(q_{\phi})}{p(D)} \leq I[\Data : \vec{w}] + 2 \log \left( I[\Data :
+    \vec{w}] + 1 \right) + \Oh(1)
+\end{equation}
+where $I[D : \vec{w}] = \Exp{\KL{q_{\phi}}{p_{\theta}}}{p(D)}$ is the
+mutual information between the distribution of datasets and the weights.
+\paragraph{Note:} Hence, tuning $\beta$ in \ref{eq:miracle_train_target}
+\textit{directly} controls the rate of the compression algorithm.
+\par
+Eq \ref{eq:miracle_ub} is proven by exposing an algorithm that achieves the
+postualted coding efficiency, an adaptive rejection sampling algorithm, which we
+detail in the Appendix A. This turns out to be infeasible in the case of
+MIRACLE, and instead the authors propose an importance sampling-based
+approximate sampling algorithm, which is also discussed in further detail in
+Appendix A. They are important, as we have used both in our project.
+
+%==============================================================================
+%==============================================================================
+%END OF TODO
+%==============================================================================
+%==============================================================================
+
 \paragraph{Data Likelihood and Training Objective}
 As is standard for VAEs, we aim to maximize the the (weighted) Evidence
 Lower Bound (ELBO):
 \begin{equation}
 \label{eq:regular_vae_elbo}
-\Exp_{q^{(1)}}[\log p(\vec{x} \mid \vec{z}^{(1)})] - \beta\KL{q^{(1)}}{p^{(1)}}.
+\Exp{\log p(\vec{x} \mid \vec{z}^{(1)})}{q^{(1)}} - \beta\KL{q^{(1)}}{p^{(1)}}.
 \end{equation}
 As the latent posterior and prior are both Gaussians, the KL can be computed
 analytically, and there is no need for a Monte Carlo estimation. A popular and

@@ -5,10 +5,8 @@
     "sec:theoretical_foundations"
     "sec:mdl"
     "eq:min_desc_princ"
-    "eq:elbo_target"
-    "sec:miracle_theory"
-    "eq:miracle_hard_train_target"
-    "eq:miracle_train_target"
-    "eq:miracle_ub"))
+    "eq:hypothesis_entropy"
+    "eq:hypothesis_cross_entropy"
+    "eq:mdl_elbo"))
  :latex)
 
