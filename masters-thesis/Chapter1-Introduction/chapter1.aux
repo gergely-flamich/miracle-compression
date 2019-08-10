@@ -10,6 +10,8 @@
 \citation{harsha2007communication}
 \citation{hinton1993keeping}
 \citation{havasi2018minimal}
+\citation{sonderby2016train}
+\citation{kingma2013auto}
 \citation{kodakdataset}
 \@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}}
 \@writefile{lof}{\addvspace {10\p@ }}
@@ -20,7 +22,7 @@
 \citation{hinton1993keeping}
 \citation{harsha2007communication}
 \citation{havasi2018minimal}
-\@writefile{toc}{\contentsline {section}{\numberline {1.2}Our Contributions}{2}{section.1.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.2}Thesis Contributions}{2}{section.1.2}}
 \@writefile{toc}{\contentsline {section}{\numberline {1.3}Thesis Outline}{2}{section.1.3}}
 \citation{sonderby2016train}
 \citation{higgins2017beta}
@@ -30,13 +32,16 @@
 \citation{psnr}
 \citation{msssim}
 \@writefile{toc}{\contentsline {paragraph}{}{3}{section*.7}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.4}Theoretical Foundations}{3}{section.1.4}}
-\newlabel{sec:theoretical_foundations}{{1.4}{3}{Theoretical Foundations}{section.1.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.5}Image Compression}{3}{section.1.5}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.4}Image Compression}{3}{section.1.4}}
+\newlabel{sec:intro_image_compression}{{1.4}{3}{Image Compression}{section.1.4}{}}
+\citation{eskicioglu1994image}
+\citation{psnr}
+\citation{gupta2011modified}
 \citation{goyal2001theoretical}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.1}Source Coding}{4}{subsection.1.5.1}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.2}Lossy Compression}{4}{subsection.1.5.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.3}Distortion}{4}{subsection.1.5.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.1}Source Coding}{4}{subsection.1.4.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.2}Lossy Compression}{4}{subsection.1.4.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.3}Distortion}{4}{subsection.1.4.3}}
+\newlabel{sec:intro_distrotion}{{1.4.3}{4}{Distortion}{subsection.1.4.3}{}}
 \citation{bishop2013pattern}
 \citation{hinton1993keeping}
 \citation{zhao2015loss}
@@ -46,45 +51,55 @@
 \citation{msssim}
 \citation{goyal2001theoretical}
 \citation{shannon1998mathematical}
+\citation{mackay2003information}
 \citation{huffman1952method}
 \citation{rissanen1981universal}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.4}Rate}{5}{subsection.1.5.4}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.5}Transform Coding}{5}{subsection.1.5.5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.4}Rate}{5}{subsection.1.4.4}}
 \citation{gupta2011modified}
 \citation{wallace1992jpeg}
 \citation{rabbani2002overview}
 \citation{balle2016endtrans}
 \citation{balle2016endtrans}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.5}Transform Coding}{6}{subsection.1.4.5}}
+\newlabel{sec:transform_coding}{{1.4.5}{6}{Transform Coding}{subsection.1.4.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.6}The Significance of Quantization in Lossy Compression}{6}{subsection.1.4.6}}
 \citation{rissanen1986stochastic}
 \citation{hinton1993keeping}
 \citation{harsha2007communication}
 \citation{havasi2018minimal}
 \citation{rissanen1986stochastic}
 \citation{grünwald2007minimum}
-\@writefile{toc}{\contentsline {section}{\numberline {1.6}Theoretical Foundations}{6}{section.1.6}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.6.1}The Minimum Description Length Principle}{6}{subsection.1.6.1}}
-\newlabel{sec:mdl}{{1.6.1}{6}{The Minimum Description Length Principle}{subsection.1.6.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.5}Theoretical Foundations}{7}{section.1.5}}
+\newlabel{sec:intro_theoretical_foundations}{{1.5}{7}{Theoretical Foundations}{section.1.5}{}}
 \citation{hinton1993keeping}
 \citation{havasi2018minimal}
-\newlabel{eq:min_desc_princ}{{1.1}{7}{The Minimum Description Length Principle}{equation.1.6.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.6.2}Bits-Back Argument}{7}{subsection.1.6.2}}
-\@writefile{toc}{\contentsline {paragraph}{Example}{7}{section*.8}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.1}The Minimum Description Length Principle}{8}{subsection.1.5.1}}
+\newlabel{sec:mdl}{{1.5.1}{8}{The Minimum Description Length Principle}{subsection.1.5.1}{}}
+\newlabel{eq:min_desc_princ}{{1.1}{8}{The Minimum Description Length Principle}{equation.1.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.2}The Bits-back Argument}{8}{subsection.1.5.2}}
+\@writefile{toc}{\contentsline {paragraph}{Example}{8}{section*.8}}
 \citation{hinton1993keeping}
-\newlabel{eq:hypothesis_entropy}{{1.2}{9}{Example}{equation.1.6.2}{}}
-\newlabel{eq:hypothesis_cross_entropy}{{1.3}{9}{Example}{equation.1.6.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{The general argument}{10}{section*.9}}
+\newlabel{eq:hypothesis_entropy}{{1.2}{10}{Example}{equation.1.5.2}{}}
+\newlabel{eq:hypothesis_cross_entropy}{{1.3}{10}{Example}{equation.1.5.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{The general argument}{11}{section*.9}}
 \citation{harsha2007communication}
 \citation{havasi2018minimal}
 \citation{harsha2007communication}
+\@writefile{toc}{\contentsline {paragraph}{Caveats of the argument}{12}{section*.10}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.6}Compression without Quantization}{12}{section.1.6}}
+\newlabel{sec:compression_without_quantization}{{1.6}{12}{Compression without Quantization}{section.1.6}{}}
 \citation{harsha2007communication}
-\@writefile{toc}{\contentsline {paragraph}{Caveats of the argument}{11}{section*.10}}
-\@writefile{toc}{\contentsline {section}{\numberline {1.7}Compression without Quantization}{11}{section.1.7}}
 \citation{harsha2007communication}
+\citation{harsha2007communication}
+\newlabel{eq:harsha_upper_bound}{{1.4}{13}{Compression without Quantization}{equation.1.6.4}{}}
 \citation{hinton1993keeping}
-\newlabel{eq:mdl_elbo}{{1.4}{12}{Compression without Quantization}{equation.1.7.4}{}}
+\citation{havasi2018minimal}
+\citation{havasi2018minimal}
+\newlabel{eq:mdl_elbo}{{1.5}{14}{Compression without Quantization}{equation.1.6.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.6.1}Relation of Quantization to Our Framework}{14}{subsection.1.6.1}}
 \@setckpt{Chapter1-Introduction/chapter1}{
-\setcounter{page}{15}
-\setcounter{equation}{4}
+\setcounter{page}{16}
+\setcounter{equation}{5}
 \setcounter{enumi}{4}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
@@ -93,8 +108,8 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{chapter}{1}
-\setcounter{section}{7}
-\setcounter{subsection}{0}
+\setcounter{section}{6}
+\setcounter{subsection}{1}
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
@@ -108,7 +123,7 @@
 \setcounter{Item}{13}
 \setcounter{Hfootnote}{0}
 \setcounter{Hy@AnnotLevel}{0}
-\setcounter{bookmark@seq@number}{18}
+\setcounter{bookmark@seq@number}{19}
 \setcounter{ContinuedFloat}{0}
 \setcounter{subfigure}{0}
 \setcounter{subtable}{0}
@@ -121,6 +136,6 @@
 \setcounter{ALG@blocknr}{10}
 \setcounter{ALG@storecount}{0}
 \setcounter{ALG@tmpcounter}{0}
-\setcounter{theorem}{1}
-\setcounter{section@level}{1}
+\setcounter{theorem}{2}
+\setcounter{section@level}{2}
 }

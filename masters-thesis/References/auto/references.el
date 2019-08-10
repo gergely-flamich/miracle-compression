@@ -66,6 +66,9 @@
     "adel1962algorithm"
     "jain1989fundamentals"
     "clic2018winner"
-    "portilla2003image"))
+    "portilla2003image"
+    "mackay2003information"
+    "krizhevsky2009learning"
+    "asuni2014testimages"))
  :bibtex)
 

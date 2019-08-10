@@ -6,6 +6,12 @@ Adel'son-Vel'skii, G.~M. and Landis, E.~M. (1962).
 \newblock In {\em Doklady Akademii Nauk}, volume 146, pages 263--266. Russian
   Academy of Sciences.
 
+\bibitem[Asuni and Giachetti, 2014]{asuni2014testimages}
+Asuni, N. and Giachetti, A. (2014).
+\newblock Testimages: a large-scale archive for testing visual devices and
+  basic image processing algorithms.
+\newblock In {\em Eurographics Italian Chapter Conference}, volume~1, page~3.
+
 \bibitem[Ball{\'e} et~al., 2015]{balle2015density}
 Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2015).
 \newblock Density modeling of images using a generalized normalization
@@ -54,11 +60,6 @@ CLIC (2018).
 \newblock \url{https://www.compression.cc}.
 \newblock Accessed: 2019-03-25.
 
-\bibitem[Company, 1999]{kodakdataset}
-Company, E.~K. (1999).
-\newblock Kodak lossless true color image suite.
-\newblock \url{http://r0k.us/graphics/kodak/}.
-
 \bibitem[Dai and Wipf, 2019]{dai2019diagnosing}
 Dai, B. and Wipf, D. (2019).
 \newblock Diagnosing and enhancing vae models.
@@ -76,6 +77,11 @@ Denton, E.~L., Chintala, S., Fergus, R., et~al. (2015).
   adversarial networks.
 \newblock In {\em Advances in neural information processing systems}, pages
   1486--1494.
+
+\bibitem[{Eastman Kodak Company}, 1999]{kodakdataset}
+{Eastman Kodak Company} (1999).
+\newblock Kodak lossless true color image suite.
+\newblock \url{http://r0k.us/graphics/kodak/}.
 
 \bibitem[Eskicioglu et~al., 1994]{eskicioglu1994image}
 Eskicioglu, A.~M., Fisher, P.~S., and Chen, S.-Y. (1994).
@@ -193,11 +199,26 @@ Kingma, D.~P. and Ba, J. (2014).
 \newblock Adam: A method for stochastic optimization.
 \newblock {\em arXiv preprint arXiv:1412.6980}.
 
+\bibitem[Kingma and Welling, 2013]{kingma2013auto}
+Kingma, D.~P. and Welling, M. (2013).
+\newblock Auto-encoding variational bayes.
+\newblock {\em arXiv preprint arXiv:1312.6114}.
+
+\bibitem[Krizhevsky et~al., 2009]{krizhevsky2009learning}
+Krizhevsky, A., Hinton, G., et~al. (2009).
+\newblock Learning multiple layers of features from tiny images.
+\newblock Technical report, Citeseer.
+
 \bibitem[Kuhn and Tucker, 2014]{kuhn2014nonlinear}
 Kuhn, H.~W. and Tucker, A.~W. (2014).
 \newblock Nonlinear programming.
 \newblock In {\em Traces and emergence of nonlinear programming}, pages
   247--258. Springer.
+
+\bibitem[MacKay et~al., 2003]{mackay2003information}
+MacKay, D., Kay, D., and Press, C.~U. (2003).
+\newblock {\em Information Theory, Inference and Learning Algorithms}.
+\newblock Cambridge University Press.
 
 \bibitem[Mentzer et~al., 2018]{mentzer2018cvpr}
 Mentzer, F., Agustsson, E., Tschannen, M., Timofte, R., and Van~Gool, L.

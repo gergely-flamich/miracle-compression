@@ -14,48 +14,47 @@ The style file: apalike.bst
 A level-1 auxiliary file: Appendix1/appendix1.aux
 A level-1 auxiliary file: Appendix2/appendix2.aux
 Database file #1: References/references.bib
-Warning--I didn't find a database entry for "havasi2019minimal"
 Warning--empty journal in bottou1998high
 Warning--empty journal in eskicioglu1994image
-You've used 52 entries,
+You've used 56 entries,
             1935 wiz_defined-function locations,
-            762 strings with 13122 characters,
-and the built_in function-call counts, 22455 in all, are:
-= -- 2208
-> -- 988
-< -- 42
-+ -- 355
-- -- 338
-* -- 1771
-:= -- 3801
-add.period$ -- 168
-call.type$ -- 52
-change.case$ -- 422
-chr.to.int$ -- 51
-cite$ -- 54
-duplicate$ -- 932
-empty$ -- 1536
-format.name$ -- 412
-if$ -- 4515
+            776 strings with 13695 characters,
+and the built_in function-call counts, 23826 in all, are:
+= -- 2337
+> -- 1050
+< -- 46
++ -- 375
+- -- 358
+* -- 1876
+:= -- 4051
+add.period$ -- 180
+call.type$ -- 56
+change.case$ -- 451
+chr.to.int$ -- 55
+cite$ -- 58
+duplicate$ -- 991
+empty$ -- 1628
+format.name$ -- 440
+if$ -- 4783
 int.to.chr$ -- 2
 int.to.str$ -- 0
-missing$ -- 55
-newline$ -- 262
-num.names$ -- 156
-pop$ -- 466
+missing$ -- 59
+newline$ -- 282
+num.names$ -- 168
+pop$ -- 499
 preamble$ -- 1
-purify$ -- 427
+purify$ -- 456
 quote$ -- 0
-skip$ -- 709
+skip$ -- 751
 stack$ -- 0
-substring$ -- 1379
-swap$ -- 196
-text.length$ -- 18
+substring$ -- 1429
+swap$ -- 203
+text.length$ -- 20
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 302
+type$ -- 324
 warning$ -- 2
-while$ -- 170
+while$ -- 179
 width$ -- 0
-write$ -- 665
-(There were 3 warnings)
+write$ -- 716
+(There were 2 warnings)

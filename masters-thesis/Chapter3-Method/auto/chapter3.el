@@ -3,7 +3,6 @@
  (lambda ()
    (LaTeX-add-labels
     "chapter:method"
-    "sec:our_method"
     "sec:dataset_preproc"
     "sec:architectures"
     "fig:vae_rand_posterior"

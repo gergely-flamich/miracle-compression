@@ -2,31 +2,31 @@
 % Use `abstract' as an option in the document class to print only the titlepage and the abstract.
 \begin{abstract}
   \par
-  There has been renewed interest in machine learning (ML) based image
-  compression techniques, with recently proposed techniques beating traditional
-  lossy image codecs such as JPEG, WebP and BPG in perceptual quality on every
-  compression rate. A key advantages of ML algorithms in this field are that
+  There has been renewed interest in machine learning (ML) based lossy image
+  compression, with recently proposed techniques beating traditional
+  image codecs such as JPEG, WebP and BPG in perceptual quality on every
+  compression rate. A key advantage of ML algorithms in this field are that
   \textbf{a)} they can adapt to the statistics of each individual image to increase
-  compression efficiency much better than any hand-crafted method and
-  \textbf{b)} they can be quickly adapted to develop codecs for new media such
-  as lightfield cameras, $360^\circ$ images, Virtual Reality (VR), where current
-  methdos would struggle and where the develpment of new hand-crafted methods
+  compression efficiency much better than any hand-crafted method, and
+  \textbf{b)} they can be used to very quickly develop efficient codecs for new media such
+  as lightfield cameras, $360^\circ$ images, Virtual Reality (VR), where classical
+  methods would struggle, and where the develpment of efficient hand-crafted methods
   could take years.
   \par
-  In this thesis we present an introduction to the field of neural image
-  compression, first through lens of image compression, then through the lens of
-  information theoretic neural compression. We will see how quantization is a
+  In this thesis, we present an introduction to the field of neural image
+  compression, first through the lens of image compression, then the lens of
+  information theoretic neural compression. We examine how quantization is a
   fundamental block in the lossy image compression pipeline, and emphasize the
   difficulties it presents for gradient-based optimization techniques. We
-  review recent influential developments in neural image compression and
-  constrast them with each other and see how each method deals with the issues
-  of quantization. 
+  review recent influential developments in the field and see how they
+  circumvent the issue of quantization in particular.
   \par
-  Our approach is different: we propose a compression framework that allows us
-  to forgo quantization completely. We use this to develop a novel image
-  compression algorithm and evaluate its efficiency compare to both classical
-  and ML-based approaches on two of the currently most popular perceptual
-  quality metrics.
+  Our approach is different: we propose a generaly lossy compression framework
+  that allows us to forgo quantization completely. We use this to develop a novel image
+  compression algorithm using an extension of Variational Auto-Encoders (VAEs)
+  called Probabilistic Ladder Networks (PLNs) and evaluate its efficiency
+  compared to both classical and ML-based approaches on two of the currently
+  most popular perceptual quality metrics.
   Surprisingly, with no fine-tuning, we achieve close
   to state-of-the-art performance on low bitrates while slightly underperforming
   on higher bitrates. Finally, we present analysis of important characteristics
