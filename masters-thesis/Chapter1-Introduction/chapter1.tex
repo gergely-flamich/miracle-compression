@@ -263,8 +263,7 @@ than $N\cdot H[X]$ bits with negligible risk of information loss, as $N
 \end{theorem}
 Entropy codes, such as Huffman codes (\cite{huffman1952method}) or Arithmetic
 Coding (\cite{rissanen1981universal}) can get very close to this lower bound.
-We discuss coding methods further in Sections \ref{sec:coded_sampling} and
-\ref{sec:entropy_coding}.
+We discuss coding methods further in Section \ref{sec:coded_sampling}. 
 \begin{framed}
   In particular, entropy codes can compress each symbol $z_i$ in $-\log P(z_i)$ nats.
 \end{framed}
@@ -618,6 +617,7 @@ can generate the same $K$ samples as Alice did, the $K$th sampe he draws is
 going to be an exact sample from $q$. Clearly, the communication cost of $K$ is
 $\log K$ nats. \cite{harsha2007communication} then also prove the following result.
 \begin{theorem}{(\cite{harsha2007communication})}
+  \label{thm:bits-back_efficiency}
 Let $X$ and $Y$ be random variables as given above. And let the communication
 problem be set as above. Let $T[X : Y]$ denote the MDL (in nats) of a sample
 $Y=y \sim q(Y \mid X=x)$. Then,
@@ -649,16 +649,28 @@ statistics $\theta$. Let us also assume an approximate posterior $q_\phi(\vec{z}
 \mid \vec{x})$ over the latent code, with sufficient statistics $\phi$. Then our
 framework is as follows:
 \begin{enumerate}
-\item Given some dataset $\Data = \{\vec{x}_1, \hdots, \vec{x}_n\}$, fit our
-  generative model to it, by fitting $\theta$ and $\phi$ using the MDL
+\item Given some dataset $\Data = \{\vec{x}_1, \hdots, \vec{x}_n\}$ where the
+  training examples are distributed according to $p(\vec{x})$, we fit our
+  generative model to it, by fitting $\theta$ and $\phi$ using the (weighted) MDL
   objective:
   \begin{equation}
     \label{eq:mdl_elbo}
-    L(X) = \Exp{L(X \mid Y) + L(Y)}{q_\phi}
-         =  -\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi} + \KL{q_\phi}{p_\theta}.
+    \begin{gathered}
+      L(\Data) = \Exp{L(\vec{x})}{p(\vec{x})}, \\
+      \text{where } L(\vec{x}) = \Exp{L(\vec{x} \mid \vec{z}) + L(\vec{z})}{q_\phi}
+      =  -\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi} + \beta\KL{q_\phi}{p_\theta}.
+    \end{gathered}
   \end{equation}
-  This training objective, derived from \cite{hinton1993keeping} is well known
-  in the neural generative modelling literature as the Evidence Lower Bound (ELBO).
+  This training objective is well known in the neural generative modelling
+  literature as the Evidence Lower Bound (ELBO) (\cite{kingma2013auto},
+  \cite{higgins2017beta}). The expectation over $p(\vec{x})$ is usually taken over
+  randomly drawn mini-batches from $\Data$ using Stochastic Gradient Descent (SGD).
+  Here $\beta$ is a
+  hyperparameter that can be set to trade off a smaller description length at
+  the cost of worse reconstruction, or the other way around, thus allowing the
+  user to reach different points on the rate distortion curve. See Section
+  \ref{sec:derive_weighted_elbo} for the derivation of Eq \ref{eq:mdl_elbo} and
+  discussion on its validity.
 
   \item Once $\theta$ and $\phi$ have been learned, we fix them (equivalent to
     sharing them with Bob in the communication problem).
@@ -668,6 +680,7 @@ framework is as follows:
     \ref{alg:harsha_rej_sampling}) to sample $q(\vec{z} \mid \vec{x}')$ using
     $p(\vec{z})$, and use the code output of the sampling algorithm as the
     compression code, along with the random seed that was used to obtain the sample. 
+    We shall refer to such algorithms as \textbf{coded sampling algorithms}.
 
   \item To decompress, since we always have access to the fixed prior
     $p_\theta$, and we have the random seed the compressing party used, we may
@@ -710,6 +723,79 @@ This shows that quantization of a deterministic parameter set is also
 bits-back efficient, with the posterior distribution family restricted to point masses. Thus
 the clear advantage of our framework comes from the fact that we allow much more
 posteriors than point masses. 
+
+\subsection{Derivation of the Training Objective}
+\label{sec:derive_weighted_elbo}
+\par
+In this section, we present the derivation of Eq \ref{eq:mdl_elbo}. Thus, let our
+likelihood $p(\vec{x} \mid \vec{z})$, our latent prior $p_\theta(\vec{z})$ and
+approximate posterior $q_\phi(\vec{z} \mid \vec{x})$ be given. Then, given a budget
+of $C$ nats, we want to optimize the following constrained objective on the
+description lengths:
+\[
+  \Exp{\Exp{-L(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})}
+  \quad \text{subject to } \Exp{L(\vec{z})}{p(\vec{x})} < C.
+\]
+As we have seen in the sections above, these quantities can be replaced by
+\begin{equation}
+\label{eq:framework_hard_train_target}
+\Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})}
+\quad \text{subject to } \Exp{\KL{q_{\phi}(\vec{z} \mid
+    \vec{x})}{p_{\theta}(\vec{z})}}{p(\vec{x})} < C.
+\end{equation}
+
+As we want to use gradient-based optimization of our models, we need to find a
+continuous relaxation of Eq \ref{eq:framework_hard_train_target}.
+To this end, we rewrite the terms inside the ``outer'' expectation as their
+Lagranagian relaxation under the KKT conditions (\cite{karush2014minima},
+\cite{kuhn2014nonlinear}, \cite{higgins2017beta}) and get:
+\[
+  \F(\theta, \phi, \beta, \vec{x}) = 
+  \Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}
+  - \beta (\KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})} - C).
+\]
+By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
+term in the above equation will provide a lower bound for it:
+\[
+  \F(\theta, \phi, \beta, \vec{x}) \geq
+  \L(\theta, \phi, \beta, \vec{x}) =
+  \Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})} - \beta
+  \KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})}.
+\]
+Finally, taking the expectation over this again gives
+\begin{equation}
+\label{eq:framework_train_target}
+\begin{aligned}
+  \Exp{\L(\theta, \phi, \beta, \vec{x})}{p(\vec{x})} &=
+  \Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})} - \beta
+  \Exp{\KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})}}{p(\vec{x})} \\
+  &= \Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})} - \beta
+  I[ \vec{x} : \vec{z} ] \\
+  &= \Exp{L(\vec{x})}{p(\vec{x})}.
+\end{aligned}
+\end{equation}
+This is the training objective of $\beta$-VAEs first derived in
+\cite{higgins2017beta}, although we note that it is applicable any generative
+model where the assumed conditions are present.
+\par
+An important caveat of the above formulation is that the samples from
+$p(\vec{x})$ should comparable, in the sense the initial hard optimization objective
+of setting an average nat budget is reasonable. In the case of image data, if
+all images are the same size, this is fine, as our continuous relaxation will
+allow for images with high information content to have slightly longer code
+lenghts than $C$ nats and ones with low information content will have shorter
+lengths. However, if we used different sized images during training, it would be
+less justified to set the same average code budget for, say, a $200 \times 300$ pixel
+image and a $2000 \times 2000$ image, as the latter will naturally contain more
+information than the former. Hence in this case it would be more reasonable
+to make the budget a function of the number of pixels the image contains,
+although this might make the formulation of the training objective much harder.
+\par
+An approach taken in all neural image compression methods we examined is instead
+to train on random, but equal-sized patches extracted from each training image.
+While other works do this to make training more computationally feasible. As
+far as we are aware, we are the first ones to argue that this practise is not only
+convenient, but mandatory for the training procedure to be sound.
 
 \nomenclature[z-VAE]{VAE}{Variational Auto-Encoder}
 \nomenclature[z-MSE]{MSE}{Mean Squared Error}

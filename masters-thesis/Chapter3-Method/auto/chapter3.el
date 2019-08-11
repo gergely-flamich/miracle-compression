@@ -5,10 +5,9 @@
     "chapter:method"
     "sec:dataset_preproc"
     "sec:architectures"
+    "sec:method_vaes"
     "fig:vae_rand_posterior"
-    "eq:miracle_hard_train_target"
-    "eq:miracle_train_target"
-    "eq:miracle_ub"
+    "fig:zhao_loss_comparison"
     "eq:regular_vae_elbo"
     "eq:laplace_likelihood"
     "sec:prob_ladder_networks"
@@ -19,8 +18,6 @@
     "sec:coded_sampling"
     "alg:multivariate_rej_samp"
     "alg:greedy_sampler"
-    "alg:adaptive_importance_sampler"
-    "sec:entropy_coding"
-    "sec:rej_samp_artihmetic_coding"))
+    "alg:adaptive_importance_sampler"))
  :latex)
 

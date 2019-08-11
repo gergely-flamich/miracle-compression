@@ -54,6 +54,11 @@ Bull, D. (2014).
 \newblock {\em Communicating Pictures: A Course in Image and Video Coding}.
 \newblock Elsevier Science.
 
+\bibitem[Chen and Goodman, 1999]{chen1999empirical}
+Chen, S.~F. and Goodman, J. (1999).
+\newblock An empirical study of smoothing techniques for language modeling.
+\newblock {\em Computer Speech \& Language}, 13(4):359--394.
+
 \bibitem[CLIC, 2018]{clic2018}
 CLIC (2018).
 \newblock Workshop and challenge on learned image compression.
@@ -179,6 +184,12 @@ Jiang, J. (1999).
 \newblock Image compression with neural networks--a survey.
 \newblock {\em Signal processing: image Communication}, 14(9):737--760.
 
+\bibitem[Johnson et~al., 2016]{johnson2016perceptual}
+Johnson, J., Alahi, A., and Fei-Fei, L. (2016).
+\newblock Perceptual losses for real-time style transfer and super-resolution.
+\newblock In {\em European conference on computer vision}, pages 694--711.
+  Springer.
+
 \bibitem[Johnston et~al., 2018]{johnston2018cvpr}
 Johnston, N., Vincent, D., Minnen, D., Covell, M., Singh, S., Chinen, T.,
   Jin~Hwang, S., Shor, J., and Toderici, G. (2018).
@@ -219,6 +230,12 @@ Kuhn, H.~W. and Tucker, A.~W. (2014).
 MacKay, D., Kay, D., and Press, C.~U. (2003).
 \newblock {\em Information Theory, Inference and Learning Algorithms}.
 \newblock Cambridge University Press.
+
+\bibitem[Maddison et~al., 2014]{maddison2014sampling}
+Maddison, C.~J., Tarlow, D., and Minka, T. (2014).
+\newblock A* sampling.
+\newblock In {\em Advances in Neural Information Processing Systems}, pages
+  3086--3094.
 
 \bibitem[Mentzer et~al., 2018]{mentzer2018cvpr}
 Mentzer, F., Agustsson, E., Tschannen, M., Timofte, R., and Van~Gool, L.

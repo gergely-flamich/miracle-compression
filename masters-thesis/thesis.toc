@@ -20,7 +20,8 @@
 \contentsline {paragraph}{The general argument}{11}{section*.9}
 \contentsline {paragraph}{Caveats of the argument}{12}{section*.10}
 \contentsline {section}{\numberline {1.6}Compression without Quantization}{12}{section.1.6}
-\contentsline {subsection}{\numberline {1.6.1}Relation of Quantization to Our Framework}{14}{subsection.1.6.1}
+\contentsline {subsection}{\numberline {1.6.1}Relation of Quantization to Our Framework}{15}{subsection.1.6.1}
+\contentsline {subsection}{\numberline {1.6.2}Derivation of the Training Objective}{15}{subsection.1.6.2}
 \contentsline {chapter}{\numberline {2}Related Works}{17}{chapter.2}
 \contentsline {section}{\numberline {2.1}Machine Learning-based Image Compression}{17}{section.2.1}
 \contentsline {section}{\numberline {2.2}Comparison of Recent Works}{18}{section.2.2}
@@ -58,31 +59,31 @@
 \contentsline {paragraph}{\cite {balle2018variational}}{28}{section*.42}
 \contentsline {subsection}{\numberline {2.2.6}Evaluation}{28}{subsection.2.2.6}
 \contentsline {chapter}{\numberline {3}Method}{31}{chapter.3}
-\contentsline {section}{\numberline {3.1}Dataset and Preprocessing}{31}{section.3.1}
+\contentsline {section}{\numberline {3.1}Dataset and Preprocessing}{32}{section.3.1}
 \contentsline {section}{\numberline {3.2}Architectures}{32}{section.3.2}
 \contentsline {subsection}{\numberline {3.2.1}VAEs}{32}{subsection.3.2.1}
-\contentsline {paragraph}{A note on the latent distributions}{33}{section*.43}
-\contentsline {paragraph}{MIRACLE}{33}{section*.45}
-\contentsline {paragraph}{Note:}{36}{section*.46}
-\contentsline {paragraph}{Data Likelihood and Training Objective}{36}{section*.47}
-\contentsline {subsection}{\numberline {3.2.2}Probabilistic Ladder Network}{37}{subsection.3.2.2}
-\contentsline {section}{\numberline {3.3}Training}{39}{section.3.3}
-\contentsline {subsection}{\numberline {3.3.1}Learning the Variance of the Likelihood}{41}{subsection.3.3.1}
-\contentsline {section}{\numberline {3.4}Coded Sampling}{41}{section.3.4}
-\contentsline {subsection}{\numberline {3.4.1}Parallelized Rejection Sampling}{43}{subsection.3.4.1}
-\contentsline {paragraph}{Issues}{45}{section*.51}
-\contentsline {subsection}{\numberline {3.4.2}Refinement: Greedy Sampling}{45}{subsection.3.4.2}
-\contentsline {paragraph}{A note on implementation}{46}{section*.52}
-\contentsline {paragraph}{Issues}{46}{section*.53}
-\contentsline {subsection}{\numberline {3.4.3}Second Refinement: Adaptive Importance Sampling}{47}{subsection.3.4.3}
-\contentsline {section}{\numberline {3.5}Coding}{48}{section.3.5}
-\contentsline {subsection}{\numberline {3.5.1}Coding the rejection sampled latents}{48}{subsection.3.5.1}
-\contentsline {subsection}{\numberline {3.5.2}A note on the Arithmetic Coder}{48}{subsection.3.5.2}
-\contentsline {subsection}{\numberline {3.5.3}Coding the greedy \& importance sampled latents}{49}{subsection.3.5.3}
-\contentsline {paragraph}{Importance Sampler}{49}{section*.54}
-\contentsline {paragraph}{Greedy Sampler}{49}{section*.55}
+\contentsline {paragraph}{Note:}{33}{section*.43}
+\contentsline {paragraph}{}{33}{section*.45}
+\contentsline {paragraph}{A note on the latent distributions}{33}{section*.46}
+\contentsline {subsection}{\numberline {3.2.2}Data Likelihood and Training Objective}{35}{subsection.3.2.2}
+\contentsline {subsection}{\numberline {3.2.3}Probabilistic Ladder Network}{36}{subsection.3.2.3}
+\contentsline {paragraph}{}{38}{section*.50}
+\contentsline {section}{\numberline {3.3}Training}{38}{section.3.3}
+\contentsline {subsection}{\numberline {3.3.1}Learning the Variance of the Likelihood}{40}{subsection.3.3.1}
+\contentsline {section}{\numberline {3.4}Sampling and Coding}{41}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}Parallelized Rejection Sampling and Arithmetic Coding}{43}{subsection.3.4.1}
+\contentsline {paragraph}{Sampling}{43}{section*.52}
+\contentsline {paragraph}{Coding}{43}{section*.53}
+\contentsline {paragraph}{A note on the Arithmetic Coder}{45}{section*.54}
+\contentsline {paragraph}{Issues}{45}{section*.55}
+\contentsline {subsection}{\numberline {3.4.2}Greedy Coded Sampling}{45}{subsection.3.4.2}
+\contentsline {paragraph}{A note on implementation}{47}{section*.56}
+\contentsline {paragraph}{Issues}{47}{section*.57}
+\contentsline {subsection}{\numberline {3.4.3}Adaptive Importance Sampling}{48}{subsection.3.4.3}
+\contentsline {paragraph}{}{48}{section*.58}
+\contentsline {paragraph}{Greedy Sampler}{48}{section*.59}
 \contentsline {chapter}{\numberline {4}Results}{51}{chapter.4}
-\contentsline {paragraph}{Note:}{51}{section*.56}
+\contentsline {paragraph}{Note:}{51}{section*.60}
 \contentsline {section}{\numberline {4.1}Experimental Setup}{51}{section.4.1}
 \contentsline {section}{\numberline {4.2}Comparison of our method with other algorithms}{52}{section.4.2}
 \contentsline {section}{\numberline {4.3}Analysis of the contribution of the second level}{53}{section.4.3}
@@ -90,6 +91,12 @@
 \contentsline {chapter}{\numberline {5}Conclusion}{59}{chapter.5}
 \contentsline {section}{\numberline {5.1}Discussion}{59}{section.5.1}
 \contentsline {section}{\numberline {5.2}Future Work}{59}{section.5.2}
-\contentsline {chapter}{References}{61}{chapter*.67}
-\contentsline {chapter}{Appendix \numberline {A}Appendix A}{65}{Appendix.a.A}
-\contentsline {chapter}{Appendix \numberline {B}Appendix B: Images}{67}{Appendix.a.B}
+\contentsline {subsection}{\numberline {5.2.1}Data Related Improvements}{60}{subsection.5.2.1}
+\contentsline {subsection}{\numberline {5.2.2}Model Related Improvements}{60}{subsection.5.2.2}
+\contentsline {paragraph}{Architecture}{60}{section*.71}
+\contentsline {paragraph}{Loss}{60}{section*.72}
+\contentsline {paragraph}{Latent Representations}{61}{section*.73}
+\contentsline {subsection}{\numberline {5.2.3}Coding Related Improvements}{61}{subsection.5.2.3}
+\contentsline {chapter}{References}{63}{chapter*.74}
+\contentsline {chapter}{Appendix \numberline {A}Appendix A}{67}{Appendix.a.A}
+\contentsline {chapter}{Appendix \numberline {B}Appendix B: Images}{69}{Appendix.a.B}

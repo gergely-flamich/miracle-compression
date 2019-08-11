@@ -69,6 +69,8 @@
     "portilla2003image"
     "mackay2003information"
     "krizhevsky2009learning"
-    "asuni2014testimages"))
+    "asuni2014testimages"
+    "chen1999empirical"
+    "johnson2016perceptual"))
  :bibtex)
 
