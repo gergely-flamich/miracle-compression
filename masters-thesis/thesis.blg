@@ -1,0 +1,60 @@
+This is BibTeX, Version 0.99d (TeX Live 2018)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: thesis.aux
+A level-1 auxiliary file: Dedication/dedication.aux
+A level-1 auxiliary file: Declaration/declaration.aux
+A level-1 auxiliary file: Acknowledgement/acknowledgement.aux
+A level-1 auxiliary file: Abstract/abstract.aux
+A level-1 auxiliary file: Chapter1-Introduction/chapter1.aux
+A level-1 auxiliary file: Chapter2-RelatedWorks/chapter2.aux
+A level-1 auxiliary file: Chapter3-Method/chapter3.aux
+A level-1 auxiliary file: Chapter4-Experiments/chapter4.aux
+A level-1 auxiliary file: Chapter5-Conclusion/chapter5.aux
+The style file: apalike.bst
+A level-1 auxiliary file: Appendix1/appendix1.aux
+A level-1 auxiliary file: Appendix2/appendix2.aux
+Database file #1: References/references.bib
+Warning--empty journal in bottou1998high
+Warning--empty journal in eskicioglu1994image
+You've used 59 entries,
+            1935 wiz_defined-function locations,
+            791 strings with 14173 characters,
+and the built_in function-call counts, 25376 in all, are:
+= -- 2501
+> -- 1099
+< -- 49
++ -- 393
+- -- 374
+* -- 1994
+:= -- 4286
+add.period$ -- 190
+call.type$ -- 59
+change.case$ -- 474
+chr.to.int$ -- 58
+cite$ -- 61
+duplicate$ -- 1061
+empty$ -- 1745
+format.name$ -- 461
+if$ -- 5115
+int.to.chr$ -- 2
+int.to.str$ -- 0
+missing$ -- 62
+newline$ -- 297
+num.names$ -- 177
+pop$ -- 526
+preamble$ -- 1
+purify$ -- 479
+quote$ -- 0
+skip$ -- 807
+stack$ -- 0
+substring$ -- 1564
+swap$ -- 226
+text.length$ -- 22
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 342
+warning$ -- 2
+while$ -- 193
+width$ -- 0
+write$ -- 756
+(There were 2 warnings)

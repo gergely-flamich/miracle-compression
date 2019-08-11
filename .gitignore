@@ -6,6 +6,7 @@ coding.html
 papers/
 data/
 bpg/
+phd*
 
 # General
 *.tar.gz

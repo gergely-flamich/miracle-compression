@@ -1,0 +1,239 @@
+% ******************************************************************************
+% ****************************** Custom Margin *********************************
+
+% Add `custommargin' in the document class options to use this section
+% Set {innerside margin / outerside margin / topmargin / bottom margin}  and
+% other page dimensions
+\ifsetCustomMargin
+  \RequirePackage[left=37mm,right=30mm,top=35mm,bottom=30mm]{geometry}
+  \setFancyHdr % To apply fancy header after geometry package is loaded
+\fi
+
+% Add spaces between paragraphs
+%\setlength{\parskip}{0.5em}
+% Ragged bottom avoids extra whitespaces between paragraphs
+\raggedbottom
+% To remove the excess top spacing for enumeration, list and description
+%\usepackage{enumitem}
+%\setlist[enumerate,itemize,description]{topsep=0em}
+
+% *****************************************************************************
+% ******************* Fonts (like different typewriter fonts etc.)*************
+
+% Add `customfont' in the document class option to use this section
+
+\ifsetCustomFont
+  % Set your custom font here and use `customfont' in options. Leave empty to
+  % load computer modern font (default LaTeX font).
+  %\RequirePackage{helvet}
+
+  % For use with XeLaTeX
+  %  \setmainfont[
+  %    Path              = ./libertine/opentype/,
+  %    Extension         = .otf,
+  %    UprightFont = LinLibertine_R,
+  %    BoldFont = LinLibertine_RZ, % Linux Libertine O Regular Semibold
+  %    ItalicFont = LinLibertine_RI,
+  %    BoldItalicFont = LinLibertine_RZI, % Linux Libertine O Regular Semibold Italic
+  %  ]
+  %  {libertine}
+  %  % load font from system font
+  %  \newfontfamily\libertinesystemfont{Linux Libertine O}
+\fi
+
+% *****************************************************************************
+% **************************** Custom Packages ********************************
+
+% ************************* Algorithms and Pseudocode **************************
+
+%\usepackage{algpseudocode}
+
+
+% ********************Captions and Hyperreferencing / URL **********************
+
+% Captions: This makes captions of figures use a boldfaced small font.
+%\RequirePackage[small,bf]{caption}
+
+\RequirePackage[labelsep=space,tableposition=top]{caption}
+\renewcommand{\figurename}{Fig.} %to support older versions of captions.sty
+
+
+% *************************** Graphics and figures *****************************
+
+%\usepackage{rotating}
+%\usepackage{wrapfig}
+
+% Uncomment the following two lines to force Latex to place the figure.
+% Use [H] when including graphics. Note 'H' instead of 'h'
+%\usepackage{float}
+%\restylefloat{figure}
+
+% Subcaption package is also available in the sty folder you can use that by
+% uncommenting the following line
+% This is for people stuck with older versions of texlive
+%\usepackage{sty/caption/subcaption}
+\usepackage{subcaption}
+
+% ********************************** Tables ************************************
+\usepackage{booktabs} % For professional looking tables
+\usepackage{multirow}
+
+%\usepackage{multicol}
+%\usepackage{longtable}
+%\usepackage{tabularx}
+
+
+% *********************************** SI Units *********************************
+%\usepackage{siunitx} % use this package module for SI units
+
+
+% ******************************* Line Spacing *********************************
+
+% Choose linespacing as appropriate. Default is one-half line spacing as per the
+% University guidelines
+
+% \doublespacing
+% \onehalfspacing
+% \singlespacing
+
+
+% ************************ Formatting / Footnote *******************************
+
+% Don't break enumeration (etc.) across pages in an ugly manner (default 10000)
+%\clubpenalty=500
+%\widowpenalty=500
+
+%\usepackage[perpage]{footmisc} %Range of footnote options
+
+
+% *****************************************************************************
+% *************************** Bibliography  and References ********************
+
+%\usepackage{cleveref} %Referencing without need to explicitly state fig /table
+
+% Add `custombib' in the document class option to use this section
+\ifuseCustomBib
+   \RequirePackage[square, sort, numbers, authoryear]{natbib} % CustomBib
+
+% If you would like to use biblatex for your reference management, as opposed to the default `natbibpackage` pass the option `custombib` in the document class. Comment out the previous line to make sure you don't load the natbib package. Uncomment the following lines and specify the location of references.bib file
+
+%\RequirePackage[backend=biber, style=numeric-comp, citestyle=numeric, sorting=nty, natbib=true]{biblatex}
+%\addbibresource{References/references} %Location of references.bib only for biblatex, Do not omit the .bib extension from the filename.
+
+\fi
+
+% changes the default name `Bibliography` -> `References'
+\renewcommand{\bibname}{References}
+
+
+% ******************************************************************************
+% ************************* User Defined Commands ******************************
+% ******************************************************************************
+
+% *********** To change the name of Table of Contents / LOF and LOT ************
+
+%\renewcommand{\contentsname}{My Table of Contents}
+%\renewcommand{\listfigurename}{My List of Figures}
+%\renewcommand{\listtablename}{My List of Tables}
+
+
+% ********************** TOC depth and numbering depth *************************
+
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+
+
+% ******************************* Nomenclature *********************************
+
+% To change the name of the Nomenclature section, uncomment the following line
+
+%\renewcommand{\nomname}{Symbols}
+
+
+% ********************************* Appendix ***********************************
+
+% The default value of both \appendixtocname and \appendixpagename is `Appendices'. These names can all be changed via:
+
+%\renewcommand{\appendixtocname}{List of appendices}
+%\renewcommand{\appendixname}{Appndx}
+
+% *********************** Configure Draft Mode **********************************
+
+% Uncomment to disable figures in `draft'
+%\setkeys{Gin}{draft=true}  % set draft to false to enable figures in `draft'
+
+% These options are active only during the draft mode
+% Default text is "Draft"
+%\SetDraftText{DRAFT}
+
+% Default Watermark location is top. Location (top/bottom)
+%\SetDraftWMPosition{bottom}
+
+% Draft Version - default is v1.0
+%\SetDraftVersion{v1.1}
+
+% Draft Text grayscale value (should be between 0-black and 1-white)
+% Default value is 0.75
+%\SetDraftGrayScale{0.8}
+
+% ******************* Better enumeration my MB*************
+\usepackage{enumitem}
+
+\usepackage{amsmath}
+%\usepackage{amssymb}
+\usepackage{bm} % bold maths symbols
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{framed}
+
+% ==============================================================================
+% Maths commands
+% ==============================================================================
+
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\renewcommand{\d}{\,\text{d}}
+
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\F}{\mathcal{F}}
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\Y}{\mathcal{Y}}
+
+\newcommand{\Enc}{\mathtt{Enc}}
+\newcommand{\Dec}{\mathtt{Dec}}
+
+\newcommand{\Oh}{\mathcal{O}}
+\newcommand{\KL}[2]{\mathrm{KL}\left[\,#1\,\,||\,\,#2\,\right]}
+\newcommand{\Exp}[2]{\mathbb{E}_{#2}\left[ #1 \right]}
+\newcommand{\I}{\mathbb{I}}
+
+\newcommand{\Hypos}{\mathcal{H}}
+\newcommand{\Data}{\mathcal{D}}
+
+\newcommand{\ImSpace}{\mathcal{X}}
+
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\Ints}{\mathbb{Z}}
+\newcommand{\Nats}{\mathbb{N}}
+
+\newcommand{\Norm}[1]{\mathcal{N}\left( #1 \right)}
+\newcommand{\Unif}[1]{\mathcal{U}\left( #1 \right)}
+\newcommand{\Laplace}[1]{\mathcal{L}\left( #1 \right)}
+
+% Bold maths symbols
+\newcommand{\MU}{\pmb{\mu}}
+\newcommand{\SIGMA}{\pmb{\sigma}}
+\newcommand{\PSI}{\pmb{\psi}}
+\newcommand{\THETA}{\pmb{\theta}}
+\newcommand{\PHI}{\pmb{\phi}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newtheorem{theorem}{Theorem}

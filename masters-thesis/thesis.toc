@@ -1,0 +1,102 @@
+\thispagestyle {empty}
+\contentsline {chapter}{List of figures}{xiii}{chapter*.5}
+\contentsline {chapter}{List of tables}{xvii}{chapter*.6}
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Motivation}{1}{section.1.1}
+\contentsline {section}{\numberline {1.2}Thesis Contributions}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Thesis Outline}{2}{section.1.3}
+\contentsline {paragraph}{}{3}{section*.7}
+\contentsline {section}{\numberline {1.4}Image Compression}{3}{section.1.4}
+\contentsline {subsection}{\numberline {1.4.1}Source Coding}{4}{subsection.1.4.1}
+\contentsline {subsection}{\numberline {1.4.2}Lossy Compression}{4}{subsection.1.4.2}
+\contentsline {subsection}{\numberline {1.4.3}Distortion}{4}{subsection.1.4.3}
+\contentsline {subsection}{\numberline {1.4.4}Rate}{5}{subsection.1.4.4}
+\contentsline {subsection}{\numberline {1.4.5}Transform Coding}{6}{subsection.1.4.5}
+\contentsline {subsection}{\numberline {1.4.6}The Significance of Quantization in Lossy Compression}{6}{subsection.1.4.6}
+\contentsline {section}{\numberline {1.5}Theoretical Foundations}{7}{section.1.5}
+\contentsline {subsection}{\numberline {1.5.1}The Minimum Description Length Principle}{8}{subsection.1.5.1}
+\contentsline {subsection}{\numberline {1.5.2}The Bits-back Argument}{8}{subsection.1.5.2}
+\contentsline {paragraph}{Example}{8}{section*.8}
+\contentsline {paragraph}{The general argument}{11}{section*.9}
+\contentsline {paragraph}{Caveats of the argument}{12}{section*.10}
+\contentsline {section}{\numberline {1.6}Compression without Quantization}{12}{section.1.6}
+\contentsline {subsection}{\numberline {1.6.1}Relation of Quantization to Our Framework}{15}{subsection.1.6.1}
+\contentsline {subsection}{\numberline {1.6.2}Derivation of the Training Objective}{15}{subsection.1.6.2}
+\contentsline {chapter}{\numberline {2}Related Works}{17}{chapter.2}
+\contentsline {section}{\numberline {2.1}Machine Learning-based Image Compression}{17}{section.2.1}
+\contentsline {section}{\numberline {2.2}Comparison of Recent Works}{18}{section.2.2}
+\contentsline {paragraph}{Note on Notation:}{18}{section*.11}
+\contentsline {subsection}{\numberline {2.2.1}Datasets and Input Pipelines}{18}{subsection.2.2.1}
+\contentsline {paragraph}{\cite {balle2016end}}{18}{section*.12}
+\contentsline {paragraph}{\cite {theis2017lossy}}{18}{section*.13}
+\contentsline {paragraph}{\cite {rippel2017real}}{19}{section*.14}
+\contentsline {paragraph}{\cite {balle2018variational}}{19}{section*.15}
+\contentsline {paragraph}{}{19}{section*.16}
+\contentsline {paragraph}{Datasets for testing}{19}{section*.17}
+\contentsline {subsection}{\numberline {2.2.2}Architectures}{19}{subsection.2.2.2}
+\contentsline {paragraph}{\cite {balle2016end}}{20}{section*.18}
+\contentsline {paragraph}{\cite {theis2017lossy}}{20}{section*.19}
+\contentsline {paragraph}{\cite {rippel2017real}}{21}{section*.21}
+\contentsline {paragraph}{\cite {balle2018variational}}{21}{section*.23}
+\contentsline {subsection}{\numberline {2.2.3}Addressing Non-Differentiability}{23}{subsection.2.2.3}
+\contentsline {subsubsection}{Quantization}{23}{section*.26}
+\contentsline {paragraph}{\cite {balle2016end} and \cite {balle2018variational}}{24}{section*.27}
+\contentsline {paragraph}{\cite {theis2017lossy}}{24}{section*.28}
+\contentsline {paragraph}{\cite {rippel2017real}}{24}{section*.29}
+\contentsline {subsubsection}{Rate Estimation}{24}{section*.30}
+\contentsline {paragraph}{\cite {balle2016end}}{24}{section*.31}
+\contentsline {paragraph}{\cite {theis2017lossy}}{25}{section*.32}
+\contentsline {paragraph}{\cite {balle2018variational}}{25}{section*.33}
+\contentsline {subsection}{\numberline {2.2.4}Coding}{26}{subsection.2.2.4}
+\contentsline {paragraph}{\cite {balle2016end}}{26}{section*.34}
+\contentsline {paragraph}{\cite {theis2017lossy}}{26}{section*.35}
+\contentsline {paragraph}{\cite {rippel2017real}}{26}{section*.36}
+\contentsline {paragraph}{\cite {balle2018variational}}{26}{section*.37}
+\contentsline {subsection}{\numberline {2.2.5}Training}{27}{subsection.2.2.5}
+\contentsline {paragraph}{\cite {balle2016end}}{27}{section*.38}
+\contentsline {paragraph}{\cite {theis2017lossy}}{27}{section*.39}
+\contentsline {paragraph}{\cite {rippel2017real}}{27}{section*.40}
+\contentsline {paragraph}{\cite {balle2018variational}}{28}{section*.42}
+\contentsline {subsection}{\numberline {2.2.6}Evaluation}{28}{subsection.2.2.6}
+\contentsline {chapter}{\numberline {3}Method}{31}{chapter.3}
+\contentsline {section}{\numberline {3.1}Dataset and Preprocessing}{32}{section.3.1}
+\contentsline {section}{\numberline {3.2}Architectures}{32}{section.3.2}
+\contentsline {subsection}{\numberline {3.2.1}VAEs}{32}{subsection.3.2.1}
+\contentsline {paragraph}{Note:}{33}{section*.43}
+\contentsline {paragraph}{}{33}{section*.45}
+\contentsline {paragraph}{A note on the latent distributions}{33}{section*.46}
+\contentsline {subsection}{\numberline {3.2.2}Data Likelihood and Training Objective}{35}{subsection.3.2.2}
+\contentsline {subsection}{\numberline {3.2.3}Probabilistic Ladder Network}{36}{subsection.3.2.3}
+\contentsline {paragraph}{}{38}{section*.50}
+\contentsline {section}{\numberline {3.3}Training}{38}{section.3.3}
+\contentsline {subsection}{\numberline {3.3.1}Learning the Variance of the Likelihood}{40}{subsection.3.3.1}
+\contentsline {section}{\numberline {3.4}Sampling and Coding}{41}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}Parallelized Rejection Sampling and Arithmetic Coding}{43}{subsection.3.4.1}
+\contentsline {paragraph}{Sampling}{43}{section*.52}
+\contentsline {paragraph}{Coding}{43}{section*.53}
+\contentsline {paragraph}{A note on the Arithmetic Coder}{45}{section*.54}
+\contentsline {paragraph}{Issues}{45}{section*.55}
+\contentsline {subsection}{\numberline {3.4.2}Greedy Coded Sampling}{45}{subsection.3.4.2}
+\contentsline {paragraph}{A note on implementation}{47}{section*.56}
+\contentsline {paragraph}{Issues}{47}{section*.57}
+\contentsline {subsection}{\numberline {3.4.3}Adaptive Importance Sampling}{48}{subsection.3.4.3}
+\contentsline {paragraph}{}{48}{section*.58}
+\contentsline {paragraph}{Greedy Sampler}{48}{section*.59}
+\contentsline {chapter}{\numberline {4}Results}{51}{chapter.4}
+\contentsline {paragraph}{Note:}{51}{section*.60}
+\contentsline {section}{\numberline {4.1}Experimental Setup}{51}{section.4.1}
+\contentsline {section}{\numberline {4.2}Comparison of our method with other algorithms}{52}{section.4.2}
+\contentsline {section}{\numberline {4.3}Analysis of the contribution of the second level}{53}{section.4.3}
+\contentsline {section}{\numberline {4.4}Compression Speed}{58}{section.4.4}
+\contentsline {chapter}{\numberline {5}Conclusion}{59}{chapter.5}
+\contentsline {section}{\numberline {5.1}Discussion}{59}{section.5.1}
+\contentsline {section}{\numberline {5.2}Future Work}{59}{section.5.2}
+\contentsline {subsection}{\numberline {5.2.1}Data Related Improvements}{60}{subsection.5.2.1}
+\contentsline {subsection}{\numberline {5.2.2}Model Related Improvements}{60}{subsection.5.2.2}
+\contentsline {paragraph}{Architecture}{60}{section*.71}
+\contentsline {paragraph}{Loss}{60}{section*.72}
+\contentsline {paragraph}{Latent Representations}{61}{section*.73}
+\contentsline {subsection}{\numberline {5.2.3}Coding Related Improvements}{61}{subsection.5.2.3}
+\contentsline {chapter}{References}{63}{chapter*.74}
+\contentsline {chapter}{Appendix \numberline {A}Appendix A}{67}{Appendix.a.A}
+\contentsline {chapter}{Appendix \numberline {B}Appendix B: Images}{69}{Appendix.a.B}

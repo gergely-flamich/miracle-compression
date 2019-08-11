@@ -1,0 +1,100 @@
+%!TEX root = ../thesis.tex
+%*******************************************************************************
+%****************************** Second Chapter *********************************
+%*******************************************************************************
+
+\chapter{Conclusion}
+
+\section{Discussion}
+\par
+In this work, we gave an introduction to image compression and machine learning
+based compression. Based on the MDL principle (\cite{rissanen1986stochastic})
+and the Bits-back argument (\cite{hinton1993keeping}), as
+well as more recent work in information theory
+(\cite{harsha2007communication})and neural network compression
+(\cite{havasi2018minimal}),
+we developed a general lossy compression framework, and described how previous
+quantization based approaches fit into it. We gave a comparative review of
+recent influential works in the field of neural image compression. We
+demonstrated the efficiency of the framework we developed by applying it to
+image compression. We trained several Probabilistic Ladder Networks, optimized
+for different rate-distrotion trade-offs, and achieved results close to
+the current state of the art. We also presented 3 coded sampling algorithms with
+different advantages and disadvantages that may be used to compress data using
+our framework. We present detailed analysis supporting our model choices.
+
+\section{Future Work}
+\par 
+There are many aspects that should be considered for a practical compression
+algorithm. Some of these are:
+\begin{itemize}
+\item Quality,
+\item Rate,
+\item Speed,
+\item Memory footprint,
+\item Power consumption of compression and decompression,
+\item Robustness of the compressor (i.e. resistance to errors or adversarial attacks),
+\item Security / privacy of compressed representation,
+\item Scalability e.g. in terms of image size.
+\end{itemize}
+
+In this work we focused only on the first two items and also propose future
+directions along these lines, although some improvements could help the other
+items as well.
+
+\subsection{Data Related Improvements}
+\par
+We have trained our models on the training dataset of the CLIC 2018 dataset
+(\cite{clic2018}), which consists of 585 images. This is quite meagre, and thus
+increasing the dataset size could lead to large improvements in performance. In
+particular, using $\gamma$-PLNs might be prone to overfitting to some degree,
+especially in conjunction with small $\beta$s. A larger dataset could be
+gathered from \url{flickr.com} similarly to \cite{theis2017lossy}, and reduce
+the risk of overfitting.
+
+\subsection{Model Related Improvements}
+\paragraph{Architecture}
+In this thesis, we selected Probabilistic Ladder Networks (PLNs) and
+$\gamma$-PLNs and showed that with standard training techniques and no
+fine-tuning we may achieve rate-distrotion results close to the current
+state-of-the-art. Thus, finding a better fitting architecture and fine-tuning
+our models, e.g. in terms of number of layers, convolution filters per layer,
+latent dimension size could greatly increase the efficiency of the network.
+Exploring the contributions of further stochastic layers, or residual
+connections might also be a fruitful direction.
+
+\paragraph{Loss}
+As shown by \cite{zhao2015loss}, the training loss used is crucial for the
+perceptual quality of the reconstructed image. In this work, we trained using an
+$L_1$ loss which is equivalent to a Laplacian data likelihood given the latents.
+An interesting line of research could be investigating more complex losses, e.g.
+the mixture loss proposed by \cite{zhao2015loss}, or using an extended transform
+coding pipeline, where the distrotion between the original and reconstructed
+images is measured in a transformed space, as proposed by \cite{balle2016end}.
+A simple example would be to use the \textit{VGG-19 loss}, where
+both images would be passed through the VGG-19 classifier, and an $L_2$ loss is
+measured between the activations of certain convolutional layers
+(\cite{johnson2016perceptual}). Adversarial losses, like the one used in
+\cite{rippel2017real} might also be interesting to try.
+
+\paragraph{Latent Representations}
+We used Gaussians to represent the distribution of the latents space, mainly
+because this allowed a simple extension from VAEs to PLNs in our case. However,
+as discussed earlier, filter responses of natural images are much better
+represented as Laplacians or Gaussian Scale Mixtures (\cite{portilla2003image}).
+Hence, it may be worthwhile to investigate if PLNs or similar models could be
+extended to allow for these distribution in a mathematically sound fashion,
+still relying on conjugacy, but perhaps not requiring a self-conjugate distribution.
+
+\subsection{Coding Related Improvements}
+\par
+As we have seen, currently both the output quality of and sampling speed of our
+current algorithms is suboptimal. In particular it is currently unclear how the
+postulated bits-back efficiency of the joint latent posterior could be achieved
+in a tractable manner. An interesting candidate could be $A^*$ sampling
+(\cite{maddison2014sampling}) for coding, however, this method also suffers from
+the curse of dimensionality.
+
+\par
+Another open question is whether index-based codes using variants of rejection
+sampling are the only bits-back efficient codes.

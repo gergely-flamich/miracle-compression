@@ -1,0 +1,339 @@
+\begin{thebibliography}{}
+
+\bibitem[Adel'son-Vel'skii and Landis, 1962]{adel1962algorithm}
+Adel'son-Vel'skii, G.~M. and Landis, E.~M. (1962).
+\newblock An algorithm for organization of information.
+\newblock In {\em Doklady Akademii Nauk}, volume 146, pages 263--266. Russian
+  Academy of Sciences.
+
+\bibitem[Asuni and Giachetti, 2014]{asuni2014testimages}
+Asuni, N. and Giachetti, A. (2014).
+\newblock Testimages: a large-scale archive for testing visual devices and
+  basic image processing algorithms.
+\newblock In {\em Eurographics Italian Chapter Conference}, volume~1, page~3.
+
+\bibitem[Ball{\'e} et~al., 2015]{balle2015density}
+Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2015).
+\newblock Density modeling of images using a generalized normalization
+  transformation.
+\newblock {\em arXiv preprint arXiv:1511.06281}.
+
+\bibitem[Ball{\'e} et~al., 2016a]{balle2016endtrans}
+Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2016a).
+\newblock End-to-end optimization of nonlinear transform codes for perceptual
+  quality.
+\newblock In {\em 2016 Picture Coding Symposium (PCS)}, pages 1--5. IEEE.
+
+\bibitem[Ball{\'e} et~al., 2016b]{balle2016end}
+Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2016b).
+\newblock End-to-end optimized image compression.
+\newblock {\em arXiv preprint arXiv:1611.01704}.
+
+\bibitem[Ball{\'e} et~al., 2018]{balle2018variational}
+Ball{\'e}, J., Minnen, D., Singh, S., Hwang, S.~J., and Johnston, N. (2018).
+\newblock Variational image compression with a scale hyperprior.
+\newblock {\em arXiv preprint arXiv:1802.01436}.
+
+\bibitem[Bishop, 2013]{bishop2013pattern}
+Bishop, C. (2013).
+\newblock {\em Pattern Recognition and Machine Learning}.
+\newblock Information science and statistics. Springer (India) Private Limited.
+
+\bibitem[Bishop, 1998]{bishop1998latent}
+Bishop, C.~M. (1998).
+\newblock Latent variable models.
+\newblock In {\em Learning in graphical models}, pages 371--403. Springer.
+
+\bibitem[Bottou et~al., 1998]{bottou1998high}
+Bottou, L., Haffner, P., Howard, P.~G., Simard, P., Bengio, Y., and LeCun, Y.
+  (1998).
+\newblock High quality document image compression with djvu.
+
+\bibitem[Bull, 2014]{bull2014communicating}
+Bull, D. (2014).
+\newblock {\em Communicating Pictures: A Course in Image and Video Coding}.
+\newblock Elsevier Science.
+
+\bibitem[Chen and Goodman, 1999]{chen1999empirical}
+Chen, S.~F. and Goodman, J. (1999).
+\newblock An empirical study of smoothing techniques for language modeling.
+\newblock {\em Computer Speech \& Language}, 13(4):359--394.
+
+\bibitem[CLIC, 2018]{clic2018}
+CLIC (2018).
+\newblock Workshop and challenge on learned image compression.
+\newblock \url{https://www.compression.cc}.
+\newblock Accessed: 2019-03-25.
+
+\bibitem[Dai and Wipf, 2019]{dai2019diagnosing}
+Dai, B. and Wipf, D. (2019).
+\newblock Diagnosing and enhancing vae models.
+\newblock {\em arXiv preprint arXiv:1903.05789}.
+
+\bibitem[Deng et~al., 2009]{deng2009imagenet}
+Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., and Fei-Fei, L. (2009).
+\newblock Imagenet: A large-scale hierarchical image database.
+\newblock In {\em 2009 IEEE conference on computer vision and pattern
+  recognition}, pages 248--255. Ieee.
+
+\bibitem[Denton et~al., 2015]{denton2015deep}
+Denton, E.~L., Chintala, S., Fergus, R., et~al. (2015).
+\newblock Deep generative image models using a￼ laplacian pyramid of
+  adversarial networks.
+\newblock In {\em Advances in neural information processing systems}, pages
+  1486--1494.
+
+\bibitem[{Eastman Kodak Company}, 1999]{kodakdataset}
+{Eastman Kodak Company} (1999).
+\newblock Kodak lossless true color image suite.
+\newblock \url{http://r0k.us/graphics/kodak/}.
+
+\bibitem[Eskicioglu et~al., 1994]{eskicioglu1994image}
+Eskicioglu, A.~M., Fisher, P.~S., and Chen, S.-Y. (1994).
+\newblock Image quality measures and their performance.
+
+\bibitem[Girod, 1993]{girod1993s}
+Girod, B. (1993).
+\newblock What's wrong with mean-squared error?
+\newblock {\em Digital images and human vision}, pages 207--220.
+
+\bibitem[Goodfellow et~al., 2014]{goodfellow2014generative}
+Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair,
+  S., Courville, A., and Bengio, Y. (2014).
+\newblock Generative adversarial nets.
+\newblock In {\em Advances in neural information processing systems}, pages
+  2672--2680.
+
+\bibitem[Goyal, 2001]{goyal2001theoretical}
+Goyal, V.~K. (2001).
+\newblock Theoretical foundations of transform coding.
+\newblock {\em IEEE Signal Processing Magazine}, 18(5):9--21.
+
+\bibitem[Gregor et~al., 2015]{gregor2015draw}
+Gregor, K., Danihelka, I., Graves, A., Rezende, D.~J., and Wierstra, D. (2015).
+\newblock Draw: A recurrent neural network for image generation.
+\newblock {\em arXiv preprint arXiv:1502.04623}.
+
+\bibitem[Gr{\"u}nwald et~al., 2007]{grünwald2007minimum}
+Gr{\"u}nwald, P., Grunwald, A., and Rissanen, J. (2007).
+\newblock {\em The Minimum Description Length Principle}.
+\newblock Adaptive computation and machine learning. MIT Press.
+
+\bibitem[Gupta et~al., 2011]{gupta2011modified}
+Gupta, P., Srivastava, P., Bhardwaj, S., and Bhateja, V. (2011).
+\newblock A modified psnr metric based on hvs for quality assessment of color
+  images.
+\newblock In {\em 2011 International Conference on Communication and Industrial
+  Application}, pages 1--4. IEEE.
+
+\bibitem[Harsha et~al., 2007]{harsha2007communication}
+Harsha, P., Jain, R., McAllester, D., and Radhakrishnan, J. (2007).
+\newblock The communication complexity of correlation.
+\newblock In {\em Twenty-Second Annual IEEE Conference on Computational
+  Complexity (CCC'07)}, pages 10--23. IEEE.
+
+\bibitem[Havasi et~al., 2018]{havasi2018minimal}
+Havasi, M., Peharz, R., and Hern{\'a}ndez-Lobato, J.~M. (2018).
+\newblock Minimal random code learning: Getting bits back from compressed model
+  parameters.
+\newblock {\em arXiv preprint arXiv:1810.00440}.
+
+\bibitem[He et~al., 2016]{he2016deep}
+He, K., Zhang, X., Ren, S., and Sun, J. (2016).
+\newblock Deep residual learning for image recognition.
+\newblock In {\em Proceedings of the IEEE conference on computer vision and
+  pattern recognition}, pages 770--778.
+
+\bibitem[Higgins et~al., 2017]{higgins2017beta}
+Higgins, I., Matthey, L., Pal, A., Burgess, C., Glorot, X., Botvinick, M.,
+  Mohamed, S., and Lerchner, A. (2017).
+\newblock beta-vae: Learning basic visual concepts with a constrained
+  variational framework.
+\newblock In {\em International Conference on Learning Representations}.
+
+\bibitem[Hinton and Van~Camp, 1993]{hinton1993keeping}
+Hinton, G. and Van~Camp, D. (1993).
+\newblock Keeping neural networks simple by minimizing the description length
+  of the weights.
+\newblock In {\em in Proc. of the 6th Ann. ACM Conf. on Computational Learning
+  Theory}. Citeseer.
+
+\bibitem[Huffman, 1952]{huffman1952method}
+Huffman, D.~A. (1952).
+\newblock A method for the construction of minimum-redundancy codes.
+\newblock {\em Proceedings of the IRE}, 40(9):1098--1101.
+
+\bibitem[Huynh-Thu and Ghanbari, 2008]{psnr}
+Huynh-Thu, Q. and Ghanbari, M. (2008).
+\newblock Scope of validity of psnr in image/video quality assessment.
+\newblock {\em Electronics letters}, 44(13):800--801.
+
+\bibitem[Ioffe and Szegedy, 2015]{ioffe2015batch}
+Ioffe, S. and Szegedy, C. (2015).
+\newblock Batch normalization: Accelerating deep network training by reducing
+  internal covariate shift.
+\newblock {\em arXiv preprint arXiv:1502.03167}.
+
+\bibitem[Jain, 1989]{jain1989fundamentals}
+Jain, A.~K. (1989).
+\newblock {\em Fundamentals of digital image processing}.
+\newblock Englewood Cliffs, NJ: Prentice Hall,.
+
+\bibitem[Jiang, 1999]{jiang1999image}
+Jiang, J. (1999).
+\newblock Image compression with neural networks--a survey.
+\newblock {\em Signal processing: image Communication}, 14(9):737--760.
+
+\bibitem[Johnson et~al., 2016]{johnson2016perceptual}
+Johnson, J., Alahi, A., and Fei-Fei, L. (2016).
+\newblock Perceptual losses for real-time style transfer and super-resolution.
+\newblock In {\em European conference on computer vision}, pages 694--711.
+  Springer.
+
+\bibitem[Johnston et~al., 2018]{johnston2018cvpr}
+Johnston, N., Vincent, D., Minnen, D., Covell, M., Singh, S., Chinen, T.,
+  Jin~Hwang, S., Shor, J., and Toderici, G. (2018).
+\newblock Improved lossy image compression with priming and spatially adaptive
+  bit rates for recurrent networks.
+\newblock In {\em The IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)}.
+
+\bibitem[Karush, 2014]{karush2014minima}
+Karush, W. (2014).
+\newblock Minima of functions of several variables with inequalities as side
+  conditions.
+\newblock In {\em Traces and Emergence of Nonlinear Programming}, pages
+  217--245. Springer.
+
+\bibitem[Kingma and Ba, 2014]{kingma2014adam}
+Kingma, D.~P. and Ba, J. (2014).
+\newblock Adam: A method for stochastic optimization.
+\newblock {\em arXiv preprint arXiv:1412.6980}.
+
+\bibitem[Kingma and Welling, 2013]{kingma2013auto}
+Kingma, D.~P. and Welling, M. (2013).
+\newblock Auto-encoding variational bayes.
+\newblock {\em arXiv preprint arXiv:1312.6114}.
+
+\bibitem[Krizhevsky et~al., 2009]{krizhevsky2009learning}
+Krizhevsky, A., Hinton, G., et~al. (2009).
+\newblock Learning multiple layers of features from tiny images.
+\newblock Technical report, Citeseer.
+
+\bibitem[Kuhn and Tucker, 2014]{kuhn2014nonlinear}
+Kuhn, H.~W. and Tucker, A.~W. (2014).
+\newblock Nonlinear programming.
+\newblock In {\em Traces and emergence of nonlinear programming}, pages
+  247--258. Springer.
+
+\bibitem[MacKay et~al., 2003]{mackay2003information}
+MacKay, D., Kay, D., and Press, C.~U. (2003).
+\newblock {\em Information Theory, Inference and Learning Algorithms}.
+\newblock Cambridge University Press.
+
+\bibitem[Maddison et~al., 2014]{maddison2014sampling}
+Maddison, C.~J., Tarlow, D., and Minka, T. (2014).
+\newblock A* sampling.
+\newblock In {\em Advances in Neural Information Processing Systems}, pages
+  3086--3094.
+
+\bibitem[Mentzer et~al., 2018]{mentzer2018cvpr}
+Mentzer, F., Agustsson, E., Tschannen, M., Timofte, R., and Van~Gool, L.
+  (2018).
+\newblock Conditional probability models for deep image compression.
+\newblock In {\em The IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR)}.
+
+\bibitem[Mougeot et~al., 1991]{mougeot1991image}
+Mougeot, M., Azencott, R., and Angeniol, B. (1991).
+\newblock Image compression with back propagation: improvement of the visual
+  restoration using different cost functions.
+\newblock {\em Neural networks}, 4(4):467--476.
+
+\bibitem[Portilla et~al., 2003]{portilla2003image}
+Portilla, J., Strela, V., Wainwright, M.~J., and Simoncelli, E.~P. (2003).
+\newblock Image denoising using scale mixtures of gaussians in the wavelet
+  domain.
+\newblock {\em IEEE Trans Image Processing}, 12(11).
+
+\bibitem[Rabbani and Joshi, 2002]{rabbani2002overview}
+Rabbani, M. and Joshi, R. (2002).
+\newblock An overview of the jpeg 2000 still image compression standard.
+\newblock {\em Signal processing: Image communication}, 17(1):3--48.
+
+\bibitem[Rippel and Bourdev, 2017]{rippel2017real}
+Rippel, O. and Bourdev, L. (2017).
+\newblock Real-time adaptive image compression.
+\newblock In {\em Proceedings of the 34th International Conference on Machine
+  Learning-Volume 70}, pages 2922--2930. JMLR. org.
+
+\bibitem[Rissanen, 1986]{rissanen1986stochastic}
+Rissanen, J. (1986).
+\newblock Stochastic complexity and modeling.
+\newblock {\em The annals of statistics}, pages 1080--1100.
+
+\bibitem[Rissanen and Langdon, 1981]{rissanen1981universal}
+Rissanen, J. and Langdon, G. (1981).
+\newblock Universal modeling and coding.
+\newblock {\em IEEE Transactions on Information Theory}, 27(1):12--23.
+
+\bibitem[Shannon and Weaver, 1998]{shannon1998mathematical}
+Shannon, C.~E. and Weaver, W. (1998).
+\newblock {\em The mathematical theory of communication}.
+\newblock University of Illinois press.
+
+\bibitem[S{\o}nderby et~al., 2016]{sonderby2016train}
+S{\o}nderby, C.~K., Raiko, T., Maal{\o}e, L., S{\o}nderby, S.~K., and Winther,
+  O. (2016).
+\newblock How to train deep variational autoencoders and probabilistic ladder
+  networks.
+\newblock In {\em 33rd International Conference on Machine Learning (ICML
+  2016)}.
+
+\bibitem[Theis et~al., 2017]{theis2017lossy}
+Theis, L., Shi, W., Cunningham, A., and Husz{\'a}r, F. (2017).
+\newblock Lossy image compression with compressive autoencoders.
+\newblock {\em arXiv preprint arXiv:1703.00395}.
+
+\bibitem[Toderici et~al., 2015]{toderici2015variable}
+Toderici, G., O'Malley, S.~M., Hwang, S.~J., Vincent, D., Minnen, D., Baluja,
+  S., Covell, M., and Sukthankar, R. (2015).
+\newblock Variable rate image compression with recurrent neural networks.
+\newblock {\em arXiv preprint arXiv:1511.06085}.
+
+\bibitem[Toderici et~al., 2017]{toderici2017full}
+Toderici, G., Vincent, D., Johnston, N., Jin~Hwang, S., Minnen, D., Shor, J.,
+  and Covell, M. (2017).
+\newblock Full resolution image compression with recurrent neural networks.
+\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 5306--5314.
+
+\bibitem[Wallace, 1992]{wallace1992jpeg}
+Wallace, G.~K. (1992).
+\newblock The jpeg still picture compression standard.
+\newblock {\em IEEE transactions on consumer electronics}, 38(1):xviii--xxxiv.
+
+\bibitem[Wang et~al., 2004]{wang2004image}
+Wang, Z., Bovik, A.~C., Sheikh, H.~R., Simoncelli, E.~P., et~al. (2004).
+\newblock Image quality assessment: from error visibility to structural
+  similarity.
+\newblock {\em IEEE transactions on image processing}, 13(4):600--612.
+
+\bibitem[Wang et~al., 2003]{msssim}
+Wang, Z., Simoncelli, E.~P., and Bovik, A.~C. (2003).
+\newblock Multiscale structural similarity for image quality assessment.
+\newblock In {\em The Thirty-Seventh Asilomar Conference on Signals, Systems \&
+  Computers, 2003}, volume~2, pages 1398--1402. Ieee.
+
+\bibitem[Zhao et~al., 2015]{zhao2015loss}
+Zhao, H., Gallo, O., Frosio, I., and Kautz, J. (2015).
+\newblock Loss functions for neural networks for image processing.
+\newblock {\em arXiv preprint arXiv:1511.08861}.
+
+\bibitem[Zhou et~al., 2018]{clic2018winner}
+Zhou, L., Cai, C., Gao, Y., Su, S., and Wu, J. (2018).
+\newblock Variational autoencoder for low bit-rate image compression.
+\newblock In {\em The IEEE Conference on Computer Vision and Pattern
+  Recognition (CVPR) Workshops}.
+
+\end{thebibliography}
