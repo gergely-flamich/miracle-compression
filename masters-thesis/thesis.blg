@@ -13,48 +13,49 @@ A level-1 auxiliary file: Chapter5-Experiments/chapter5.aux
 A level-1 auxiliary file: Chapter6-Conclusion/chapter6.aux
 The style file: apalike.bst
 A level-1 auxiliary file: Appendix1/appendix1.aux
+A level-1 auxiliary file: Appendix2/appendix2.aux
 Database file #1: References/references.bib
 Warning--empty journal in bottou1998high
 Warning--empty journal in eskicioglu1994image
 You've used 61 entries,
             1935 wiz_defined-function locations,
-            799 strings with 15397 characters,
-and the built_in function-call counts, 27362 in all, are:
-= -- 2651
+            795 strings with 15263 characters,
+and the built_in function-call counts, 27886 in all, are:
+= -- 2712
 > -- 1355
-< -- 49
+< -- 51
 + -- 493
 - -- 474
-* -- 2220
-:= -- 4672
+* -- 2248
+:= -- 4711
 add.period$ -- 196
 call.type$ -- 61
 change.case$ -- 534
 chr.to.int$ -- 60
 cite$ -- 63
-duplicate$ -- 1081
-empty$ -- 1775
+duplicate$ -- 1121
+empty$ -- 1840
 format.name$ -- 563
-if$ -- 5447
+if$ -- 5595
 int.to.chr$ -- 2
 int.to.str$ -- 0
 missing$ -- 62
 newline$ -- 307
 num.names$ -- 183
-pop$ -- 582
+pop$ -- 600
 preamble$ -- 1
 purify$ -- 539
 quote$ -- 0
-skip$ -- 823
+skip$ -- 844
 stack$ -- 0
-substring$ -- 1588
-swap$ -- 226
-text.length$ -- 22
+substring$ -- 1660
+swap$ -- 246
+text.length$ -- 24
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 354
 warning$ -- 2
-while$ -- 197
+while$ -- 203
 width$ -- 0
-write$ -- 780
+write$ -- 782
 (There were 2 warnings)

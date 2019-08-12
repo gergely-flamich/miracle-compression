@@ -38,12 +38,12 @@ Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2016a).
 \bibitem[Ball{\'e} et~al., 2016b]{balle2016end}
 Ball{\'e}, J., Laparra, V., and Simoncelli, E.~P. (2016b).
 \newblock End-to-end optimized image compression.
-\newblock {\em arXiv preprint arXiv:1611.01704}.
+\newblock {\em International Conference on Learning Representations}.
 
-\bibitem[Ball{\'e} et~al., 2018]{balle2018variational}
-Ball{\'e}, J., Minnen, D., Singh, S., Hwang, S.~J., and Johnston, N. (2018).
+\bibitem[Ballé et~al., 2018]{balle2018variational}
+Ballé, J., Minnen, D., Singh, S., Hwang, S.~J., and Johnston, N. (2018).
 \newblock Variational image compression with a scale hyperprior.
-\newblock {\em arXiv preprint arXiv:1802.01436}.
+\newblock In {\em International Conference on Learning Representations}.
 
 \bibitem[Bishop, 2013]{bishop2013pattern}
 Bishop, C. (2013).
@@ -78,8 +78,8 @@ CLIC (2018).
 
 \bibitem[Dai and Wipf, 2019]{dai2019diagnosing}
 Dai, B. and Wipf, D. (2019).
-\newblock Diagnosing and enhancing vae models.
-\newblock {\em arXiv preprint arXiv:1903.05789}.
+\newblock Diagnosing and enhancing {VAE} models.
+\newblock In {\em International Conference on Learning Representations}.
 
 \bibitem[Deng et~al., 2009]{deng2009imagenet}
 Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., and Fei-Fei, L. (2009).
@@ -89,7 +89,7 @@ Deng, J., Dong, W., Socher, R., Li, L.-J., Li, K., and Fei-Fei, L. (2009).
 
 \bibitem[Denton et~al., 2015]{denton2015deep}
 Denton, E.~L., Chintala, S., Fergus, R., et~al. (2015).
-\newblock Deep generative image models using a￼ laplacian pyramid of
+\newblock Deep generative image models using a￼{Laplacian} pyramid of
   adversarial networks.
 \newblock In {\em Advances in neural information processing systems}, pages
   1486--1494.
@@ -121,9 +121,10 @@ Goyal, V.~K. (2001).
 \newblock {\em IEEE Signal Processing Magazine}, 18(5):9--21.
 
 \bibitem[Gregor et~al., 2015]{gregor2015draw}
-Gregor, K., Danihelka, I., Graves, A., Rezende, D.~J., and Wierstra, D. (2015).
+Gregor, K., Danihelka, I., Graves, A., Rezende, D., and Wierstra, D. (2015).
 \newblock Draw: A recurrent neural network for image generation.
-\newblock {\em arXiv preprint arXiv:1502.04623}.
+\newblock In {\em International Conference on Machine Learning}, pages
+  1462--1471.
 
 \bibitem[Gr{\"u}nwald et~al., 2007]{grünwald2007minimum}
 Gr{\"u}nwald, P., Grunwald, A., and Rissanen, J. (2007).
@@ -147,7 +148,8 @@ Harsha, P., Jain, R., McAllester, D., and Radhakrishnan, J. (2007).
 Havasi, M., Peharz, R., and Hern{\'a}ndez-Lobato, J.~M. (2018).
 \newblock Minimal random code learning: Getting bits back from compressed model
   parameters.
-\newblock {\em arXiv preprint arXiv:1810.00440}.
+\newblock {\em NIPS workshop on Compact Deep Neural Networks with industrial
+  application}.
 
 \bibitem[He et~al., 2016]{he2016deep}
 He, K., Zhang, X., Ren, S., and Sun, J. (2016).
@@ -183,7 +185,8 @@ Huynh-Thu, Q. and Ghanbari, M. (2008).
 Ioffe, S. and Szegedy, C. (2015).
 \newblock Batch normalization: Accelerating deep network training by reducing
   internal covariate shift.
-\newblock {\em arXiv preprint arXiv:1502.03167}.
+\newblock In {\em International Conference on Machine Learning}, pages
+  448--456.
 
 \bibitem[Jain, 1989]{jain1989fundamentals}
 Jain, A.~K. (1989).
@@ -217,14 +220,14 @@ Karush, W. (2014).
   217--245. Springer.
 
 \bibitem[Kingma and Ba, 2014]{kingma2014adam}
-Kingma, D.~P. and Ba, J. (2014).
+Kingma, D. and Ba, J. (2014).
 \newblock Adam: A method for stochastic optimization.
-\newblock {\em arXiv preprint arXiv:1412.6980}.
+\newblock {\em International Conference on Learning Representations}.
 
-\bibitem[Kingma and Welling, 2013]{kingma2013auto}
-Kingma, D.~P. and Welling, M. (2013).
+\bibitem[Kingma and Welling, 2014]{kingma2013auto}
+Kingma, D.~P. and Welling, M. (2014).
 \newblock Auto-encoding variational bayes.
-\newblock {\em arXiv preprint arXiv:1312.6114}.
+\newblock {\em International Conference on Learning Representations}.
 
 \bibitem[Krizhevsky et~al., 2009]{krizhevsky2009learning}
 Krizhevsky, A., Hinton, G., et~al. (2009).
@@ -263,7 +266,7 @@ Mougeot, M., Azencott, R., and Angeniol, B. (1991).
 
 \bibitem[Portilla et~al., 2003]{portilla2003image}
 Portilla, J., Strela, V., Wainwright, M.~J., and Simoncelli, E.~P. (2003).
-\newblock Image denoising using scale mixtures of gaussians in the wavelet
+\newblock Image denoising using scale mixtures of {Gaussians} in the wavelet
   domain.
 \newblock {\em IEEE Trans Image Processing}, 12(11).
 
@@ -312,7 +315,7 @@ S{\o}nderby, C.~K., Raiko, T., Maal{\o}e, L., S{\o}nderby, S.~K., and Winther,
 \bibitem[Theis et~al., 2017]{theis2017lossy}
 Theis, L., Shi, W., Cunningham, A., and Husz{\'a}r, F. (2017).
 \newblock Lossy image compression with compressive autoencoders.
-\newblock {\em arXiv preprint arXiv:1703.00395}.
+\newblock {\em International Conference on Learning Representations}.
 
 \bibitem[Toderici et~al., 2015]{toderici2015variable}
 Toderici, G., O'Malley, S.~M., Hwang, S.~J., Vincent, D., Minnen, D., Baluja,

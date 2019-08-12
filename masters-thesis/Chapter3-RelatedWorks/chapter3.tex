@@ -22,10 +22,10 @@ designed as transform coding methods. In particular, virtually all early methods
 used some flavour of linear auto-encoders (LAEs, no non-linearities applied on
 the hidden layer), with a single-layer encoder and
 decoder (\cite{jiang1999image}). As convolutional layers had not yet been
-available back then, all architectures were fully connected,
+available back then, all architectures were fully connected
 and relied on splitting up images into equal-sized blocks and feeding them
 block-by-block to the LAE. Most methods optimized the MSE between the
-reconstruction and the orginal image, although different learning objectives
+reconstruction and the original image, although different learning objectives
 were also explored (\cite{mougeot1991image}). Furthermore, the issue of
 quantization was not formally addressed. While the pipeline was to quantize the hidden
 layer activations of the LAE, no explicit treatment of the distortion introduced
@@ -49,7 +49,7 @@ for large-scale images.
 \section{Comparison of Recent Works}
 \label{sec:lit_comparison}
 \par
-In this section we focus on compression methods that allow for the compression
+In this section, we focus on compression methods that allow for the compression
 of arbitrary-sized images. The most notable recent works in this area (that we
 are aware of) are \cite{balle2016end}, \cite{toderici2017full}, \cite{theis2017lossy},
 \cite{rippel2017real}, \cite{balle2018variational}, \cite{johnston2018cvpr} and
@@ -76,16 +76,16 @@ issue is not an option.
 
 \paragraph{\cite{balle2016end}} trained on 6507 images, selected from ImageNet
 \cite{deng2009imagenet}. They removed images with excessive saturation and
-since their method is based on dithering, they added unifrom noise to the
+since their method is based on dithering, they added uniform noise to the
 remaining images to imitate the noise introduced by quantization. Finally,
 they downsampled and cropped images to be $256 \times 256$ pixels in size.
-They only kept images whise resampling factor was 0.75 or less, in order to
-avoid high frequency noise.
+They only kept images while resampling factor was 0.75 or less, to
+avoid high-frequency noise.
 
-\paragraph{\cite{theis2017lossy}} used 434 high resolution images from \url{flickr.com}
+\paragraph{\cite{theis2017lossy}} used 434 high-resolution images from \url{flickr.com}
 under the creative commons license. As \texttt{flickr} store its images as
 JPEGs, they downsampled all images to be below $1536 \times 1536$ in
-resolution and saved them as PNGs in order to reduce the effects of the lossy
+resolution and saved them as PNGs to reduce the effects of the lossy
 compression. Then, they extracted several $128 \times 128$ patches from each
 image and trained on those.
 
@@ -103,9 +103,9 @@ randomly cropped $256 \times 256$ pixel patches extracted from each image.
 
 \paragraph{}
 A clear trend is downsampling large, lossy-encoded images to get rid of the
-compression artifacts as an easy way of obtaining reasonable ``approximations''
+compression artefacts as an easy way of obtaining reasonable ``approximations''
 of losslessly encoded images. Another trend is that (as we see in the next
-section) since all architectures are fully-convolutional, it is sufficient to
+section) since all architectures are fully convolutional, it is sufficient to
 train on small image patches to train the convolution kernels to speed up
 training, as well as to heavily ``increase'' the training set size.
 
@@ -113,7 +113,7 @@ training, as well as to heavily ``increase'' the training set size.
 In contrast to the lack of datasets for training, all authors have used standard
 datasets for testing their methods, taken from classical lossy image
 compression research. These are the Kodak (\cite{kodakdataset}) and Tecnick
-(\cite{asuni2014testimages}) datasets. In order for our results to be comparable
+(\cite{asuni2014testimages}) datasets. For our results to be comparable
 to these methods, we have also decided to test our method on the Kodak dataset.
 
 \subsection{Architectures}
@@ -139,11 +139,11 @@ convolutions, and it is reasonable to assume that the rest do it likewise.
 Padding and convolution mode is generally not discussed except in
 \cite{theis2017lossy}, but we believe all other methods use one of the two ways
 they present, namely zero-padded or mirror-padded convolutions in \texttt{same}
-mode. The further details of each individual work is detailed below.
+mode. The further details of each work are detailed below.
 
 \paragraph{\cite{balle2016end}} They build a relatively shallow autoencoder (5
 layers) (Shown in the left half of Figure \ref{fig:balle_ladder_arch}).
-They propose their own activation function, custom tailored for image
+They propose their own activation function, custom-tailored for image
 compression. These non-linearities are a form of adaptive local gain control
 for the images, called Generalized Divisive Normalization (GDN). At the $k$th layer for
 channel $i$ at position $(m, n)$, for input $w_i^{(k)}(m, n)$, the GDN
@@ -178,7 +178,7 @@ nonlinearities, which are defined as
 The decoder mirrors the encoder. When upsampling is required, they use what
 they term \textit{subpixel} convolutions, where they perform a regular
 convolution operation with an increased number of filters, and then reshape
-the resulting tensor into one with larger spatial extent but fewer channels.
+the resulting tensor into one with a larger spatial extent but fewer channels.
 Their architecture can be seen in Figure \ref{fig:comp_auto_arch}.
 \begin{figure}
   \centering 
@@ -190,12 +190,12 @@ Their architecture can be seen in Figure \ref{fig:comp_auto_arch}.
     Mixture model (GSM) to model the quantization noise during the training of
     the architecture. The normalization layer performs batch normalization
     separately for each channel, denormalization is the analogous inverse
-    operation. (Image taken from their \cite{theis2017lossy}.)}
+    operation. (Image is taken from their \cite{theis2017lossy}.)}
   \label{fig:comp_auto_arch}
 \end{figure}
 
 \paragraph{\cite{rippel2017real}} They use a reasonably shallow architecture as well,
-but also add in an additional residual connections from every layer to the last,
+but also add in additional residual connections from every layer to the last,
 summing at the end. They call this
 \textit{pyramidal decomposition} and \textit{interscale alignment}, with the
 rationale behind it being that the residual connections extract features at
@@ -212,10 +212,10 @@ Their encoder architecture is shown in Figure \ref{fig:rippel_arch}.
 \paragraph{\cite{balle2018variational}} They extend the architecture presented in
 \cite{balle2016end}, see Figure \ref{fig:balle_ladder_arch}.
 In particular, the encoder and decoder remain the same,
-and they add an additional stochastic layer on top of the architecture,
+and they add one more stochastic layer on top of the architecture,
 resembling a probabilistic ladder network (PLN) (\cite{sonderby2016train}).
 The layers leading to the second level are more standard. They are still fully
-convlutional with downsampling after convolutions, however, instead of GDN
+convolutional with downsampling after convolutions, however, instead of GDN
 they use ReLUs.
 \par
 
@@ -224,8 +224,8 @@ they use ReLUs.
   \includegraphics[width=\textwidth]{balle_ladder_architecture.pdf}
   \caption[Architecture used by \cite{balle2018variational}.]
   {Analysis and synthesis transforms $g_a$ and $g_s$ along with first
-    level quantizer $Q(\vec{y})$ used in \cite{balle2016end}. This architecutre
-    was then extended by \cite{balle2018variational} with second level analysis
+    level quantizer $Q(\vec{y})$ used in \cite{balle2016end}. This architecture
+    was then extended by \cite{balle2018variational} with second-level analysis
     and synthesis transforms $h_a$ and $h_s$, along with second level quantizer
     $Q(\vec{z})$. This full architecture is also the basis of our model. A
     slightly strange design choice on their part is since they will wish to
@@ -235,9 +235,9 @@ they use ReLUs.
     of the input to the first layer, and rely on the ReLUs never giving negative
     values. We are not sure if this was meant to be a computational saving, as
     taking absolute values is certainly cheaper then either of the
-    aforementioned standard ways of forcing positive values, or it if it gave
+    aforementioned standard ways of forcing positive values or it if it gave
     better results.
-    (Image taken from \cite{balle2018variational})}
+    (Image is taken from \cite{balle2018variational})}
   \label{fig:balle_ladder_arch}
 \end{figure}
 
@@ -249,23 +249,23 @@ question that needs to be answered is how they dealt with the issue of
 quantization. This is because end-to-end optimizing the transform coding
 pipeline involves back-propagating gradients through the quantization step, which
 yields 0 derivatives almost everywhere, stopping the learning signal.
-In fact, there are two issues that need to be addressed and that we examine
+Two issues that need to be addressed and that we examine
 below: first, the quantization operation itself, and second,
 the rate estimator $H[P(\vec{z})]$ (except for \cite{rippel2017real} as they do
 not use it). As we have
 seen in Section \ref{sec:compression_without_quantization}, not only is there
-inherent error in whatever approximation is used to circumvent the
+an inherent error in whatever approximation is used to circumvent the
 non-differentiability of quantization, the use of quantization itself already
 fundamentally limits how
 effective these methods can be. A graphical representation of various continuous
-relaxations / approxiamtions of quantization error can be seen in Figure
+relaxations / approximations of quantization error can be seen in Figure
 \ref{fig:quantization_models}. 
 \begin{figure}
   \centering 
   \includegraphics[width=\textwidth]{compressive_autoencoders_quant_comparison.pdf}
   \caption[Comparison of quantization error and its relaxations.]
   {Comparison of quantization error and its relaxations. \textbf{A)}
-    Original image. \textbf{B)} Artifacts that result from using rounding as the
+    Original image. \textbf{B)} Artefacts that result from using rounding as the
     quantizer. \textbf{C)} Stochastic rounding used by \cite{toderici2017full}.
     \textbf{D)} Uniform additive noise used by \cite{balle2016end} and
     \cite{balle2018variational}. (Image taken from \cite{theis2017lossy}.)}
@@ -285,7 +285,7 @@ during training time.
 \paragraph{\cite{balle2016end} and \cite{balle2018variational}}
 They model quantization
 error as dither, i.e. they replace their quantized latents
-$\hat{z}_i$ by additive unifrom noise
+$\hat{z}_i$ by additive uniform noise
 \[
   \tilde{z}_i = z_i + \delta z_i, \quad \delta z_i \sim \Unif{0, 1}. 
 \]
@@ -310,14 +310,14 @@ either one of those.
 \subsubsection{Rate Estimation}
 \par
 As all methods but \cite{rippel2017real} under review aim to optimize
-the rate-distrotion trade-off
+the rate-distortion trade-off
 directly, they also need to estimate the rate $H[\hat{\vec{z}}] = -\Exp{\log
   P(\hat{\vec{z}})}{P(\hat{\vec{z}})}$. Hence to model the rate during training,
 they also require a distribution over the $\tilde{z}_i$s.
 
 \paragraph{\cite{balle2016end}}
   They assume that the latents are independent, and hence they
-  can model the the joint as a fully factorized distribution. They use linear
+  can model the joint as a fully factorized distribution. They use linear
   splines to do this, whose parameters $\psi^{(i)}$ they update separately every
   $10^6$ iterations using SGD to maximize its log-likelihood on the latents,
   independently from the optimization of the rest of the model parameters.
@@ -331,8 +331,8 @@ they also require a distribution over the $\tilde{z}_i$s.
     P(\vec{z}) = \int_{\left[-\frac{1}{2}, \frac{1}{2}\right)^M} q(\vec{z} + \vec{u}) \d \vec{u}
   \]
   for some appropriate density $q$,
-  where the integral is taken over the centered $M$ dimensional hypercube.
-  Then, they replace the the rate estimator with an upper bound using Jensen's
+  where the integral is taken over the centred $M$ dimensional hypercube.
+  Then, they replace the rate estimator with an upper bound using Jensen's
   inequality:
   \[
     -\log_2P(\vec{z}) = -\log_2\int_{\left[-\frac{1}{2}, \frac{1}{2}\right)^M} q(\vec{z} +
@@ -364,7 +364,7 @@ they also require a distribution over the $\tilde{z}_i$s.
   Then, they model the first stage as dithered zero-mean Gaussians with variable
   scale depending on the second stage, thereby relaxing the initial independence
   assumption on the latent space to a more general \textit{conditional
-    indepenence} assumption \cite{bishop1998latent}:
+    independence} assumption \cite{bishop1998latent}:
   \[
     p(\tilde{\vec{z}}^{(1)} \mid \tilde{\vec{z}}^{(2)}) = 
     \prod_i \left(  \Norm{\tilde{z}^{(1)}_i \mid 0, \tilde{\sigma}^2_i\right)*
@@ -374,7 +374,7 @@ they also require a distribution over the $\tilde{z}_i$s.
 
 \subsection{Coding}
 \par
-Another important part of the examined methods is the entropy coding. In particular, an
+Another important part of the examined methods is entropy coding. In particular, an
 interesting caveat of entropy codes is that they tend to perform slightly worse
 than the predicted rate, due to neglected constant factors in the algorithm
 \cite{rissanen1981universal}. Hence, it is always more informative to present
@@ -386,17 +386,17 @@ and we briefly review them here.
   They code dimensions in raster-scan order, which means they do not fully leverage the
   spatial dependencies between adjacent latent dimensions.
   As the authors note, this means that CABAC does not yield much improvement
-  over non-adaptive artihmetic coding. 
+  over non-adaptive arithmetic coding. 
 
 \paragraph{\cite{theis2017lossy}} used their estimated probabilities $q(\vec{z})$ and
   used an off-the-shelf publicly available range coder to compress their latents.
 
 \paragraph{\cite{rippel2017real}} treat each bit of their $B$-bit precision quantized
-  representations individually, because they want to utilize the sparsity of
+  representations individually because they want to utilize the sparsity of
   more significant bits. They train a separate binary classifier to predict
-  probabilities for each individual bit based on a set of features (they call
+  probabilities for individual bits based on a set of features (they call
   it a \textit{context}) to use in an adaptive arithmetic coder. They further
-  add a regularizing term during training based on the codelength of a batch to
+  add a regularizing term during training based on the code length of a batch to
   match a length target. This is to encourage sparsity for high-resolution, but
   low entropy images and a longer codelength for low resolution but high entropy
   images.
@@ -410,7 +410,7 @@ and we briefly review them here.
     p(\hat{z}^{(2)}_i) =
     \int_{\hat{z}^{(2)}_i-\frac{1}{2}}^{\hat{z}^{(2)}_i+\frac{1}{2}}p(\tilde{z}_i \mid \psi_i) \d \tilde{z}_i.
   \]
-  Then, on the first level, their probaibilities are given by:
+  Then, on the first level, their probabilities are given by:
   \[
     p(\hat{z}^{(1)} \mid \tilde{z}^{(2)}) = p(\hat{z}^{(1)} \mid
     \tilde{\sigma}^2_i) = 
@@ -420,7 +420,7 @@ and we briefly review them here.
 \subsection{Training}
 \par
 \cite{balle2016end}, \cite{theis2017lossy} and \cite{balle2018variational}
-optimize the rate-distrotion trade-off directly,
+optimize the rate-distortion trade-off directly,
 \[
   L(\Data) = H[\hat{\vec{z}}] + \beta \Exp{d(\vec{x}, \hat{\vec{x}})}{},
 \]
@@ -448,7 +448,7 @@ and mean-field posterior
   q(\tilde{\vec{z}} \mid \vec{x}) =
   \prod_i \Unif{\tilde{z}_i \mid z_i, 1},
 \]
-where $\Unif{\tilde{z}_i \mid z_i, 1},$ is the uniform distribution centered
+where $\Unif{\tilde{z}_i \mid z_i, 1},$ is the uniform distribution centred
 on $z_i$ of width 1. They used learning rate decay during training.
 
 \paragraph{\cite{theis2017lossy}}
@@ -458,8 +458,8 @@ on $z_i$ of width 1. They used learning rate decay during training.
   also used learning rate decay during training.
 
 \paragraph{\cite{rippel2017real}} They use a complex loss function, with an MS-SSIM
-distrotion cost, a code length regularization term (not equivalent to the rate
-term) as well as an adversarial loss term. In their adversarial setup they feed
+distortion cost, a code length regularization term (not equivalent to the rate
+term) as well as an adversarial loss term. In their adversarial setup, they feed
 ground truth, reconstruction pairs to the discriminator, where they shuffle the
 images in the pair with probability $\frac12$ and their discriminator was
 trained to predict which image was the reconstruction. Their setup can be seen
@@ -471,7 +471,8 @@ scheduler, preventing any of the signals from dominating the total.
   \includegraphics[width=\textwidth]{rippel_pipeline.pdf}
   \caption[Compression pipeline used by \cite{rippel2017real}.]
   {Compression pipeline used by \cite{rippel2017real}. The red boxes
-    show the terms used in their loss function. (Image taken from \cite{rippel2017real}.)}
+    show the terms used in their loss function. (Image is taken from
+    \cite{rippel2017real}.)}
   \label{fig:rippel_pipeline}
 \end{figure}
 
@@ -495,12 +496,13 @@ scheduler, preventing any of the signals from dominating the total.
       -\sum_i \log_2 p(\tilde{z}^{(1)}_i \mid \tilde{\sigma}^2_i) +
       \beta d(\vec{x}, \hat{\vec{x}})}{}.
   \end{equation}
-  Eq \ref{eq:balle_var_train_objective} is important from our prespective, as
+  Eq \ref{eq:balle_var_train_objective} is important from our perspective, as
   it will be
   directly translated to our learning objective.
   \par
   They train 32 models, half using the architecture from \cite{balle2016end} and
-  half using the current one, half optimized for MSE and half of MS-SSIM, with 8
+  the other half using the current one, half optimized for MSE and the other
+  half of MS-SSIM, with 8
   different $\beta$s. They report that neither batch normalization nor learning
   rate decay gave better results, which they attribute to GDN.
 
@@ -508,19 +510,19 @@ scheduler, preventing any of the signals from dominating the total.
 \par
 As mentioned at the end of Section \ref{sec:related_works_datasets}, all
 methods were tested on the Kodak dataset (\cite{kodakdataset}). All authors
-report the (interpolated) rate-distrotion curves achieved by their models. All
-methods report the curves using PSNR (\cite{psnr}) as the distrotion metric as
+report the (interpolated) rate-distortion curves achieved by their models. All
+methods report the curves using PSNR (\cite{psnr}) as the distortion metric as
 well as MS-SSIM (\cite{msssim}), except for \cite{rippel2017real}, who only
 report MS-SSIM. Based on these reported curves, the current state-of-the-art in
 neural compression is set by \cite{balle2018variational}. 
 \par
 An important issue raised in \cite{balle2016end} and \cite{balle2018variational}
 is how aggregate results over should be reported, or whether reporting such
-figures is meaninful in the first place. This is because since models were
+figures is meaningful in the first place. This is because since models were
 trained on different datasets, with different model design philosophies, there
 might be significant fluctuation in the comparative model performance between
 individual images. Furthermore, averaging results achieved by classical methods
-that were not directly optimized for the rate-distrotion trade-off (virtually
+that were not directly optimized for the rate-distortion trade-off (virtually
 all of them) might lead to inconsistent results even on the same image, depending on what settings were used to achieve
 a given bitrate. Hence, they argue that the efficiency of the methods should
 be examined on individual images instead. This is also the philosophy we follow,

@@ -7,33 +7,33 @@
 \section{Motivation}
 \par
 There have been several exciting developments in neural image compression
-recently, and there now methods that consistently outperform classical methods
+recently, and there are now methods that consistently outperform classical methods
 such as JPEG, WebP and BPG (\cite{toderici2017full}, \cite{theis2017lossy},
 \cite{rippel2017real}, \cite{balle2018variational}, \cite{johnston2018cvpr},
 \cite{mentzer2018cvpr}).
 
 \par
-The first advantage of ML-based image codecs, is that they can adapt to the
-statistics of each individual image much better than even the best hand-crafted
-methods. This allows them to compress images to much fewer bits, while retaining good
+The first advantage of ML-based image codecs is that they can adapt to the
+statistics of individual images much better than even the best hand-crafted
+methods. This allows them to compress images to much fewer bits while retaining good
 perceptual quality. A second advantage is that they are generally far easier to
-adapt to new media formats, such as lightfield cameras, $360^\circ$ images,
+adapt to new media formats, such as light-field cameras, $360^\circ$ images,
 Virtual Reality (VR), video streaming etc. The purposes of compression and the
 devices on which the encoding and decoding is performed varies greatly, from
 archiving terabytes of genetic data for later research on a supercomputer,
 through compressing images to be displayed on a blog or a news article to
 improve their loading time in a user's web browser, to
 streaming video on a mobile device. Classical methods are usually
-``one-size-fits-all'', and their compression efficiency can severly degrade when
+``one-size-fits-all'', and their compression efficiency can severely degrade when
 attempting to compress media for which they were not designed. Designing good
 hand-crafted codecs is difficult, can take several years, and
-requires the knowledge of many experts. ML techniques on the other hand allow to
-create equally or better performing, and much more flexible codecs within a few
-months at significantly lower cost.
+requires the knowledge of many experts. ML techniques, on the other hand, allow to
+create equal or better performing, and much more flexible codecs within a few
+months at a significantly lower cost.
 
 \par
 The chief limitation of current neural image compression methods is while most
-models these days are trained using gradient-based optmizers, quantization, a
+models these days are trained using gradient-based optimizers, quantization, a
 key step in the (lossy) image compression pipeline, is an inherently
 non-differentiable operation. Hence, all current methods need to resort to
 ``tricks'' and approximations so that the learning signal can still be passed
@@ -46,7 +46,7 @@ inspiration from information theory (\cite{rissanen1986stochastic} and
 \cite{harsha2007communication}) and neural network compression
 (\cite{hinton1993keeping} and \cite{havasi2018minimal}) to develop a general
 lossy compression
-framework that allows us to forgo the quantization step in our compression
+framework that allows us forgoing the quantization step in our compression
 pipeline completely. We then apply these ideas to image compression and
 demonstrate that our codec using Probabilisitic Ladder Networks 
 (\cite{sonderby2016train}), an extension of Variational Auto-Encoders
@@ -61,8 +61,8 @@ The contributions of our thesis are as follows:
   neural image compression.
 
 \item The development of a \textbf{general lossy compression
-    framework} that allows to forgo the quantization step in the compression pipeline,
-  thus allowing end-to-end optimization of models using of gradient-based methods.
+    framework} that allows forgoing the quantization step in the compression pipeline,
+  thus allowing end-to-end optimization of models using gradient-based methods.
 
 \item A \textbf{novel image compression algorithm} using our framework, that 
   achieves close to state-of-the-art performance on the Kodak Dataset
@@ -86,7 +86,7 @@ theory, where we introduce the Minimum Description Length (MDL) Principle
 (\cite{hinton1993keeping}). Taking inspiration from these, as well as from
 \cite{harsha2007communication} and \cite{havasi2018minimal}, in Section
 \ref{sec:compression_without_quantization}
-we develop a general framework for the lossy compression of data, and show how
+we develop a general framework for the lossy compression of data and show how
 it is related to quantization.
 
 \par
@@ -94,11 +94,11 @@ In Chapter \ref{chapter:related_works}, we give a comparative review of recent
 influential developments in neural image compression. We examine their whole
 pipeline: the datasets used, their architectures, the ``tricks'' and
 approximations used to circumvent the non-differentiability of quantization,
-their coding methds, training procedures and evaluation methods.
+their coding methods, training procedures and evaluation methods.
 
 \par
 In Chapter \ref{chapter:method}, we describe our proposed method. We explain our
-choice of dataset, and preprocessing steps. We give a detailed description of
+choice of the dataset, and preprocessing steps. We give a detailed description of
 our model and why we chose it. We describe our
 training procedure, based on ideas from \cite{sonderby2016train},
 \cite{higgins2017beta}, \cite{balle2018variational} and \cite{dai2019diagnosing}.

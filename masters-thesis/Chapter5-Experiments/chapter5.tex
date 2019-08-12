@@ -10,7 +10,7 @@
 
 \label{sec:experimental_results}
 \par
-In this chapter we detail our experimtal setup and empirically show the
+In this chapter, we detail our experimental setup and empirically show the
 correctness and the efficiency of our model. We compare our results to
 two classical lossy image compression methods, JPEG, and BPG. JPEG is the most
 widely used lossy compression method (\cite{bull2014communicating}), and hence
@@ -45,7 +45,7 @@ exponential learning rate decay schedule according to the formula
 Where $r$ is the decay rate, $D$ is the decay step size and $t$ is the current
 iteration. We found $r = 0.96$ and $D = 1500$ worked well for our
 experiments. While we did not notice significant performance gains using the
-learning rate scheduling, our models converged slighly faster.
+learning rate schedule, our models converged slightly faster.
 \par
 For $\gamma$-PLNs we found learning rate decay actually hurt the training
 performance of the model, as it kept $\gamma$ from converging to 0.
@@ -64,11 +64,11 @@ cost of communicating the group indices for the importance sampler became very
 inefficient. With 24 channels, the overhead is already 30-40\% of the second
 level's code length.
 \par
-In all experiments we used the adaptive importance sampler on the second level, and the
+In all experiments, we used the adaptive importance sampler on the second level and the
 greedy sampler (IS-GS) on the first. For the importance sampler we used $K = 12$
 bits as the outlier KL limit, $B = 20$ bits for the maximum total group KL and
 $G = 16$ as the maximum number of dimensions in a single group. For the greedy
-sampler we set $K = 30$ shards and $B = 14$ bits per shard, leading to $2^{14}$
+sampler, we set $K = 30$ shards and $B = 14$ bits per shard, leading to $2^{14}$
 samples per shard. See Section \ref{sec:coded_sampling} for a review of these terms.
 
 \paragraph{}
@@ -95,7 +95,7 @@ All experiments were run on a GeForce GTX 1080 GPU.
 \end{figure}
 \par
 
-We present the rate-distorsion curves for the following:
+We present the rate-distortion curves for the following:
 \begin{itemize}
 \item JPEG, with quality settings from 1 to 92, with increments of 7 between
   settings. As this is the most widely used lossy image compression codec
@@ -106,15 +106,15 @@ We present the rate-distorsion curves for the following:
   RGB-based compression techniques. We used quantization settings between 51 to
   33 with decrements of 3 between settings.
 \item Two models with the same architecture from \cite{balle2018variational},
-  one optimized for a MSE training objective, and one optimized for the
+  one optimized for an MSE training objective, and one optimized for the
   MS-SSIM perceptual metric.
 \item Two of our models, all of which were optimized with Laplacian likelihoods,
   one PLN and one $\gamma$-PLN. We trained the PLNs using $\beta =
   \{1, 0.3, 0.1, 0.03\}$ and the $\gamma$-PLNs using $\beta =
   \{10, 3, 1, 0.3, 0.1\}$. We plot both their theoretically optimal
   performance as well as their actual performance, with the differences
-  explained below. The reason for not presenting results of the VAEs, is because
-  their rate-distrotion curves are quite a lot worse than the other
+  explained below. The reason for not presenting results of the VAEs is because
+  their rate-distortion curves are quite a lot worse than the other
   models', and would have distorted the figures too much.
 \end{itemize}
 
@@ -133,7 +133,7 @@ for a drawn latent sample $\tilde{\vec{z}}$ for image $\vec{x}$, it is
 The optimal reconstruction error was calculated by passing an image through the
 PLN using a normal forward pass, instead of using the IS-GS approximate sample. Thus, any
 actual method's performance using the same setup should appear to the right of
-(worse rate) or below (worse distrotion) the theoretical position.
+(worse rate) or below (worse distortion) the theoretical position.
 
 \footnotetext{We used the implementation available at \url{http://bellard.org/bpg}}
 
@@ -173,7 +173,7 @@ the MAE as the training objective.
 \par
 Somewhat surprisingly, with no fine-tuning, our results, especially the
 $\gamma$-PLNs get very close to the state-of-the-art results of
-\cite{balle2018variational}. The distrotion gap caused by the greedy method is
+\cite{balle2018variational}. The distortion gap caused by the greedy method is
 clearly exposed: there is an approximately 1-2 dB gap for both PLNs and
 $\gamma$-PLNs across all bitrates for both MS-SSIM and PSNR.
 The theoretically optimal performance of $\gamma$-PLNs is competitive with the
@@ -199,9 +199,9 @@ better than the regular ones. Another likely reason is the capacity limitation
 of the second level to 24 channels only, although we have not performed
 experiments to confirm this due to time constraints. Other possible limitations
 might come from a small training dataset size (\cite{balle2018variational} train
-on 1,000,000 high resolution images, we train on 585), as well as from the loss
-(\cite{balle2018variational} directly optimize a MS-SSIM loss). We leave
-investigating all of these reasons to future work.
+on 1,000,000 high-resolution images, we train on 585), as well as from the loss
+(\cite{balle2018variational} directly optimize an MS-SSIM loss). We leave
+investigating all of these reasons for future work.
 
 \paragraph{Contribution of second levels}
 An important part of verifying the validity of using PLNs is to analyze the
@@ -217,8 +217,8 @@ per pixel.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{kodim05_side_info.png}
-  \caption[Contribution of the second level to the rate, plotted agains the
-    actual rate.]{Contribution of the second level to the rate, plotted agains the
+  \caption[Contribution of the second level to the rate, plotted against the
+    actual rate.]{Contribution of the second level to the rate, plotted against the
     actual rate. \textbf{Left:} Contribution in BPP, \textbf{Right:}
     Contribution in percentages. We see that for lower bitrates there is more
     contribution from the second level and it quickly decreases for higher
@@ -229,14 +229,14 @@ per pixel.
 
 \subsection{Compression Speed}
 \par
-Although not a focus of our project, we now briefly examine the the encoding and
+Although not a focus of our project, we now briefly examine the encoding and
 decoding speed of our method. We have plotted the compression ratios of our
 models against the time it took them to encode / decode them using IS-GS in
 Figure \ref{fig:kodim05_coding_time}. As increasing the reconstruction quality
 leads to higher KL divergences between the latent posteriors and priors, both the
 importance sampler and the greedy sampler will need to split up a higher total
 KL. Thus, we expect the coding to become slower, and is precisely what we
-observe, with a seemingly approximately linear growth. We also see that encoding
+observe, with seemingly approximately linear growth. We also see that encoding
 consistently takes around 3 times as long as decoding. It is clear that our
 method is not yet practical:
 even the fastest case takes around a minute to encode and about 20 seconds to
@@ -245,13 +245,13 @@ values are reported in Table \ref{tab:kodim05_coding_time}.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{kodim05_coding_time.png}
-  \caption[Coding times of models plotted agains their rates.]
-  {Coding times of models plotted agains their rates. \textbf{Left:}
+  \caption[Coding times of models plotted against their rates.]
+  {Coding times of models plotted against their rates. \textbf{Left:}
     Regular PLNs. \textbf{Right:} $\gamma$-PLNs. The striped lines indicate
     the concrete positions of our models in the rate line. While it seems
     that there is a
     linear relationship between rate and coding time, we do not have enough
-    datapoints to conclude this.}
+    data points to conclude this.}
   \label{fig:kodim05_coding_time}
 \end{figure}
 

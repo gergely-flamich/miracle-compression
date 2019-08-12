@@ -10,7 +10,7 @@
 \graphicspath{{../img/thesis/}{../img/plots/vae_latents/}{../img/related_works/}}
 
 \par
-In this chapter, we describe the models we use to demonstarte the efficiency of the
+In this chapter, we describe the models we use to demonstrate the efficiency of the
 general lossy compression framework developed in Section
 \ref{sec:compression_without_quantization}. We begin by describing the input
 pipeline, followed by our model architectures and their training procedure. We
@@ -33,7 +33,7 @@ follows:
   prior $p(\vec{z})$ for our coded sampling algorithm. (Section
   \ref{sec:coded_sampling})
 
-\item We may consider to use entropy codes to further increase the efficiency of
+\item We may consider using entropy codes to further increase the efficiency of
   our coding, if appropriate. 
 
 \end{enumerate}
@@ -75,8 +75,8 @@ well as due to time constraints we leave investigating this for later work.
 \section{Architectures}
 \label{sec:architectures}
 \par
-In this section we describe the various architectures that we experimented with.
-The basis of all our architectures were inspired by the ones used in
+In this section, we describe the various architectures that we experimented with.
+The basis of all our architectures was inspired by the ones used in
 \cite{balle2016end} and \cite{balle2018variational}. In particular, we use the
 General Divisive Normalization (GDN) layer for encoding and its approximate
 inverse, the IGDN layer for decoding (\cite{balle2015density}, \cite{balle2016end}).
@@ -85,7 +85,7 @@ inverse, the IGDN layer for decoding (\cite{balle2015density}, \cite{balle2016en
 \label{sec:method_vaes}
 \par
 As a baseline, we started by replicating the exact architecture
-presented in \cite{balle2016end}, but using a Gaussian prior and posterior
+presented in \cite{balle2016end} but using a Gaussian prior and posterior
 instead. We chose mirror padding with our convolutions, as it is standard
 for in this setting (\cite{theis2017lossy}). Luckily, the most
 error-prone part, the implementation of the GDN and IGDN layers was already
@@ -103,7 +103,7 @@ distributions have diagonal covariance structure, and hence we
 parameterize their scales using vectors, to be understood as the diagonal of the
 covariance matrix. Furthermore, In the case of Gaussians, in this section only
 we parameterize them using their standard deviations instead of their variances.
-All arithmetc operations on vectors are also to be understood elementwise.
+All arithmetic operations on vectors are also to be understood elementwise.
 
 \begin{figure}
   \centering
@@ -113,14 +113,14 @@ All arithmetc operations on vectors are also to be understood elementwise.
     A random sample from the VAE posterior. \textbf{c)} Posterior means in a
   randomly selected channel. \textbf{d)} Posterior standard deviations in the same
   randomly selected channel. We can see that there is a lot of structure in the
-  latent space, on which the full indepenence assumption will have a detrimental
+  latent space, on which the full independence assumption will have a detrimental
   effect. (We have examined several random channels and observed the
   similarly high structure. We present the above cross-section without preference.)}
   \label{fig:vae_rand_posterior}
 \end{figure}
 
 \paragraph{}
-In a regular VAE, we have a first level encoder, that given some input
+In a regular VAE, we have a first-level encoder, that given some input
 $\vec{x}$ predicts the posterior
 \[
   q^{(1)}(\vec{z}^{(1)} \mid \vec{x}) = \Norm{\vec{z}^{(1)} \mid
@@ -131,9 +131,9 @@ $\SIGMA^{e, (1)}(\vec{x}) = (\exp \circ s \circ f)(\vec{x})$ predicts the
 standard deviation of the posterior. Here $f$ is a highly nonlinear mapping of
 the input; in reality corresponding to several layers of neural network
 layers. Notice that $f$ is shared for the two statistics. Then, $m$ and $s$ are
-custom linear transformations, and finally we take the exponential of $s \circ f
+custom linear transformations, and finally, we take the exponential of $s \circ f
 $ to force the standard deviation to be positive. We sample $\tilde{\vec{z}}^{(1)}
-\sim q^{(1)}$. We show a typical posterior distribuion given an image in Figure
+\sim q^{(1)}$. We show a typical posterior distribution given an image in Figure
 \ref{fig:vae_rand_posterior}.
 The first level prior is usually assumed to be a diagonal Gaussian
 \[
@@ -145,7 +145,7 @@ Finally, the first level decoder predicts the statistics of the data likelihood,
 \]
 
 \paragraph{A note on the latent distributions} We have chosen to use Gaussian
-latent distributions due to their simplicity, as well as their extenesibility to
+latent distributions due to their simplicity, as well as their extensibility to
 PLNs (see Section \ref{sec:prob_ladder_networks}). On the other hand, we note
 that Gaussians are inappropriate, as it has been shown that the filter responses
 of natural images usually follow a heavy-tailed distribution, usually assumed to
@@ -154,7 +154,7 @@ be a Laplacian (\cite{jain1989fundamentals}), as used directly in
 Scale Mixtures (\cite{portilla2003image}), as adopted by \cite{theis2017lossy}.
 While it would be interesting to investigate incorporating these into our
 model, as they do not extend trivially to our more complex model settings (in
-particular PLNs, as we formulated them here requre the latent posterior
+particular PLNs, as we formulated them here require the latent posterior
 distribution's family to be self-conjugate), we leave this for future work.
 
 
@@ -169,14 +169,14 @@ distribution's family to be self-conjugate), we leave this for future work.
     image denoising and demosaicing, for the same architecture optimized using
     different distortion metrics. \textbf{a)-b)} Show the original image.
     \textbf{c)} Show the input to the networks. \textbf{d) - h)} Show
-    reconstructions using various distrotion metrics. Mix is (approximately)
+    reconstructions using various distortion metrics. Mix is (approximately)
     defined as $(1 - \lambda) L_1 + \lambda \text{MS-SSIM}$ for $\lambda = 0.84$.
     The differences are best
     seen on the electronic version, zoomed in. We can clearly see the patchy
-    artifacts introduced by Mean Squared Error (\textbf{d)}), and how much
+    artefacts introduced by Mean Squared Error (\textbf{d)}), and how much
     better Mean Absolute Error (\textbf{e)}) performs compared to it.
-    (Image taken from \cite{zhao2015loss}. We changed the fonts of their
-    captions to a sans-serif font for better readabitity.)}
+    (Image is taken from \cite{zhao2015loss}. We changed the fonts of their
+    captions to a sans-serif font for better readability.)}
   \label{fig:zhao_loss_comparison}
 \end{figure}
 \par
@@ -191,26 +191,26 @@ the VAE is the (weighted) ELBO:
 As the latent posterior and prior are both Gaussians, the KL can be computed
 analytically, and there is no need for a Monte Carlo estimation. A popular and
 simple choice for the likelihood to be chosen a Gaussian, in which case the
-expectectation of the log-likelihood corresponds to the mean squared error
+expectation of the log-likelihood corresponds to the mean squared error
 between the original image and its reconstruction. This also corresponds to
 optimizing for the PSNR as the perceptual metric. However, PSNR correlates badly
-with the HVS's perception of image quality (\cite{girod1993s}
+with the Human Visual System (HVS)'s perception of image quality (\cite{girod1993s}
 \cite{eskicioglu1994image}). This is mainly because an MSE training objective is
 tolerant to small deviations regardless of the structure in the image, and hence
-this leads to blurry colour patch artifacts in low-textured regions, which the
+this leads to blurry colour patch artefacts in low-textured regions, which the
 HVS quickly picks up as unpleasant. A thorough survey of different
 training losses for image reconstruction was performed by
 \cite{zhao2015loss}, see Figure \ref{fig:zhao_loss_comparison}. Optimizing the
-MS-SSIM distortion for the same architecture, they show that the artifacts are
+MS-SSIM distortion for the same architecture, they show that the artefacts are
 greatly reduced. They also show that, somewhat surprisingly, Mean Absolute Error
 (MAE) also significantly reduces and in some cases completely removes the
-unpleasant artifacts introduced by MSE.
+unpleasant artefacts introduced by MSE.
 This is because MAE no longer underestimates small deviations, at the cost of
 somewhat blurrier edges, which MSE penalized more. The MAE corresponds to a
 diagonal Laplacian log-likelihood with unit scale, which is what we decided to
 use in our experiments. This results in efficient training (an MS-SSIM
 training loss, though differentiable, is very expensive to compute) as well as
-it will enable us to use a further enchancement, see Section
+it will enable us to use a further enhancement, see Section
 \ref{sec:learn_gamma}.
 
 Concretely, our likelihood is going to be
@@ -246,10 +246,10 @@ where $\MU^{d, (1)}$ is the reverse operation of $\MU^{e, (1)}$.
 \end{figure}
 
 \par
-We now introduce two extensions of VAEs to accomodate more complex latent
+We now introduce two extensions of VAEs to accommodate more complex latent
 dependency structures: hierarchical VAEs (H-VAEs) and Probabilistic Ladder
 Networks (PLNs) (\cite{sonderby2016train}). For simplicity's sake, we only
-consider two-level H-VAEs and PLNs, the these can be easily extended to more
+consider two-level H-VAEs and PLNs, these can be easily extended to more
 stochastic levels. In both cases, we essentially stack VAEs on top of each
 other and train them together, though the way this is done is crucial for our
 use case.
@@ -308,10 +308,10 @@ We sample $\tilde{\vec{z}}^{(1)} \sim q^{(1)}(\tilde{\vec{z}}^{(1)} \mid
 The reason why H-VAEs and PLNs are more powerful models than regular VAEs, is
 because regular VAEs make an independence assumption between the latents to make
 the model tractable to compute, while H-VAEs and PLNs relax this to a
-\textit{conditional indpendence} assumption. In this sense, the architecture of 
+\textit{conditional independence} assumption. In this sense, the architecture of 
 \cite{balle2018variational} also defines a PLN. We present the PLN architecture
-we used in our experiments in Figure \ref{fig:pln_architecture}. We demonstarte
-the power of the conditional independence in PLNs compared to the full independence
+we used in our experiments in Figure \ref{fig:pln_architecture}. We demonstrate
+the power of conditional independence in PLNs compared to the full independence
 assumption in Figure \ref{fig:ladder_rand_posterior}.
 
 \footnotetext{We note that the formula we used in our definition is the actual
@@ -340,7 +340,7 @@ assumption in Figure \ref{fig:ladder_rand_posterior}.
 \end{figure}
 
 \paragraph{}
-Finally we need to update the regularizing term of the ELBO to incorporate the
+Finally, we need to update the regularizing term of the ELBO to incorporate the
 joint posterior and priors over the latents. This works out to be
 \begin{align*}
   \KL{q(\vec{z}^{(1)}, \vec{z}^{(2)} \mid \vec{x})}{p(\vec{z}^{(1)}, \vec{z}^{(2)})} =\,\,& 
@@ -350,7 +350,7 @@ joint posterior and priors over the latents. This works out to be
 which we can also compute analytically.
 
 \section{Training}
-\par \cite{sonderby2016train} give two key advices to train PLNs:
+\par \cite{sonderby2016train} give two key pieces of advice to train PLNs:
 \begin{itemize}
 \item Use batch normalization (BN) (\cite{ioffe2015batch}).
 \item Use a warmup on the coefficient of the KL term in the loss.
@@ -402,13 +402,13 @@ target $\gamma_\infty$, and use
 \[
   \gamma' = \max\{ \gamma, \gamma_\infty \},
 \]
-as the scale of the data likelihood, we actually get a dual effect to the warmup
+as the scale of the data likelihood, we get a dual effect to the warmup
 recommended by \cite{sonderby2016train}, but with automatic scaling.
 \footnotetext{\url{https://openreview.net/forum?id=B1e0X3C9tQ&noteId=ByeNgv9KTQ}}
 \par
-In parctice, $\gamma$ does not converge to 0, but to a number very close to
+In practice, $\gamma$ does not converge to 0, but to a number very close to
 zero, which in experiments was around $\approx 0.02$, and hence instead of using
-$\gamma'$, we set different $\beta$s to achieve different rate-distrotion
+$\gamma'$, we set different $\beta$s to achieve different rate-distortion
 results. From now on, we will refer to PLNs where we also learned $\gamma$ as
 $\gamma$-PLNs. In Figure \ref{fig:gamma_rand_posterior} we show the posterior of 
 one of our $\gamma$-PLNs.
@@ -456,7 +456,7 @@ are several key differences between our setting and theirs:
   more information about the topological nature of the coded image, the
   distribution of informative versus non-informative posteriors and their
   properties will be different from the original setting, and we will need to
-  adapt to these effects. These effects can be clearly seen in Figures
+  adapt to these effects. These effects can be seen in Figures
   \ref{fig:vae_rand_posterior}, \ref{fig:ladder_rand_posterior} and
   \ref{fig:gamma_rand_posterior}.
 
@@ -472,7 +472,7 @@ are several key differences between our setting and theirs:
   that of the original work.
 \end{itemize}
 
-In the rest of this section we present the ways we addressed the above points.
+In the rest of this section, we present the ways we addressed the above points.
 
 \subsection{Parallelized Rejection Sampling and Arithmetic Coding}
 
@@ -571,8 +571,8 @@ runtime of the algorithm by allocating a bit budget $B$ to each dimension, and
 only allowing $2^B$ samples to be examined. If the sample is accepted within
 these draws, then we have a code for them. The dimensions where all $2^B$ samples were
 rejected, we sample from the target $q$, and quantize the samples to 16 bits.
-This gave about a 1\% increase in size at a much imporved runtime. In
-particular, for dimensions with KL larger than 16 bits this is actually more
+This gave about a 1\% increase in size at a much-improved runtime. In
+particular, for dimensions with KL larger than 16 bits, this is more
 efficient than coding them with Algorithm \ref{alg:harsha_rej_sampling}.
 We then use the quantized samples as code. The concrete details can be seen in Algorithm
 \ref{alg:multivariate_rej_samp}. Instead of using the density of the posterior
@@ -588,7 +588,7 @@ masses in the algorithm.
 Simply writing the codes of the individual dimensions given by the rejection
 sampler would be very inefficient, because without additional assumptions the
 way to uniquely decode them would be to block code them (i.e. code all indices
-in 8 bits, say). This would however would add an $\Oh(1)$ cost per dimension on
+in 8 bits, say). This would, however, add an $\Oh(1)$ cost per dimension on
 the coding length, which is very undesirable. Hence, we implemented a simple
 non-adaptive arithmetic coder (\cite{rissanen1981universal}) to mitigate this issue.
 Probabilities for the symbol table have been estimated by encoding the entire
@@ -611,7 +611,7 @@ outliers to 16 bits, $N = 2^{16} - 2^{8}$. We found that choosing $\alpha
 \paragraph{A note on the Arithmetic Coder}
 \par
 While for small alphabets the naive implementation of the arithmetic coder is
-very fast, the decoding time actually grows as $\Oh(|\A|)$ in the size of the
+very fast, the decoding time grows as $\Oh(|\A|)$ in the size of the
 alphabet. In particular, decoding the arithmetic code of a reasonably large
 image would take up to 30 minutes using the naive implementation on a CPU. The
 inefficiency is due to a bottleneck where we need to find in a partition of $[0,
@@ -621,8 +621,8 @@ using height-balanced binary search trees (BSTs). In particular, we need to find
 the least upper bounding item in the BST for the given point, which can be done
 in $\Oh(\log_2|\A|)$ time.
 Using this additional trick, we can decode large images' code in a few seconds.
-In particular we implemented an AVL-tree to serve as the BST, which is always
-guaranteed to be height balanced (\cite{adel1962algorithm}).
+In particular, we implemented an AVL-tree to serve as the BST, which is always
+guaranteed to be height-balanced (\cite{adel1962algorithm}).
 
 \paragraph{Issues} Theorem \ref{thm:bits-back_efficiency} guarantees that the
 MDL of a realization of a random variable $Y$ given $X$ by using Algorithm
@@ -637,8 +637,8 @@ sample them jointly, which is intractable. Instead, we sample the
 dimensions individually, which by the same theorem introduces a $D\cdot c$ nat
 extra length to the code, where we assumed $\vec{z} \in \Reals^D$. This is
 because the constant cost $c$ is now incurred in every dimension. Since in our
-case $D$ is usually on the magintudes of $10^5 - 10^6$ even for small $c$ this
-cost becomes non-negligible. In our experiments (not show here) this lead to coding
+case $D$ is usually on the magnitudes of $10^5 - 10^6$ even for small $c$ this
+cost becomes non-negligible. In our experiments (not shown here) this lead to coding
 efficiencies $2.5 - 3.5$ times worse than the optimal efficiency predicted by Theorem
 \ref{thm:bits-back_efficiency} for the whole multivariate sample. This lead us
 to abandon rejection sampling early on in the project for more efficient approximate methods,
@@ -691,8 +691,8 @@ which we describe below.
 \par
 To solve the issue of dimensionality, we need a way to code a sample
 drawn from the multivariate distribution. The strategy of the greedy sampler is
-to progressively ``build'' a reasonable sample from the posterior. A well
-known fact about Gaussian distributed random variables is that they are
+to progressively ``build'' a reasonable sample from the posterior. A well-known
+fact about Gaussian distributed random variables is that they are
 closed under addition. Concretely,
 if $X \sim \Norm{\mu_X, \sigma^2_X}, Y \sim \Norm{\mu_Y, \sigma^2_Y}$, then
 \[
@@ -704,7 +704,7 @@ Using this, we may now do the following: pick an integer $K$, that
 we will call the \textit{number of shards}. Then, given the prior
 $p(\vec{z} \mid \MU, \SIGMA^2)$, we can break it up into $K$ equal
 shards $p_k\left(\vec{z} \mid \frac{\MU}{K}, \frac{\SIGMA^2}{K}\right)$.
-Note, if we assign a different, but preagreed sequence of random seeds to each
+Note, if we assign a different, but pre-agreed sequence of random seeds to each
 shard, then each shard sample can be coded in $B$ bits that we can set. Start
 with an initial sample $\tilde{\vec{z}}_0 = \vec{0}$ and draw $2^B$
 samples $\vec{s}_{1, b}$ from the first shard $p_1$ and create
@@ -719,8 +719,8 @@ is then the codes of the selected shard samples, concatenated. The algorithm is 
 more detail in Algorithm \ref{alg:greedy_sampler}. 
 
 \paragraph{A note on implementation}
-We note that empirically the greedy sampler underperforms when the variances of the
-some priors is small. To ameliorate this, we standardize the prior, and scale the
+We note that empirically the greedy sampler underperforms when the variances of
+some priors are small. To ameliorate this, we standardize the prior and scale the
 posterior according to the standardization, i.e. we set 
 \[
   q'(\vec{z} \mid \vec{x}) = \Norm{\vec{z} \bigg| \frac{\mu_q -
@@ -835,7 +835,7 @@ We begin by discarding individual dimensions where the KL is larger
 than $K$. Then, we flatten the remaining dimensions in raster-scan order and 
 iteratively add dimensions into the current group so long as the total KL of the
 group reaches either the bit budget $B$ or the number of dimensions added to the
-group reaches $G$. At this point we start with a new group. Once the whole
+group reaches $G$. At this point, we start with a new group. Once the whole
 vector has been partitioned, we importance sample each group using Algorithm 
 \ref{alg:miracle_imp_samp}. The removed dimensions are sampled directly from
 the posterior and then the samples are quantized to 16 bits. The complete
@@ -857,16 +857,16 @@ group's size takes up at most $\lceil \log_2G \rceil$ bits. In total, we usually
 get slightly more than $\left\lceil \frac{N_2}{G} \right\rceil$ groups,
 (where $N_2$ is the dimensionality of the second level). This is still
 very inefficient, but so long as $N_2$ is sufficiently small compared to the
-codelength for the indices, it will be manageable. We also note that the group
-size is likely to be biased towards higher values, and hence building an
+code length for the indices, it will be manageable. We also note that the group
+size is likely to be biassed towards higher values, and hence building an
 empyrical distribution them and arithmetic coding the sequence could lead to a
 big reduction in the inefficiency, however, we found this not to be too
 important to focus on. 
 
 \paragraph{Greedy Sampler} It is easy to see that the greedy sampler is already
 as efficient as it could be. The sample indices for each shard are as compactly
-represented, as we expect the maximum of the samples to be uniformly
-distributed. Hence, the only other things that needs to be coded is the number
+represented as possible, as we expect the maximum of the samples to be uniformly
+distributed. Hence, the only other items that need to be coded is the number
 of shards and the number of samples for each shard for the cumulative sample to
-be decodable. Hence, for the greedy sampler we just wrote the indices straight
+be decodable. Hence, for the greedy sampler, we just wrote the indices straight
 to the binary file.

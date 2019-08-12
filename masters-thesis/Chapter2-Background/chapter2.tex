@@ -63,8 +63,8 @@ of computer science and signal processing, but incorporates methods and
 knowledge from several
 other disciplines, such as mathematics, neuroscience, psychology
 and photography. In this section, we introduce the reader to the basics of the
-topic, starting with source coding, then through lossy compression we arrive at
-the concepts of rate and distrotion. Finally, we introduce transform coding, the
+topic, starting with source coding, then through lossy compression, we arrive at
+the concepts of rate and distortion. Finally, we introduce transform coding, the
 category in which our work falls as well.
 
 \subsection{Source Coding}
@@ -73,15 +73,15 @@ receiver, compression may be described as the aim of the sender communicating an
 arbitrary sequence $X_1, X_2, \hdots, X_n$ taken from $S$ to the receiver in as few bits
 as possible, such that the receiver may recover relevant information from the message.
 If the receiver can always recover all the information from the message of the sender, we
-call the algorithm \textbf{lossless}, otherwise we call it \textbf{lossy}. 
+call the algorithm \textbf{lossless}, otherwise, we call it \textbf{lossy}. 
 \par
-At first it might not seem intuitive to allow for lossy compression, and in some
-domains this is definitely true, e.g. in text compression. However, 
+At first, it might not seem intuitive to allow for lossy compression, and in some
+domains, this is true, e.g. in text compression. However, 
 humans' audio-visual perception is neither completely aligned with the range of
 what can be digitally represented, nor does it always scale the same way
 (\cite{eskicioglu1994image}, \cite{psnr}, \cite{gupta2011modified}). Hence,
 there is a great opportunity for compressing media in a lossy way by discarding
-information with the change being imperceptible for a human observer, while
+information with the change being imperceptible for a human observer while
 making significant gains in size reduction.
 \subsection{Lossy Compression}
 As the medium of interest in lossy compression is generally assumed to be a
@@ -98,7 +98,7 @@ We examine both $\Enc$ and $C$ in more detail in Section
 The decoder then can be thought of as inverting the code first and then using an
 approximate inverse of
 $\Enc$ to get the reconstruction $\hat{\vec{x}}$: $\Dec \circ C^{-1}$.
-Given these it is of paramount importance to quantify
+Given these, it is of paramount importance to quantify
 \begin{itemize}
 \item The \textbf{distortion} of the compressor. On average, how closely does
   $\hat{\vec{x}}$ resemble $\vec{x}$?
@@ -176,12 +176,12 @@ they can be coded individually. The decoder inverts the steps of the encoder,
 where the inverse operation of $T$ is called the \textbf{synthesis transform}
 (\cite{gupta2011modified}).
 \par
-In \textit{linear transform coding}, $T$ is an invertible linear trasformation,
+In \textit{linear transform coding}, $T$ is an invertible linear transformation,
 such as a discrete cosine transformation (DCT), as it is in the case of JPEG
 (\cite{wallace1992jpeg}), or discrete wavelet transforms in JPEG 2000
 (\cite{rabbani2002overview}). While simple, fast and elegant, linear transform
 coding has the key limitation that it can only at most remove correlations (i.e.
-first-order dependencies), and this can severly limit its efficiency
+first-order dependencies), and this can severely limit its efficiency
 (\cite{balle2016endtrans}). Instead, \cite{balle2016endtrans} propose a method for
 \textit{non-linear transform coding}, where $T$ is replaced by a highly
 non-linear transformation, and its inverse is now replaced by an approximate
@@ -190,13 +190,13 @@ approximate inverse are learnt, and the authors show that with a more
 complicated transformation they can easily surpass the performance of the much
 more fine-tuned JPEG codecs.
 \par
-Our work also falls into this line of research, although with signifcant
+Our work also falls into this line of research, although with significant
 differences, which will be pointed out later.
 
 \subsection{The Significance of Quantization in Lossy Compression}
 \par
-The reason why quantization is required in lossy compression algorithms, is
-because it allows to reduce the information content of data. To study the
+The reason why quantization is required in lossy compression algorithms is
+that it allows to reducing information content of data. To study the
 precise meaning of this, we put the problem in a formal setting.
 Let us define the quantizer as a function $[\cdot]: R \rightarrow S$, where
 $R$ is the original representation space (in transform coding this would be the
@@ -226,8 +226,8 @@ s$, then
 \]
 This is at the cost of introducing distortion (see Section
 \ref{sec:intro_distrotion}), as we will not be able to reconstruct $x$ from $s$.
-In particular, quantization is vital for continuous $x$, as the probability mass of each
-individual $x$ is 0, and hence we would require $-\log P(x) = \infty$ nats to
+In particular, quantization is vital for continuous $x$, as the probability mass
+of each $x$ is 0, and hence we would require $-\log P(x) = \infty$ nats to
 encode them without quantization.
 
 \section{Theoretical Foundations}
@@ -302,10 +302,10 @@ targets:
   L(\Data \mid \alpha, \beta) = \frac{1}{n} \sum_i (y_i - f(x_i))^2.
 \]
 A usual issue with MLE algorithms is that they are heavily overparameterized for
-the problem they are supposed to be solving, and hence can easily overfit (this
+the problem they are supposed to be solving and hence can easily overfit (this
 is most likely not an issue with our toy model, but we shall pretend for the
-sake of the argument). In order to solve this issue, a standard technique is to
-introduce some regularisation term to the loss. Here we are intereseted in
+sake of the argument). To solve this issue, a standard technique is to
+introduce some regularisation term to the loss. Here we are interested in
 applying the MDL principle directly.
 \par
 Before we discuss how it is applied, we must make precise the setting in which
@@ -315,15 +315,15 @@ other arbitrary pre-agreed information, but only Alice has access to $\Y$. Then,
 the MDL principle asks for the minimal message that Alice needs to send to Bob,
 such that he may recover $\Y$ completely. With this setup in mind, we can continue.
 \par
-In order to apply the MDL principle, we need to be able to calculate the
+To apply the MDL principle, we need to be able to calculate the
 MDLs of the data given a hypothesis and the MDLs of our hypotheses.
-Notice, that the former is in fact already available
+Notice, that the former is already available
 in the form of the MSE for a given hypothesis, and hence $L(\Data \mid \alpha,
-\beta)$ is not an overload of notation. In order to code the hypothesis
+\beta)$ is not an overload of notation. To code the hypothesis
 (the pair ($\alpha, \beta$) in our
 case), we need to define two distributions over our parameters: a prior $P_\theta$, that
 gives us the regularizing effect and stays fixed, and a posterior $Q_\phi$, the
-distribution that we learn and assume that our parameters actually come
+distribution that we learn and assume that our parameters come
 from it. We use the $\theta$ and $\phi$ to denote the sufficient
 statistics of the prior and posterior, respectively. Now, learning changes, as
 we are no longer optimizing a single hypothesis ($\alpha, \beta$), but a whole
@@ -348,16 +348,16 @@ decode Alice's message, and since he does not have access to $Q_\phi$, he cannot
 do this. 
 At this point, we note, that as $P_\theta$ is fixed, we may assume that Alice
 and Bob share it a priori. This allows us to code a pair $(\alpha, \beta)$ in
-$-\log P_\theta(\alpha, \beta)$ nats that Bob can definitely decode, and hence a
+$-\log P_\theta(\alpha, \beta)$ nats that Bob can decode, and hence a
 reasonable second guess for the MDL could be
 \begin{equation}
 \label{eq:hypothesis_cross_entropy}
 \Exp{-\log P_\theta(\alpha, \beta)}{Q_\phi},
 \end{equation}
-i.e. the cross entropy between $Q_\phi$ and $P_\theta$, which is also the
+i.e. the cross-entropy between $Q_\phi$ and $P_\theta$, which is also the
 expected length of the actual message that gets sent to communicate the
 parameters. Note, that since the hypotheses are still drawn from $Q_\phi$,
-the expectaion needs to be taken over it. This also turns out to be wrong,
+the expectation needs to be taken over it. This also turns out to be wrong,
 as the bits-back argument shows that \textit{not all} of the bits used for
 the message are used to code $Q_\phi$. Once the parameters are sent, Alice also
 sends every residual $\delta_i$, obtained by using the parameter set sent to Bob.
@@ -367,9 +367,9 @@ he can fully recover each $y_i$ by calculating $x_i + \delta_i$. Now, since he
 has access to both $\X, \Y$ and $P_\theta$, he may also fit a $Q_\psi$ to the
 data, using the same learning algorithm as Alice used to fit her $Q_\phi$. The
 key observation in (\cite{hinton1993keeping}) is that so long as this learning
-algorithm is \textit{deterministic}, after sufficient training Bob can achieve
+algorithm is \textit{deterministic} after sufficient training Bob can achieve
 $\psi = \phi$, i.e. he recovers Alice's posterior distribution. This means that
-Bob is able to sample the same $(\alpha, \beta)$ pair that was sent to him (e.g.
+Bob can sample the same $(\alpha, \beta)$ pair that was sent to him (e.g.
 by also sharing a random seed with Alice either before their communication or
 during, at at most an $\Oh(1)$ cost, which is negligible).
 \begin{framed}
@@ -379,7 +379,7 @@ Alice not only communicated $Q_\phi$ itself to Bob, but also the \textit{random
 \beta)$.
 \end{framed}
 The fact that Alice has communicated both $Q_\phi$ and the random bits in a $-\log
-P_\theta(\alpha, \beta)$ nat long message, means that in order to get the cost
+P_\theta(\alpha, \beta)$ nat long message, means that to get the cost
 of communicating $Q_\phi$ only, we simply need to subtract the length of the
 random bits. But since $(\alpha, \beta)$ were drawn from $Q_\phi$, their length
 is going to be precisely $-\log Q_\phi(\alpha, \beta)$. Hence, the expected
@@ -477,7 +477,7 @@ follows:
 Let $X$ and $Y$ be two correlated random variables, with sample spaces
 $\X$ and $\Y$ respectively, and with joint distribution $p(X, Y) = q(Y \mid
 X)p(Y)$. Given a concrete $x \in \X$, what is the minimal
-message Alice needs to send to Bob, such he can generate a sample accorting to
+message Alice needs to send to Bob, such he can generate a sample according to
 the distribution $q(Y \mid X = x)$?
 \end{framed}
 \par 
@@ -495,11 +495,11 @@ these assumptions, \cite{harsha2007communication} propose a rejection sampling
 algorithm to sample from $q(Y \mid X = x)$ using $p(Y)$, depicted in Algorithm
 \ref{alg:harsha_rej_sampling} in the Appendix. Alice uses this algorithm to
 sample $q$, but she also keeps track of the number of proposals made by the
-algorithm. Once Alice's algorihtm accepts a proposal from $p$, it is sufficient
+algorithm. Once Alice's algorithm accepts a proposal from $p$, it is sufficient
 for Alice to communicate the sample's index $K$ to Bob. Bob can then obtain the
 desired sample from $q$, by simply drawing $K$ samples from $p$, and since he
-can generate the same $K$ samples as Alice did, the $K$th sampe he draws is
-going to be an exact sample from $q$. Clearly, the communication cost of $K$ is
+can generate the same $K$ samples as Alice did, the $K$th sample he draws is
+going to be an exact sample from $q$. The communication cost of $K$ is
 $\log K$ nats. \cite{harsha2007communication} then also prove the following result.
 \begin{theorem}{(\cite{harsha2007communication})}
   \label{thm:bits-back_efficiency}
@@ -553,7 +553,7 @@ framework is as follows:
   Here $\beta$ is a
   hyperparameter that can be set to trade off a smaller description length at
   the cost of worse reconstruction, or the other way around, thus allowing the
-  user to reach different points on the rate distortion curve. See Section
+  user to reach different points on the rate-distortion curve. See Section
   \ref{sec:derive_weighted_elbo} for the derivation of Eq \ref{eq:mdl_elbo} and
   discussion on its validity.
 
@@ -580,7 +580,7 @@ used a very similar framework to achieve state-of-the-art weight compression in
 Bayesian Neural Networks.
 \par
 In this thesis, we use this framework to train $\beta$-VAEs as our choice of
-generative models, and demonstrate the efficiency of our method compared to the
+generative models and demonstrate the efficiency of our method compared to the
 state-of-the-art in neural compression. More details on this will be given in
 Chapter \ref{chapter:method}. 
 
@@ -668,19 +668,19 @@ $p(\vec{x})$ should comparable, in the sense the initial hard optimization objec
 of setting an average nat budget is reasonable. In the case of image data, if
 all images are the same size, this is fine, as our continuous relaxation will
 allow for images with high information content to have slightly longer code
-lenghts than $C$ nats and ones with low information content will have shorter
+lengths than $C$ nats and ones with low information content will have shorter
 lengths. However, if we used different sized images during training, it would be
 less justified to set the same average code budget for, say, a $200 \times 300$ pixel
 image and a $2000 \times 2000$ image, as the latter will naturally contain more
-information than the former. Hence in this case it would be more reasonable
+information than the former. Hence, in this case, it would be more reasonable
 to make the budget a function of the number of pixels the image contains,
 although this might make the formulation of the training objective much harder.
 \par
 An approach taken in all neural image compression methods we examined is instead
 to train on random, but equal-sized patches extracted from each training image.
 While other works do this to make training more computationally feasible. As
-far as we are aware, we are the first ones to argue that this practise is not only
-convenient, but mandatory for the training procedure to be sound.
+far as we are aware, we are the first ones to argue that this practice is not only
+convenient but mandatory for the training procedure to be sound.
 
 \nomenclature[z-VAE]{VAE}{Variational Auto-Encoder}
 \nomenclature[z-MSE]{MSE}{Mean Squared Error}
