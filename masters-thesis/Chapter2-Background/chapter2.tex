@@ -1,0 +1,688 @@
+%!TEX root = ../thesis.tex
+%*******************************************************************************
+%*********************************** First Chapter *****************************
+%*******************************************************************************
+\chapter{Background}
+\label{chapter:background}
+% \section{Notation and Basic Concepts}
+% \paragraph{}
+% It will be useful to clarify some of the notation throughout this work.
+% \begin{itemize}
+% \item Vectors will be denoted by boldface lowercase letters: $\vec{u}, \vec{x}, ...$
+% \item Matrices will be denoted by uppercase letters: $A, M, ...$
+% \item Probability mass functions will be denoted by uppercase letters: $P(x),
+%   Q(z), ...$
+% \item Probability density functions will be denoted by lowercase letters: $p(y),
+%   q(u), ...$
+% \item In general, exact/continuous values will be denoted by unannotated letters
+%   (e.g. $z_i, \vec{w}$), their quantized counterparts denoted by a hat
+%   ($\hat{z}_i, \hat{\vec{w}}$) and their approximate counterparts by a tilde
+%   ($\tilde{z}_i, \vec{\tilde{w}}$).
+% \item $\Exp_{p(x)}[f(x)]$ denotes the expected value of $f(x)$ with respect to
+%   the mass / density $p(x)$, i.e.:
+%   \[
+%     \Exp_{p(x)}[f(x)] = \int_\Omega f(x) \d p(x),
+%   \]
+%   where $\Omega$ is the sample space. As $\Omega$ will usually denote $\Reals^n$
+%   or will be understood from context, it will be omitted, and the integral will
+%   be rewritten as
+%   \[
+%     \Exp_{p(x)}[f(x)] = \int f(x)p(x) \d x.
+%   \]
+% \item $H[X]$ denotes the Shannon entropy of the random variable $X$. If $X$ is
+%   discrete, then it is defined as
+%   \[
+%     -\sum_{X=x}P(X=x)\log P(X=x).
+%   \]
+%   If it is continuous, then it will refer to the \textit{differential entropy}
+%   of $X$, namely
+%   \[
+%     -\int_{\X}\log p(x) \d p(x),
+%   \]
+%   where $\X$ denotes the support of $X$.
+%   \paragraph{Note:} we used the natural logarithm in our definition of entropy,
+%   and hence its units are \textbf{nats}. If we used the base 2 logarithm
+%   instead, the units would be \textbf{bits}.
+% \item $\KL{q(x)}{p(x)}$ denotes the Kullback-Leibler divergence between two
+%   distributions and is defined as
+%   \[
+%     \KL{q(x)}{p(x)} = \Exp_{q(x)}\left[\log\frac{q(x)}{p(x)}\right].
+%   \]
+% \item $I[X : Y]$ denotes the mutual information between random variables $X$ and
+%   $Y$ and is defined as
+%   \[
+%     I[X : Y] = \KL{p(x, y)}{p(x)p(y)},
+%   \]
+%   where $(X, Y) \sim p(x, y)$ and $p(x)$ and $p(y)$ denote the marginals.
+% \end{itemize}
+\section{Image Compression}
+\label{sec:intro_image_compression}
+\par
+The field of image compression is a vast topic that mainly spans over the fields
+of computer science and signal processing, but incorporates methods and
+knowledge from several
+other disciplines, such as mathematics, neuroscience, psychology
+and photography. In this section, we introduce the reader to the basics of the
+topic, starting with source coding, then through lossy compression we arrive at
+the concepts of rate and distrotion. Finally, we introduce transform coding, the
+category in which our work falls as well.
+
+\subsection{Source Coding}
+From a theoretical point of view, given some source $S$, a sender and a
+receiver, compression may be described as the aim of the sender communicating an
+arbitrary sequence $X_1, X_2, \hdots, X_n$ taken from $S$ to the receiver in as few bits
+as possible, such that the receiver may recover relevant information from the message.
+If the receiver can always recover all the information from the message of the sender, we
+call the algorithm \textbf{lossless}, otherwise we call it \textbf{lossy}. 
+\par
+At first it might not seem intuitive to allow for lossy compression, and in some
+domains this is definitely true, e.g. in text compression. However, 
+humans' audio-visual perception is neither completely aligned with the range of
+what can be digitally represented, nor does it always scale the same way
+(\cite{eskicioglu1994image}, \cite{psnr}, \cite{gupta2011modified}). Hence,
+there is a great opportunity for compressing media in a lossy way by discarding
+information with the change being imperceptible for a human observer, while
+making significant gains in size reduction.
+\subsection{Lossy Compression}
+As the medium of interest in lossy compression is generally assumed to be a
+real-valued vector $\vec{x} \in \Reals^N$, such as RGB pixel intensities in an
+image or frequency coefficients in an audio file, the usual pipeline consists of 
+an encoder $C \circ \Enc$, mapping a point $\vec{x} \in \Reals^N$ to a string of bits and a
+decoder mapping from bitstrings to some reconstruction $\hat{\vec{x}}$. The
+factor of the encoder $\Enc$  can be understood as a map from $\Reals^N$ to a
+finite symbol set $\A$, called a \textbf{lossy encoder}, and $C$ can be
+understood as a map from $\A$ to a
+string of bits called a \textbf{lossless code} (\cite{goyal2001theoretical}).
+We examine both $\Enc$ and $C$ in more detail in Section
+\ref{sec:transform_coding}.
+The decoder then can be thought of as inverting the code first and then using an
+approximate inverse of
+$\Enc$ to get the reconstruction $\hat{\vec{x}}$: $\Dec \circ C^{-1}$.
+Given these it is of paramount importance to quantify
+\begin{itemize}
+\item The \textbf{distortion} of the compressor. On average, how closely does
+  $\hat{\vec{x}}$ resemble $\vec{x}$?
+\item The \textbf{rate} of the compressor. On average, how many bits are
+  required to communicate $\vec{x}$? We want this to be as low as possible of course.
+\end{itemize}
+
+\subsection{Distortion}
+\label{sec:intro_distrotion}
+In order to measure ``closeness'' in the space of interest $\ImSpace$,
+a distance metric $d(\cdot, \cdot): \ImSpace
+\times \ImSpace \rightarrow \Reals$ is introduced. Then, the distortion $D$ is 
+is defined as
+\[
+  D = \Exp{d(\vec{x}, \hat{\vec{x}})}{p(\hat{\vec{x}})}.
+\]
+A popular choice of $d$, across many domains of compression is the normalized $L_2$ metric
+or Mean Squared Error (MSE), defined as
+\[
+  d(\vec{x}, \hat{\vec{x}}) = \frac{1}{N} \sum_{i}^N (x_i - \hat{x}_i)^2, \quad
+  \ImSpace = \Reals^N.
+\]
+It is a popular metric as it is simple, easy to implement and has nice
+interpretations in both the Bayesian (\cite{bishop2013pattern}) and the MDL
+(\cite{hinton1993keeping}, to be introduced in Section \ref{sec:mdl}) settings.
+In the image compression setting, however, the MSE is problematic, since 
+optimizing for it does not necessarily translate to obtaining pleasant-looking
+reconstructions (\cite{zhao2015loss}). Hence, more appropriate, so-called
+\textit{perceptual metrics} were developed. The two most common ones used today
+are Peak Signal-to-Noise Ratio (PSNR) (\cite{psnr}, \cite{gupta2011modified}) and the
+Structural Similarity Index (SSIM) (\cite{wang2004image}) and its multiscale
+version (MS-SSIM) (\cite{msssim}). Crucially, these two metrics are also
+differentiable, thus they lend themselves for gradient-based optimization.
+
+\subsection{Rate}
+We noted above that the code used after the lossy encoder is lossless. To
+further elaborate, in virtually all cases it is an \textbf{entropy code}
+(\cite{goyal2001theoretical}). This means that we assume that each symbol
+in the representation $\vec{z} = \Enc(\vec{x})$ has some probability mass
+$P(z_i)$. A fundamental result by Shannon states that $\vec{z}$ may not be
+encoded losslessly in fewer than $H[\vec{z}]$ nats:
+\begin{theorem}{(Proven by \cite{shannon1998mathematical}, presented as stated in
+    \cite{mackay2003information})}
+$N$ i.i.d. random variables each with entropy $H[X]$ can be compressed into more
+than $N\cdot H[X]$ bits with negligible risk of information loss, as $N
+\rightarrow \infty$; conversely if they are compressed into fewer than $NH[X]$ bits it is virtually certain that information will be lost.
+\end{theorem}
+Entropy codes, such as Huffman codes (\cite{huffman1952method}) or Arithmetic
+Coding (\cite{rissanen1981universal}) can get very close to this lower bound.
+We discuss coding methods further in Section \ref{sec:coded_sampling}. 
+\begin{framed}
+  In particular, entropy codes can compress each symbol $z_i$ in $-\log P(z_i)$ nats.
+\end{framed}
+The rate (in nats) of the compression algorithm is defined
+as the average number of nats required to code a single dimension of the input, i.e.
+\[
+  R = \frac{1}{N} H[\vec{z}].
+\]
+\subsection{Transform Coding}
+\label{sec:transform_coding}
+The issue with source coding is that coding $\vec{x}$ might have a lot of
+dependencies across its dimensions. For images, this manifests on multiple
+scales and semantic levels, e.g. a pixel being blue might indicate that most
+pixels around it are blue as the scene is depicting the sky or a body of water;
+a portrait of a face will also imply that eyes, a nose and mouth are probably
+present, etc. Modelling and coding this dependence structure in very high
+dimensions is challenging or intractable, and hence we need
+to make simplifying assumptions about it to proceed.
+\par
+\textit{Transform coding} attempts to solve the above problem by decomposing the
+encoder function $\Enc = Q \circ T$ into a so-called \textbf{analysis transform}
+$T$ and a \textbf{quantizer} $Q$. The idea is to transform the input into a
+domain, such that the dependencies between the dimensions are removed, and hence
+they can be coded individually. The decoder inverts the steps of the encoder,
+where the inverse operation of $T$ is called the \textbf{synthesis transform}
+(\cite{gupta2011modified}).
+\par
+In \textit{linear transform coding}, $T$ is an invertible linear trasformation,
+such as a discrete cosine transformation (DCT), as it is in the case of JPEG
+(\cite{wallace1992jpeg}), or discrete wavelet transforms in JPEG 2000
+(\cite{rabbani2002overview}). While simple, fast and elegant, linear transform
+coding has the key limitation that it can only at most remove correlations (i.e.
+first-order dependencies), and this can severly limit its efficiency
+(\cite{balle2016endtrans}). Instead, \cite{balle2016endtrans} propose a method for
+\textit{non-linear transform coding}, where $T$ is replaced by a highly
+non-linear transformation, and its inverse is now replaced by an approximate
+inverse, which is a separate non-linear transformation. Both $T$ and its
+approximate inverse are learnt, and the authors show that with a more
+complicated transformation they can easily surpass the performance of the much
+more fine-tuned JPEG codecs.
+\par
+Our work also falls into this line of research, although with signifcant
+differences, which will be pointed out later.
+
+\subsection{The Significance of Quantization in Lossy Compression}
+\par
+The reason why quantization is required in lossy compression algorithms, is
+because it allows to reduce the information content of data. To study the
+precise meaning of this, we put the problem in a formal setting.
+Let us define the quantizer as a function $[\cdot]: R \rightarrow S$, where
+$R$ is the original representation space (in transform coding this would be the
+image $T(\Reals^N)$), and a quantized space $S$ (usually $\Ints^N$). $[\cdot]$
+is always many-to-one mapping. Let $[s]^{-1} = \{x \in R \mid [x] = s \}$ be
+the preimage of $s$. Then, we have the further requirement on $[\cdot]$ 
+that the fibres of $S$ partition $R$, i.e.
+\[
+  \text{if } s \neq t \Rightarrow [s]^{-1} \cap [t]^{-1} = \emptyset.
+\]
+A popular option for the quantizer is the rounding function, mapping $[\cdot]: \Reals
+\rightarrow \Ints$, where for each integer $z \in \Ints$ it is defined as $x
+\in \left[z - \frac12, z + \frac12\right) \mapsto z$. Given some probability mass $P(x)$ 
+for some data $x$, we have seen that using entropy coding $x$ can be encoded in
+$-\log P(x)$ nats. The way quantization enables better compression, is that it
+aggregates the probability mass of all elements in $[s]^{-1}$ into the mass of $s$.
+Namely, for each $s$, the quantizer induces a new probability mass function
+$\hat{Q}(s)$, such that
+\[
+  \hat{Q}(s) = \int_{[s]^{-1}} p(x) \d x,
+\]
+where the integral is replaced by summation for discrete $[s]^{-1}$. This will allow
+us to code $x$ in potentially much fewer nats. To put it precisely, assume $[x] =
+s$, then
+\[
+  -\log \hat{Q}(s) = -\log \int_{[s]^{-1}} p(x) \d x \leq -\log P(x).
+\]
+This is at the cost of introducing distortion (see Section
+\ref{sec:intro_distrotion}), as we will not be able to reconstruct $x$ from $s$.
+In particular, quantization is vital for continuous $x$, as the probability mass of each
+individual $x$ is 0, and hence we would require $-\log P(x) = \infty$ nats to
+encode them without quantization.
+
+\section{Theoretical Foundations}
+\label{sec:intro_theoretical_foundations}
+\par
+We now shift our focus from image compression to the foundations of
+neural compression. We begin with the Minimum Description Length (MDL)
+Principle (\cite{rissanen1986stochastic}) and the Bits-Back Argument
+(\cite{hinton1993keeping}), the two core theoretical guiding
+principles of this work. We then see how based on these, as well as on
+more recent work (\cite{harsha2007communication}, \cite{havasi2018minimal})
+we can develop a general ML-based compression framework that does not include
+quantization in its pipeline, thus allowing gradient-based optimization methods
+to be used in training our compression algorithms.
+
+\subsection{The Minimum Description Length Principle} 
+\label{sec:mdl}
+Our approach is based on the Minimum Description Length (MDL) Principle
+(\cite{rissanen1986stochastic}). In essence, it is a formalization of Occam's
+Razor, i.e. the simplest model that describes the data well is the best model of
+the data (\cite{grünwald2007minimum}). Here, ``simple'' and ``well'' need to be
+defined, and these definitions are precisely what the MDL principle gives us.
+Informally, it asserts that given a class of hypotheses $\Hypos$ (e.g. a certain
+statistical model and its parameters) and some data $\Data$, if a particular
+hypothesis $H \in \Hypos$ can be described with at most $L(H)$ bits and the using the
+hypothesis the data can be described with at most $L(\Data \mid H)$ bits, then the
+minimum description length of the data is
+\begin{equation}
+\label{eq:min_desc_princ}
+  L(\Data) = \min_{H \in \Hypos}\{ L(H) + L(\Data \mid H) \},
+\end{equation}
+and the best hypothesis is an $H$ that minimizes the above quantity.
+\par
+Crucially, the MDL principle can thus be interpreted as telling us that
+\textbf{the best model of the data is the one that compresses it the most}.
+This makes Eq \ref{eq:min_desc_princ} a very appealing learning objective for
+optimization-based compression methods, ours included.
+Below, we briefly review how this has been applied so far and how it translates
+to our case.
+\subsection{The Bits-back Argument}
+Here we present the bits-back argument, introduced in
+\cite{hinton1993keeping}. The main goal of their work was to develop a
+regularisation technique for neural networks, and while they talk about the
+compression of the model, the first method that realized bits-back
+ efficiency came much later, developed by \cite{havasi2018minimal}. 
+Although the argument is essentially just the direct application of the MDL
+principle, it can seem quite counter-intuitive at first. Hence, we begin this
+section with an example to illustrate the goal of the argument,
+and only then move on to formulate it in more generality.
+
+\paragraph{Example}
+Let us be given a simple regression problem on the dataset $\Data = (\X, \Y)$,
+where $\X = (x_1, \hdots, x_n), \Y = (y_1, \hdots, y_n)$ are both one
+dimensional input and target sets and $(x_i, y_i)$ are a corresponding training
+pair. Assume we wish to fit a simple model:
+\[
+  \hat{y} = f(x) = \alpha x + \beta,
+\]
+where we wish to learn the parameters $\alpha$ and $\beta$.
+Assuming a Gaussian likelihood with mean 0 and variance 1 on the residuals $\delta
+= y - \hat{y}$ ,
+\[
+  p(\delta \mid x, \alpha, \beta) = \Norm{\delta \mid 0, 1},
+\]
+a popular way of fitting the model is using Maximum Likelihood Estimation (MLE),
+i.e. maximizing $\prod_i p(\delta_i \mid x_i, \alpha, \beta)$ which is equivalent to
+minimizing the negative logarithm of this quantity, $-\sum_i \log p(\delta_i \mid
+x_i, \alpha, \beta)$. It can be easily seen that this works out to be equivalent
+to minimizing the Mean Squared Error (MSE) between the predicted values and the
+targets:
+\[
+  L(\Data \mid \alpha, \beta) = \frac{1}{n} \sum_i (y_i - f(x_i))^2.
+\]
+A usual issue with MLE algorithms is that they are heavily overparameterized for
+the problem they are supposed to be solving, and hence can easily overfit (this
+is most likely not an issue with our toy model, but we shall pretend for the
+sake of the argument). In order to solve this issue, a standard technique is to
+introduce some regularisation term to the loss. Here we are intereseted in
+applying the MDL principle directly.
+\par
+Before we discuss how it is applied, we must make precise the setting in which
+it \textit{can} apply. In particular, the MDL principle assumes the form of a
+communications problem. Assume two parties, Alice and Bob share $\X$, and some
+other arbitrary pre-agreed information, but only Alice has access to $\Y$. Then,
+the MDL principle asks for the minimal message that Alice needs to send to Bob,
+such that he may recover $\Y$ completely. With this setup in mind, we can continue.
+\par
+In order to apply the MDL principle, we need to be able to calculate the
+MDLs of the data given a hypothesis and the MDLs of our hypotheses.
+Notice, that the former is in fact already available
+in the form of the MSE for a given hypothesis, and hence $L(\Data \mid \alpha,
+\beta)$ is not an overload of notation. In order to code the hypothesis
+(the pair ($\alpha, \beta$) in our
+case), we need to define two distributions over our parameters: a prior $P_\theta$, that
+gives us the regularizing effect and stays fixed, and a posterior $Q_\phi$, the
+distribution that we learn and assume that our parameters actually come
+from it. We use the $\theta$ and $\phi$ to denote the sufficient
+statistics of the prior and posterior, respectively. Now, learning changes, as
+we are no longer optimizing a single hypothesis ($\alpha, \beta$), but a whole
+class of hypotheses $Q_\phi(\alpha, \beta)$, by finding the best fitting set
+of sufficient statistics $\phi$ for our dataset. Thus, our initial data
+description length now becomes an expectation over the possible hypotheses:
+\[
+  L(\Data \mid \phi) = \Exp{L(\Data \mid \alpha, \beta)}{Q_\phi}.
+\]
+Defining the regularizing term, however, turns out to be trickier than expected,
+and lies at the core of the bits-back argument. We seek to find the minimum
+description length of a hypothesis $(\alpha, \beta)$. Using a $Q_\phi$, we know
+we can encode a concrete hypothesis in $-\log Q_\phi (\alpha, \beta)$ nats, and thus a
+reasonable first guess for the MDL would be
+\begin{equation}
+\label{eq:hypothesis_entropy}
+  \Exp{-\log Q_\phi(\alpha, \beta)}{Q_\phi},
+\end{equation}
+i.e. the Shannon entropy of $Q_\phi$.
+This turns out to be wrong, however, for the reason that Bob should be able to
+decode Alice's message, and since he does not have access to $Q_\phi$, he cannot
+do this. 
+At this point, we note, that as $P_\theta$ is fixed, we may assume that Alice
+and Bob share it a priori. This allows us to code a pair $(\alpha, \beta)$ in
+$-\log P_\theta(\alpha, \beta)$ nats that Bob can definitely decode, and hence a
+reasonable second guess for the MDL could be
+\begin{equation}
+\label{eq:hypothesis_cross_entropy}
+\Exp{-\log P_\theta(\alpha, \beta)}{Q_\phi},
+\end{equation}
+i.e. the cross entropy between $Q_\phi$ and $P_\theta$, which is also the
+expected length of the actual message that gets sent to communicate the
+parameters. Note, that since the hypotheses are still drawn from $Q_\phi$,
+the expectaion needs to be taken over it. This also turns out to be wrong,
+as the bits-back argument shows that \textit{not all} of the bits used for
+the message are used to code $Q_\phi$. Once the parameters are sent, Alice also
+sends every residual $\delta_i$, obtained by using the parameter set sent to Bob.
+\par
+Once Bob has decoded $(\alpha, \beta)$ and each $\delta_i$,
+he can fully recover each $y_i$ by calculating $x_i + \delta_i$. Now, since he
+has access to both $\X, \Y$ and $P_\theta$, he may also fit a $Q_\psi$ to the
+data, using the same learning algorithm as Alice used to fit her $Q_\phi$. The
+key observation in (\cite{hinton1993keeping}) is that so long as this learning
+algorithm is \textit{deterministic}, after sufficient training Bob can achieve
+$\psi = \phi$, i.e. he recovers Alice's posterior distribution. This means that
+Bob is able to sample the same $(\alpha, \beta)$ pair that was sent to him (e.g.
+by also sharing a random seed with Alice either before their communication or
+during, at at most an $\Oh(1)$ cost, which is negligible).
+\begin{framed}
+This must mean, that
+Alice not only communicated $Q_\phi$ itself to Bob, but also the \textit{random
+  bits} that were used in conjunction with $Q_\phi$ to draw the sample $(\alpha,
+\beta)$.
+\end{framed}
+The fact that Alice has communicated both $Q_\phi$ and the random bits in a $-\log
+P_\theta(\alpha, \beta)$ nat long message, means that in order to get the cost
+of communicating $Q_\phi$ only, we simply need to subtract the length of the
+random bits. But since $(\alpha, \beta)$ were drawn from $Q_\phi$, their length
+is going to be precisely $-\log Q_\phi(\alpha, \beta)$. Hence, the expected
+hypothesis description length is the expectation of this difference, namely
+\[
+  \Exp{-\log P_\theta (\alpha, \beta) - (-\log Q_\phi(\alpha, \beta))}{Q_\phi}
+  =  \Exp{\log \frac{Q_\phi(\alpha, \beta)}{P_\theta (\alpha, \beta)}}{Q_\phi}
+  = \KL{Q_\phi}{P_\theta}.
+\]
+Above the rightmost term is called the \textbf{Kullback-Leibler Divergence}
+between $Q_\phi$ and $P_\phi$. It is defined as
+\[
+  \KL{Q}{P} = \sum_{x \in \Omega} Q(x)\log\frac{Q(x)}{P(x)}
+\]
+for probability mass functions $Q$ and $P$, where $\Omega$ denotes the sample
+space, and
+\[
+  \KL{q}{p} = \int_\Omega q(x) \log\frac{q(x)}{p(x)} \d x
+\]
+for probability density functions $q$ and $p$.
+\par
+The fact that Bob can ``get the random bits back ''used in sampling the
+hypothesis is the namesake of the argument.
+
+\paragraph{The general argument}
+We are now ready to state the general bits-back argument. Assume Alice has
+trained a model for a regression problem, on a dataset $\Data = (\X, \Y)$, with
+training pairs $(\vec{x}_i, \vec{y}_i)$, and shares $\X$ with Bob. Her model has
+parameters $\vec{w}$, with prior $p_\theta(\vec{w})$, and uses the likelihood
+function $p(\vec{y} \mid \vec{w}, \vec{x})$, both shared with Bob. Assume that
+Alice has a learned posterior $q_\phi(\vec{w} \mid \Data)$ over the weights, and now
+wishes to communicate the targets $\Y$ to Bob.
+\par
+Then, the bits-back argument states that if Alice acts according to the MDL
+principle, then she can communicate $q_\phi$ to Bob in $\KL{q_\phi}{p_\theta}$
+nats, as follows:
+\begin{enumerate}
+\item Alice draws a random sample $\hat{\vec{w}} \sim q_{\phi}(\vec{w})$. This
+  represents a message of $- \log q_\phi(\hat{\vec{w}})$ nats.
+\item $\hat{\vec{w}}$ is then used to calculate the residuals $\vec{r}_i$ between
+  the model's output and the targets.
+\item $\hat{\vec{w}}$ is coded
+  using its prior $p_\theta$, and sent to Bob alongside the residuals
+  $\vec{r}_i$.
+  The total length of the message that contains
+  the posterior information is hence $-\log p_{\theta}(\hat{\vec{w}})$.
+\item Bob, decodes $\hat{\vec{w}}$ using the same prior $p_\theta$. He then
+  recovers all targets $\Y$ by adding each $\vec{r}_i$ to his model's output with
+  parameters set to $\hat{\vec{w}}$ upon input $\vec{x}_i$.
+\item He then trains his model using the same deterministic algorithm as Alice
+  did, to recover Alice's posterior $q_\phi$. Hence, the random bits that were
+  used to communicate the sample must be deducted from the cost of
+  communicating $q_\phi$. The cost of these bits is precisely $-\log
+  q_\phi(\hat{\vec{w}})$. Taking the expectation of the difference w.r.t. $q_\phi$,
+  the total cost of communicating $q_\phi$ is
+  \[
+    \Exp{\log q_\phi(\vec{w}) - \log p_\theta(\vec{w})}{q_\phi} = \KL{q_\phi}{p_\theta}.
+  \]
+\end{enumerate}
+
+\paragraph{Caveats of the argument}
+Note, that the original argument merely derives the minimum description length
+for the weights $\vec{w}$, but clearly does not achieve it (as we have to send a
+message whose expected length is $\Exp{-\log p_\theta(\vec{w})}{q_\phi}$). The
+authors merely state that these bits can be ``recovered'', and propose that a
+``free'' auxiliary message might be coded in them, but do not give any
+propositions as to how sending these bits in the first place might be avoided.
+Nonetheless, as the notion of bit-back efficiency has expanded in recent years,
+it is customary to call any method \textit{bits-back efficient} that transmits 
+some information in $\KL{q}{p}$ nats, for some posterior $q$ and prior $p$ over 
+the information.
+
+\section{Compression without Quantization}
+\label{sec:compression_without_quantization}
+\par
+In this section, we present a general framework for lossy data compression, based on
+the arguments presented above, as well as the works of
+\cite{harsha2007communication} and \cite{havasi2018minimal}. 
+
+\par
+As mentioned at the end of the previous section, the bits-back argument
+postulates that communicating the distribution of the parameter set of a model
+may be achieved in $K = \KL{q(\vec{w})}{p(\vec{w})}$ nats, where $q$ and $p$ are the
+posterior and prior over the parameters, respectively. However, they do not give
+a method for achieving this, rather they show that only $K$ nats are used to
+communicate the posterior in a longer message. Furthermore, the original MDL setup
+also requires to send the residuals from the model output.
+\par
+For compression, however, we are only interested the communicating a sample and
+not its distribution, though still at bits-back efficiency. 
+The correct communication problem for this was formulated by
+\cite{harsha2007communication}, and it is as
+follows:
+\begin{framed}
+Let $X$ and $Y$ be two correlated random variables, with sample spaces
+$\X$ and $\Y$ respectively, and with joint distribution $p(X, Y) = q(Y \mid
+X)p(Y)$. Given a concrete $x \in \X$, what is the minimal
+message Alice needs to send to Bob, such he can generate a sample accorting to
+the distribution $q(Y \mid X = x)$?
+\end{framed}
+\par 
+We can interpret $\X$ as the set of all data that we might wish to compress
+(e.g. the set of all RGB-coded natural images, the set of all MP3 coded audio
+files, etc.), and $\Y$ as the set of latent codes of the data, from which we may
+obtain our lossy reconstruction. 
+\par
+The solution to the above problem requires essentially the same mild assumptions
+the bits-back argument does, namely that Alice and Bob are allowed to
+share a fixed prior $p(Y)$ on the latent codes, as well as the seed used for
+their random generators. The significance of the latter assumption is that Alice
+and Bob will be able to reconstruct the same sequence of random numbers. Given
+these assumptions, \cite{harsha2007communication} propose a rejection sampling
+algorithm to sample from $q(Y \mid X = x)$ using $p(Y)$, depicted in Algorithm
+\ref{alg:harsha_rej_sampling} in the Appendix. Alice uses this algorithm to
+sample $q$, but she also keeps track of the number of proposals made by the
+algorithm. Once Alice's algorihtm accepts a proposal from $p$, it is sufficient
+for Alice to communicate the sample's index $K$ to Bob. Bob can then obtain the
+desired sample from $q$, by simply drawing $K$ samples from $p$, and since he
+can generate the same $K$ samples as Alice did, the $K$th sampe he draws is
+going to be an exact sample from $q$. Clearly, the communication cost of $K$ is
+$\log K$ nats. \cite{harsha2007communication} then also prove the following result.
+\begin{theorem}{(\cite{harsha2007communication})}
+  \label{thm:bits-back_efficiency}
+Let $X$ and $Y$ be random variables as given above. And let the communication
+problem be set as above. Let $T[X : Y]$ denote the MDL (in nats) of a sample
+$Y=y \sim q(Y \mid X=x)$. Then,
+\begin{equation}
+\label{eq:harsha_upper_bound}
+  I[X : Y] \leq T[X : Y] \leq I[X : Y] + 2\log \left[ I[X : Y] + 1 \right] + \Oh(1),
+\end{equation}
+where $I[ X : Y ]$ is called the mutual information between $X$ and $Y$, and is
+defined as
+\[
+  I[ X : Y ] = \Exp{\KL{q(Y \mid X)}{p(Y)}}{p(X)}
+\]
+Furthermore, $\log K$, given by Algorithm \ref{alg:harsha_rej_sampling},
+achieves the upper bound in Eq \ref{eq:harsha_upper_bound}.
+\end{theorem}
+\par
+The above theorem tells us that while in the classical sense bits-back efficiency
+is the best that we can do, it also tells us that we can get very close to it.
+Hence, from now on, we shall refer to any algorithm that achieves this tight
+upper bound as bits-back efficient as well.
+\par
+To translate this to a general ML-based compression framework, we shall switch
+to notation more common in statistical modelling, concretely, we shall denote
+our data by $\vec{x}$ and the latent code $\vec{z}$. Now, let us assume a
+generative model over these variables, $p(\vec{x}, \vec{z}) = p(\vec{x} \mid
+\vec{z})p_\theta(\vec{z})$, where $p(\vec{x} \mid \vec{z})$ is the data likelihood, and
+$p_\theta(\vec{z})$ is the prior over the latent code, with sufficient
+statistics $\theta$. Let us also assume an approximate posterior $q_\phi(\vec{z}
+\mid \vec{x})$ over the latent code, with sufficient statistics $\phi$. Then our
+framework is as follows:
+\begin{enumerate}
+\item Given some dataset $\Data = \{\vec{x}_1, \hdots, \vec{x}_n\}$ where the
+  training examples are distributed according to $p(\vec{x})$, we fit our
+  generative model to it, by fitting $\theta$ and $\phi$ using the (weighted) MDL
+  objective:
+  \begin{equation}
+    \label{eq:mdl_elbo}
+    \begin{gathered}
+      L(\Data) = \Exp{L(\vec{x})}{p(\vec{x})}, \\
+      \text{where } L(\vec{x}) = \Exp{L(\vec{x} \mid \vec{z}) + L(\vec{z})}{q_\phi}
+      =  -\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi} + \beta\KL{q_\phi}{p_\theta}.
+    \end{gathered}
+  \end{equation}
+  This training objective is well known in the neural generative modelling
+  literature as the Evidence Lower Bound (ELBO) (\cite{kingma2013auto},
+  \cite{higgins2017beta}). The expectation over $p(\vec{x})$ is usually taken over
+  randomly drawn mini-batches from $\Data$ using Stochastic Gradient Descent (SGD).
+  Here $\beta$ is a
+  hyperparameter that can be set to trade off a smaller description length at
+  the cost of worse reconstruction, or the other way around, thus allowing the
+  user to reach different points on the rate distortion curve. See Section
+  \ref{sec:derive_weighted_elbo} for the derivation of Eq \ref{eq:mdl_elbo} and
+  discussion on its validity.
+
+  \item Once $\theta$ and $\phi$ have been learned, we fix them (equivalent to
+    sharing them with Bob in the communication problem).
+
+  \item Now, if we wish to compress some new data $\vec{x}'$, use a bits-back
+    efficient sampling algorithm (such as Algorithm
+    \ref{alg:harsha_rej_sampling}) to sample $q(\vec{z} \mid \vec{x}')$ using
+    $p(\vec{z})$, and use the code output of the sampling algorithm as the
+    compression code, along with the random seed that was used to obtain the sample. 
+    We shall refer to such algorithms as \textbf{coded sampling algorithms}.
+
+  \item To decompress, since we always have access to the fixed prior
+    $p_\theta$, and we have the random seed the compressing party used, we may
+    run the coded sampling algorithm in ``decode'' mode to recover the sample $\vec{z}'$
+    from $q_\phi$. Finally, we may run the reconstruction transformation of our
+    generative model to recover a lossy reconstruction $\hat{\vec{x}}'$.
+\end{enumerate}
+
+\par 
+This framework is inspired by the work of \cite{havasi2018minimal}, where they
+used a very similar framework to achieve state-of-the-art weight compression in
+Bayesian Neural Networks.
+\par
+In this thesis, we use this framework to train $\beta$-VAEs as our choice of
+generative models, and demonstrate the efficiency of our method compared to the
+state-of-the-art in neural compression. More details on this will be given in
+Chapter \ref{chapter:method}. 
+
+\subsection{Relation of Quantization to Our Framework}
+\par
+We present a similar argument to the one given in \cite{havasi2018minimal}.
+Recall the original representation space $R$ and quantized space $S$ of a
+quantizer $[\cdot]$. Recall also the Kronecker delta function on $x$, defined as 
+\[
+  \delta_{x}(y) = 
+  \begin{cases}
+    1 & \text{if } y = x \\
+    0 & \text{otherwise}.
+  \end{cases}
+\]
+Given a particular $x \in R$, we have seen that
+quantization allows us to code it in $-\log \hat{Q}([x])$ nats. If we manipulate
+this term slightly, we get
+\begin{align*}
+  -\log \hat{Q}([x]) &= \sum_{s \in S} \left[ -\delta_{[x]}(s)\log \hat{q}([x]) + \underbrace{\delta_{[x]}(s) \log \delta_{[x]}(s)}_{= 0} \right] \\
+                     &= \sum_{s \in S} \delta_{[x]}(s)\log\frac{\delta_{[x]}(s)}{\hat{q}([x])} \\
+                     &= \KL{\delta_{[x]}}{\hat{Q}}.
+\end{align*}
+This shows that quantization of a deterministic parameter set is also
+bits-back efficient, with the posterior distribution family restricted to point masses. Thus
+the clear advantage of our framework comes from the fact that we allow much more
+posteriors than point masses. 
+
+\subsection{Derivation of the Training Objective}
+\label{sec:derive_weighted_elbo}
+\par
+In this section, we present the derivation of Eq \ref{eq:mdl_elbo}. Thus, let our
+likelihood $p(\vec{x} \mid \vec{z})$, our latent prior $p_\theta(\vec{z})$ and
+approximate posterior $q_\phi(\vec{z} \mid \vec{x})$ be given. Then, given a budget
+of $C$ nats, we want to optimize the following constrained objective on the
+description lengths:
+\[
+  \Exp{\Exp{-L(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})}
+  \quad \text{subject to } \Exp{L(\vec{z})}{p(\vec{x})} < C.
+\]
+As we have seen in the sections above, these quantities can be replaced by
+\begin{equation}
+\label{eq:framework_hard_train_target}
+\Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})}
+\quad \text{subject to } \Exp{\KL{q_{\phi}(\vec{z} \mid
+    \vec{x})}{p_{\theta}(\vec{z})}}{p(\vec{x})} < C.
+\end{equation}
+
+As we want to use gradient-based optimization of our models, we need to find a
+continuous relaxation of Eq \ref{eq:framework_hard_train_target}.
+To this end, we rewrite the terms inside the ``outer'' expectation as their
+Lagranagian relaxation under the KKT conditions (\cite{karush2014minima},
+\cite{kuhn2014nonlinear}, \cite{higgins2017beta}) and get:
+\[
+  \F(\theta, \phi, \beta, \vec{x}) = 
+  \Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}
+  - \beta (\KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})} - C).
+\]
+By the KKT conditions if $C \geq 0$ then $\beta \geq 0$, hence discarding the last
+term in the above equation will provide a lower bound for it:
+\[
+  \F(\theta, \phi, \beta, \vec{x}) \geq
+  \L(\theta, \phi, \beta, \vec{x}) =
+  \Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})} - \beta
+  \KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})}.
+\]
+Finally, taking the expectation over this again gives
+\begin{equation}
+\label{eq:framework_train_target}
+\begin{aligned}
+  \Exp{\L(\theta, \phi, \beta, \vec{x})}{p(\vec{x})} &=
+  \Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})} - \beta
+  \Exp{\KL{q_{\phi}(\vec{z} \mid \vec{x})}{p_{\theta}(\vec{z})}}{p(\vec{x})} \\
+  &= \Exp{\Exp{\log p(\vec{x} \mid \vec{z})}{q_\phi(\vec{z})}}{p(\vec{x})} - \beta
+  I[ \vec{x} : \vec{z} ] \\
+  &= \Exp{L(\vec{x})}{p(\vec{x})}.
+\end{aligned}
+\end{equation}
+This is the training objective of $\beta$-VAEs first derived in
+\cite{higgins2017beta}, although we note that it is applicable any generative
+model where the assumed conditions are present.
+\par
+An important caveat of the above formulation is that the samples from
+$p(\vec{x})$ should comparable, in the sense the initial hard optimization objective
+of setting an average nat budget is reasonable. In the case of image data, if
+all images are the same size, this is fine, as our continuous relaxation will
+allow for images with high information content to have slightly longer code
+lenghts than $C$ nats and ones with low information content will have shorter
+lengths. However, if we used different sized images during training, it would be
+less justified to set the same average code budget for, say, a $200 \times 300$ pixel
+image and a $2000 \times 2000$ image, as the latter will naturally contain more
+information than the former. Hence in this case it would be more reasonable
+to make the budget a function of the number of pixels the image contains,
+although this might make the formulation of the training objective much harder.
+\par
+An approach taken in all neural image compression methods we examined is instead
+to train on random, but equal-sized patches extracted from each training image.
+While other works do this to make training more computationally feasible. As
+far as we are aware, we are the first ones to argue that this practise is not only
+convenient, but mandatory for the training procedure to be sound.
+
+\nomenclature[z-VAE]{VAE}{Variational Auto-Encoder}
+\nomenclature[z-MSE]{MSE}{Mean Squared Error}
+\nomenclature[z-MAE]{MAE}{Mean Absolute Error}
+\nomenclature[z-PLN]{PLN}{Probabilistic Ladder Network}
